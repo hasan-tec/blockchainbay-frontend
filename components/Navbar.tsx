@@ -18,13 +18,47 @@ import { cn } from "@/lib/utils"
 export const Logo = () => {
   return (
     <div className="flex items-center gap-2">
-      <div className="relative w-10 h-10">
-        <div className="absolute inset-0 bg-gradient-to-tr from-[#F7984A] to-[#F7984A]/80 rounded-lg blur-[2px]"></div>
-        <div className="absolute inset-0.5 bg-[#F7984A] rounded-lg flex items-center justify-center">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2L20 7V17L12 22L4 17V7L12 2Z" fill="white" />
-          </svg>
-        </div>
+      <div className="relative w-10 h-10 flex items-center justify-center">
+        {/* SVG Logo */}
+        <svg 
+          width="36" 
+          height="36" 
+          viewBox="0 0 141.63 97.28" 
+          xmlns="http://www.w3.org/2000/svg" 
+          xmlnsXlink="http://www.w3.org/1999/xlink"
+        >
+          <defs>
+            <linearGradient id="linear-gradient" x1="1.87" y1="93.87" x2="130.08" y2="7.63" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stopColor="#ef4b3d"/>
+              <stop offset="1" stopColor="#f7984a"/>
+            </linearGradient>
+            <linearGradient id="linear-gradient-2" x1="4.57" y1="97.88" x2="132.78" y2="11.64" xlinkHref="#linear-gradient"/>
+            <linearGradient id="linear-gradient-3" x1="24.08" y1="126.87" x2="152.28" y2="40.63" xlinkHref="#linear-gradient"/>
+            <linearGradient id="linear-gradient-4" x1="12.33" y1="109.41" x2="140.54" y2="23.16" xlinkHref="#linear-gradient"/>
+            <linearGradient id="linear-gradient-5" x1="-22.5" y1="55.15" x2="86.17" y2="-53.52" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stopColor="#ef4b3d"/>
+              <stop offset="1" stopColor="#f7984a"/>
+            </linearGradient>
+            <linearGradient id="linear-gradient-6" x1="14.99" y1="26.32" x2="43.25" y2="-1.95" xlinkHref="#linear-gradient-5"/>
+            <linearGradient id="linear-gradient-7" x1="5.63" y1="98.29" x2="116.35" y2="-12.43" xlinkHref="#linear-gradient-5"/>
+            <linearGradient id="linear-gradient-8" x1="68.98" y1="80" x2="131.75" y2="17.23" xlinkHref="#linear-gradient-5"/>
+            <linearGradient id="linear-gradient-9" x1="-11.2" y1="73.92" x2="121.2" y2="-6.03" gradientUnits="userSpaceOnUse">
+              <stop offset=".04" stopColor="#ef4b3d"/>
+              <stop offset="1" stopColor="#f7984a"/>
+            </linearGradient>
+          </defs>
+          <path className="cls-7" d="m18.13,82.77c.08.06.15.12.23.18-.08-.06-.15-.12-.23-.18Z" fill="url(#linear-gradient)"/>
+          <path className="cls-1" d="m26.8,82.95c.07-.06.14-.12.21-.18-.07.06-.14.12-.21.18Z" fill="url(#linear-gradient-2)"/>
+          <path className="cls-6" d="m89.4,82.76c.07.06.13.13.2.19-.07-.06-.13-.13-.2-.19Z" fill="url(#linear-gradient-3)"/>
+          <path className="cls-8" d="m98.29,51.56c-.08.06-.15.12-.23.19.08-.06.15-.12.23-.19Z" fill="url(#linear-gradient-4)"/>
+          <g>
+            <path className="cls-3" d="m18.37,14.31c-.08.06-.16.12-.24.19.08-.06.16-.12.24-.19Z" fill="url(#linear-gradient-5)"/>
+            <path className="cls-2" d="m27.01,14.5c-.07-.06-.15-.13-.22-.19.07.06.15.13.22.19Z" fill="url(#linear-gradient-6)"/>
+            <path className="cls-4" d="m89.62,14.31c-.07.07-.14.13-.21.2.07-.07.14-.13.21-.2Z" fill="url(#linear-gradient-7)"/>
+            <path className="cls-9" d="m128.62,45.03c5.21-2.65,8.46-7.32,7.7-15.09-1.02-10.62-10.21-14.19-21.8-15.2V0h-8.98v14.35c-2.37,0-4.77.05-7.17.09V0s-8.97,0-8.97,0v14.73c-1.95.04-3.86.08-5.72.08v-.04h-12.39s0,9.57,0,9.57c0,0,6.63-.12,6.52,0,3.64,0,4.82,2.11,5.16,3.93v16.79s0,23.58,0,23.58c-.16,1.14-.83,2.97-3.38,2.97.12.1-6.53,0-6.53,0l-1.78,10.71h11.68c2.18,0,4.32.04,6.41.05v14.9s8.98,0,8.98,0v-14.75c2.47.05,4.85.07,7.17.07v14.68s8.98,0,8.98,0v-14.88c15.1-.87,25.67-4.67,26.98-18.83,1.06-11.4-4.31-16.49-12.88-18.55Zm-30.03-20.04c5.06,0,20.99-1.61,20.99,8.96,0,10.13-15.92,8.95-20.99,8.95v-17.91Zm0,46.7v-19.75c6.09,0,25.17-1.75,25.18,9.87,0,11.14-19.09,9.87-25.18,9.88Z" fill="url(#linear-gradient-8)"/>
+            <path className="cls-5" d="m57.33,45.03c5.21-2.65,8.46-7.32,7.7-15.09-1.02-10.62-10.21-14.19-21.8-15.2V0h-8.98v14.35c-2.37,0-4.77.05-7.17.09V0s-8.97,0-8.97,0v14.73c-1.95.04-3.86.08-5.72.08v-.04H0s0,9.57,0,9.57c0,0,6.63-.12,6.52,0,3.64,0,4.82,2.11,5.16,3.93v16.79s0,23.58,0,23.58c-.16,1.14-.83,2.97-3.38,2.97.12.1-6.53,0-6.53,0L0,82.32h11.68c2.18,0,4.32.04,6.41.05v14.9s8.98,0,8.98,0v-14.75c2.47.05,4.85.07,7.17.07v14.68s8.98,0,8.98,0v-14.88c15.1-.87,25.67-4.67,26.98-18.83,1.06-11.4-4.31-16.49-12.88-18.55Zm-30.03-20.04c5.06,0,20.99-1.61,20.99,8.96,0,10.13-15.92,8.95-20.99,8.95v-17.91Zm0,46.7v-19.75c6.09,0,25.17-1.75,25.18,9.87,0,11.14-19.09,9.87-25.18,9.88Z" fill="url(#linear-gradient-9)"/>
+          </g>
+        </svg>
       </div>
       <span className="font-bold text-xl tracking-tight">BlockChainBay</span>
     </div>
