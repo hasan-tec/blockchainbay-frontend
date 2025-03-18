@@ -60,7 +60,7 @@ export const Logo = () => {
           </g>
         </svg>
       </div>
-      <span className="font-bold text-xl tracking-tight">BlockChainBay</span>
+      <span className="font-bold text-xl tracking-tight">BlockchainBay</span>
     </div>
   )
 }

@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import Navbar from "@/components/Navbar"
 import { Footer } from "@/components/NewsletterFooter"
-import { ArrowUpRight, Globe, Mail, Twitter, BarChart3 } from "lucide-react"
+import { ArrowUpRight, Globe, Mail, BarChart3, X } from "lucide-react"
 import { CheckCircle, MessageCircle } from "lucide-react"
 import YouTubeEmbed from "@/components/YouTubeEmbed"
 import DuneData from "@/components/DuneData"
@@ -78,6 +78,8 @@ interface CryptoProject {
   publishedAt: string
   AnalyticsDuneQueryID: string | null
   dunequeryid2: string | null
+  AnalyticsOneHeader: string | null // New field from Strapi
+  AnalyticsTwoHeader: string | null // New field from Strapi
   Logo?: Logo
 }
 
@@ -159,7 +161,53 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
     return faqs
   }
 
-  const faqSections = extractFAQs(project?.DetailedDescription)
+  const extractContent = (description: DetailedDescriptionBlock[] | undefined) => {
+    if (!description) return { faqs: [], regularContent: [] }
+
+    const faqs: { question: string; answer: string[] }[] = []
+    const regularContent: string[] = []
+
+    let currentQuestion: string | null = null
+    let currentAnswer: string[] = []
+
+    for (const block of description) {
+      // Check if it's a paragraph with bold text (potential question)
+      if (block.type === "paragraph" && block.children.some((child) => child.bold)) {
+        // If we have a previous QA pair, save it
+        if (currentQuestion && currentAnswer.length > 0) {
+          faqs.push({
+            question: currentQuestion,
+            answer: currentAnswer,
+          })
+          currentAnswer = []
+        }
+
+        // New question
+        currentQuestion = block.children.map((child) => child.text).join("")
+      }
+      // Check if it's a regular paragraph in a FAQ
+      else if (currentQuestion && block.type === "paragraph") {
+        // Add to current answer
+        currentAnswer.push(block.children.map((child) => child.text).join(""))
+      }
+      // If it's a regular paragraph (not part of a FAQ)
+      else if (block.type === "paragraph") {
+        regularContent.push(block.children.map((child) => child.text).join(""))
+      }
+    }
+
+    // Add the last QA pair if exists
+    if (currentQuestion && currentAnswer.length > 0) {
+      faqs.push({
+        question: currentQuestion,
+        answer: currentAnswer,
+      })
+    }
+
+    return { faqs, regularContent }
+  }
+
+  const { faqs: faqSections, regularContent } = extractContent(project?.DetailedDescription)
 
   // Updated function to get project logo with proper URL handling
   const getProjectLogo = () => {
@@ -169,13 +217,15 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
       const logoUrl = project.Logo.url.startsWith("/") ? `${backendUrl}${project.Logo.url}` : project.Logo.url
 
       return (
-        <Image
-          src={logoUrl || "/placeholder.svg"}
-          alt={project.title}
-          width={120}
-          height={120}
-          className="w-full h-full object-cover"
-        />
+        <div className="w-full h-full flex items-center justify-center bg-white/5 backdrop-blur-sm">
+          <Image
+            src={logoUrl || "/placeholder.svg"}
+            alt={project.title}
+            width={100}
+            height={100}
+            className="max-w-[80%] max-h-[80%] object-contain"
+          />
+        </div>
       )
     } else {
       return (
@@ -213,15 +263,15 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
             className={`mb-10 transition-all duration-700 ease-out ${isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
           >
             <div className="flex flex-col md:flex-row items-start md:items-center gap-6 md:gap-10">
-              <div className="relative w-24 h-24 md:w-32 md:h-32 group">
+              <div className="relative w-28 h-28 md:w-36 md:h-36 group">
                 {/* Animated glow effect */}
-                <div className="absolute inset-0 bg-gradient-to-tr from-[#F7984A]/40 to-blue-400/40 rounded-full blur-[8px] group-hover:blur-[12px] transition-all duration-500"></div>
-                <div className="absolute inset-1 bg-[#0D0B26] rounded-full flex items-center justify-center overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-tr from-[#F7984A]/40 to-blue-400/40 rounded-xl blur-[8px] group-hover:blur-[12px] transition-all duration-500"></div>
+                <div className="absolute inset-1 bg-[#0D0B26] rounded-xl flex items-center justify-center overflow-hidden">
                   {getProjectLogo()}
                 </div>
-                {/* Subtle rotating border */}
+                {/* Subtle animated border */}
                 <div
-                  className="absolute inset-[-2px] rounded-full border-2 border-[#F7984A]/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                  className="absolute inset-[-2px] rounded-xl border-2 border-[#F7984A]/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
                   style={{
                     background: "linear-gradient(to right, transparent, rgba(247,152,74,0.3), transparent)",
                     transform: "rotate(0deg)",
@@ -301,37 +351,203 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
                       <div
                         className={`transition-all duration-700 ease-out delay-100 ${isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
                       >
-                        <h2 className="text-2xl font-bold mb-4 relative inline-block">
-                          What is {project.title}?
-                          <span className="absolute -bottom-1 left-0 w-1/3 h-0.5 bg-[#F7984A]/70"></span>
-                        </h2>
-                        <p className="text-gray-300 leading-relaxed">{project.ShortDescription}</p>
+                        <div className="flex flex-wrap justify-between items-center mb-4">
+                          <h2 className="text-2xl font-bold relative inline-block">
+                            What is {project.title}?
+                            <span className="absolute -bottom-1 left-0 w-1/3 h-0.5 bg-[#F7984A]/70"></span>
+                          </h2>
+
+                          {/* Social Links */}
+                          <div className="flex items-center gap-2 mt-2 md:mt-0">
+                            <Link
+                              href={project.Website}
+                              target="_blank"
+                              className="flex items-center justify-center w-8 h-8 rounded-full bg-[#0D0B26] border border-gray-800/50 text-gray-300 hover:text-white hover:border-[#F7984A]/30 hover:bg-[#F7984A]/10 transition-all duration-300 relative group"
+                              onMouseEnter={() => setHoverSocial("website")}
+                              onMouseLeave={() => setHoverSocial(null)}
+                            >
+                              <Globe className="h-4 w-4 group-hover:scale-110 transition-transform duration-300" />
+                              {hoverSocial === "website" && (
+                                <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs bg-[#0D0B26] border border-gray-800/50 px-2 py-1 rounded whitespace-nowrap">
+                                  Website
+                                </span>
+                              )}
+                            </Link>
+
+                            {project.Twitter && (
+                              <Link
+                                href={project.Twitter}
+                                target="_blank"
+                                className="flex items-center justify-center w-8 h-8 rounded-full bg-[#0D0B26] border border-gray-800/50 text-gray-300 hover:text-white hover:border-[#000000]/30 hover:bg-[#000000]/10 transition-all duration-300 relative group"
+                                onMouseEnter={() => setHoverSocial("twitter")}
+                                onMouseLeave={() => setHoverSocial(null)}
+                              >
+                                <X className="h-4 w-4 group-hover:scale-110 transition-transform duration-300" />
+                                {hoverSocial === "twitter" && (
+                                  <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs bg-[#0D0B26] border border-gray-800/50 px-2 py-1 rounded whitespace-nowrap">
+                                    X
+                                  </span>
+                                )}
+                              </Link>
+                            )}
+
+                            {project.Discord && (
+                              <Link
+                                href={project.Discord}
+                                target="_blank"
+                                className="flex items-center justify-center w-8 h-8 rounded-full bg-[#0D0B26] border border-gray-800/50 text-gray-300 hover:text-[#5865F2] hover:border-[#5865F2]/30 hover:bg-[#5865F2]/10 transition-all duration-300 relative group"
+                                onMouseEnter={() => setHoverSocial("discord")}
+                                onMouseLeave={() => setHoverSocial(null)}
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  viewBox="0 0 24 24"
+                                  className="h-4 w-4 group-hover:scale-110 transition-transform duration-300"
+                                  fill="currentColor"
+                                >
+                                  <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515a.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0a12.64 12.64 0 0 0-.617-1.25a.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057a19.9 19.9 0 0 0 5.993 3.03a.078.078 0 0 0 .084-.028a14.09 14.09 0 0 0 1.226-1.994a.076.076 0 0 0-.041-.106a13.107 13.107 0 0 1-1.872-.892a.077.077 0 0 1-.008-.128a10.2 10.2 0 0 0 .372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127a12.299 12.299 0 0 1-1.873.892a.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028a19.839 19.839 0 0 0 6.002-3.03a.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.956-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.955-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.946 2.418-2.157 2.418z" />
+                                </svg>
+                                {hoverSocial === "discord" && (
+                                  <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs bg-[#0D0B26] border border-gray-800/50 px-2 py-1 rounded whitespace-nowrap">
+                                    Discord
+                                  </span>
+                                )}
+                              </Link>
+                            )}
+
+                            {project.Telegram && (
+                              <Link
+                                href={project.Telegram}
+                                target="_blank"
+                                className="flex items-center justify-center w-8 h-8 rounded-full bg-[#0D0B26] border border-gray-800/50 text-gray-300 hover:text-white hover:border-[#0088cc]/30 hover:bg-[#0088cc]/10 transition-all duration-300 relative group"
+                                onMouseEnter={() => setHoverSocial("telegram")}
+                                onMouseLeave={() => setHoverSocial(null)}
+                              >
+                                <MessageCircle className="h-4 w-4 group-hover:scale-110 transition-transform duration-300" />
+                                {hoverSocial === "telegram" && (
+                                  <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs bg-[#0D0B26] border border-gray-800/50 px-2 py-1 rounded whitespace-nowrap">
+                                    Telegram
+                                  </span>
+                                )}
+                              </Link>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-gray-300 leading-relaxed font-normal">{project.ShortDescription}</p>
                       </div>
                       {/* YouTube Embed if available */}
                       {project.VideoURL && (
                         <div
                           className={`space-y-4 transition-all duration-700 ease-out delay-200 ${isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
                         >
-                          <h3 className="text-xl font-bold flex items-center gap-2">
-                            <span className="text-[#F7984A]">🔥</span> Project Overview
-                          </h3>
+                          <div className="flex justify-between items-center">
+                            <h3 className="text-xl font-bold flex items-center gap-2">
+                              <span className="text-[#F7984A]">🔥</span> Project Overview
+                            </h3>
+
+                            {/* Podcast Subscription Links */}
+                            <div className="flex items-center gap-3">
+                              <div className="hidden md:flex items-center text-sm text-gray-300 font-medium mr-1">
+                                <span>Subscribe now</span>
+                              </div>
+                              <Link
+                                href="https://spotify.com"
+                                target="_blank"
+                                className="flex items-center justify-center w-8 h-8 rounded-full bg-[#0D0B26] border border-gray-800/50 text-gray-300 hover:text-[#1DB954] hover:border-[#1DB954]/30 hover:bg-[#1DB954]/10 transition-all duration-300 relative group"
+                                onMouseEnter={() => setHoverSocial("spotify")}
+                                onMouseLeave={() => setHoverSocial(null)}
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  viewBox="0 0 24 24"
+                                  className="h-4 w-4 group-hover:scale-110 transition-transform duration-300"
+                                  fill="currentColor"
+                                >
+                                  <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.6 0 12 0zm5.52 17.28c-.24.36-.66.48-1.02.24-2.82-1.74-6.36-2.1-10.56-1.14-.42.12-.78-.18-.9-.54-.12-.42.18-.78.54-.9 4.56-1.02 8.52-.6 11.64 1.32.42.18.48.66.3 1.02zm1.44-3.3c-.3.42-.84.6-1.26.3-3.24-1.98-8.16-2.58-11.94-1.44-.48.12-.99-.12-1.11-.6-.12-.48.12-.99.6-1.11 4.38-1.32 9.78-.66 13.5 1.62.36.24.54.78.24 1.2l-.03.03zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.3c-.6.18-1.2-.18-1.38-.78-.18-.6.18-1.2.78-1.38 4.26-1.26 11.28-1.02 15.72 1.62.54.3.78 1.02.48 1.56-.3.42-1.02.66-1.56.36z" />
+                                </svg>
+                                {hoverSocial === "spotify" && (
+                                  <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs bg-[#0D0B26] border border-gray-800/50 px-2 py-1 rounded whitespace-nowrap">
+                                    Spotify
+                                  </span>
+                                )}
+                              </Link>
+                              <Link
+                                href="https://podcasts.apple.com"
+                                target="_blank"
+                                className="flex items-center justify-center w-8 h-8 rounded-full bg-[#0D0B26] border border-gray-800/50 text-gray-300 hover:text-[#8c44ff] hover:border-[#8c44ff]/30 hover:bg-[#8c44ff]/10 transition-all duration-300 relative group"
+                                onMouseEnter={() => setHoverSocial("apple")}
+                                onMouseLeave={() => setHoverSocial(null)}
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  viewBox="0 0 24 24"
+                                  className="h-4 w-4 group-hover:scale-110 transition-transform duration-300"
+                                  fill="currentColor"
+                                >
+                                  <path d="M5.34 0A5.328 5.328 0 000 5.34v13.32A5.328 5.328 0 005.34 24h13.32A5.328 5.328 0 0024 18.66V5.34A5.328 5.328 0 0018.66 0H5.34zm6.525 2.568c2.336 0 3.776 1.36 3.776 3.4 0 1.936-1.272 3.168-3.248 3.384 1.952.336 3.512 1.568 3.512 3.656 0 2.72-2.096 4.256-4.832 4.256-2.4 0-4.288-1.344-4.528-3.568l2.144-.752c.16 1.376.912 1.984 2.4 1.984 1.376 0 2.32-.8 2.32-2.176 0-1.504-1.04-2.224-2.896-2.224h-.672v-2.24h.624c1.648 0 2.592-.64 2.592-1.984 0-1.232-.8-1.824-2.128-1.824-1.264 0-2.112.576-2.304 1.728l-2.016-.864c.528-1.808 2.128-2.816 4.256-2.776zm5.725 12.616h1.968v1.888h-1.968v-1.888z" />
+                                </svg>
+                                {hoverSocial === "apple" && (
+                                  <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs bg-[#0D0B26] border border-gray-800/50 px-2 py-1 rounded whitespace-nowrap">
+                                    Apple Podcast
+                                  </span>
+                                )}
+                              </Link>
+                              <Link
+                                href="https://youtube.com"
+                                target="_blank"
+                                className="flex items-center justify-center w-8 h-8 rounded-full bg-[#0D0B26] border border-gray-800/50 text-gray-300 hover:text-[#FF0000] hover:border-[#FF0000]/30 hover:bg-[#FF0000]/10 transition-all duration-300 relative group"
+                                onMouseEnter={() => setHoverSocial("youtube")}
+                                onMouseLeave={() => setHoverSocial(null)}
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  viewBox="0 0 24 24"
+                                  className="h-4 w-4 group-hover:scale-110 transition-transform duration-300"
+                                  fill="currentColor"
+                                >
+                                  <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+                                </svg>
+                                {hoverSocial === "youtube" && (
+                                  <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs bg-[#0D0B26] border border-gray-800/50 px-2 py-1 rounded whitespace-nowrap">
+                                    YouTube
+                                  </span>
+                                )}
+                              </Link>
+                            </div>
+                          </div>
                           <div className="rounded-xl overflow-hidden border border-gray-800/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:border-gray-700/70">
                             <YouTubeEmbed url={project.VideoURL} title={`${project.title} - Overview`} />
                           </div>
                         </div>
                       )}
+
+                      {/* Add this after the YouTube section and before the FAQ section */}
+                      {project.VideoURL && regularContent.length > 0 && (
+                        <div
+                          className={`space-y-4 transition-all duration-700 ease-out delay-250 ${isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
+                        >
+                          <div className="space-y-4">
+                            {regularContent.map((paragraph, index) => (
+                              <p key={`regular-${index}`} className="text-gray-300 leading-relaxed font-normal">
+                                {paragraph}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       {/* FAQ Sections with staggered animation */}
                       {faqSections.length > 0 && (
-                        <div className="space-y-8">
+                        <div className="space-y-10">
                           {faqSections.map((faq, index) => (
                             <div
                               key={index}
-                              className={`space-y-4 transition-all duration-700 ease-out bg-[#0D0B26]/30 p-6 rounded-xl border border-gray-800/30 hover:border-gray-700/50 hover:bg-[#0D0B26]/50 transition-all duration-300`}
+                              className={`transition-all duration-700 ease-out`}
                               style={{ transitionDelay: `${300 + index * 100}ms` }}
                             >
-                              <h3 className="text-xl font-bold text-[#F7984A]/90">{faq.question}</h3>
+                              <h3 className="text-2xl font-bold mb-4 text-white">{faq.question}</h3>
                               {faq.answer.map((paragraph, pIndex) => (
-                                <p key={pIndex} className="text-gray-300 leading-relaxed">
+                                <p key={pIndex} className="text-gray-300 leading-relaxed font-normal">
                                   {paragraph}
                                 </p>
                               ))}
@@ -340,120 +556,48 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
                         </div>
                       )}
                     </div>
-                    {/* Sidebar with animation */}
-                    <div
-                      className={`space-y-8 transition-all duration-700 ease-out delay-300 ${isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
-                    >
-                     {/* Unified Analytics Card */}
-                    <Card className="bg-[#0A0918] border border-gray-800/50 rounded-xl overflow-hidden shadow-lg">
-                      <div className="p-5 border-b border-gray-800/50">
-                        <h3 className="font-bold text-xl text-white flex items-center">
-                          <BarChart3 className="mr-2 h-5 w-5 text-[#F7984A]" />
-                          {project.title} Analytics
-                        </h3>
-                      </div>
-
-                      <div className="p-5 space-y-8">
-                        {/* First Analytics Chart */}
-                        {project.AnalyticsDuneQueryID && (
-                          <div>
-                           
-                            <div className="bg-[#0D0B26]/70 rounded-lg overflow-hidden">
-                              <DuneData 
-                                queryId={project.AnalyticsDuneQueryID} 
-                                title="" 
-                              />
-                            </div>
+                    {/* Sidebar with animation - Only show if Dune IDs exist */}
+                    {(project.AnalyticsDuneQueryID || project.dunequeryid2) && (
+                      <div
+                        className={`space-y-8 transition-all duration-700 ease-out delay-300 ${isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
+                      >
+                        {/* Unified Analytics Card */}
+                        <Card className="bg-[#0A0918] border border-gray-800/50 rounded-xl overflow-hidden shadow-lg">
+                          <div className="p-5 border-b border-gray-800/50">
+                            <h3 className="font-bold text-xl text-white flex items-center">
+                              <BarChart3 className="mr-2 h-5 w-5 text-[#F7984A]" />
+                              {project.title} Analytics
+                            </h3>
                           </div>
-                        )}
 
-                        {/* Second Analytics Chart */}
-                        {project.dunequeryid2 && (
-                          <div>
-                          
-                            <div className="bg-[#0D0B26]/70 rounded-lg overflow-hidden">
-                              <DuneData 
-                                queryId={project.dunequeryid2}
-                                title=""
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </Card>
-
-                      {/* Subscribe with hover effects */}
-                      <div className="space-y-5">
-                        <h3 className="font-bold text-lg relative inline-block">
-                          Subscribe for updates
-                          <span className="absolute -bottom-1 left-0 w-1/2 h-0.5 bg-[#F7984A]/50"></span>
-                        </h3>
-                        <div className="flex items-center gap-2">
-                          <Link
-                            href={project.Website}
-                            target="_blank"
-                            className="flex items-center justify-center w-10 h-10 rounded-full bg-[#0D0B26] border border-gray-800/50 text-gray-300 hover:text-white hover:border-[#F7984A]/30 hover:bg-[#F7984A]/10 transition-all duration-300 relative group"
-                            onMouseEnter={() => setHoverSocial("website")}
-                            onMouseLeave={() => setHoverSocial(null)}
-                          >
-                            <Globe className="h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
-                            {hoverSocial === "website" && (
-                              <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs bg-[#0D0B26] border border-gray-800/50 px-2 py-1 rounded whitespace-nowrap">
-                                Website
-                              </span>
+                          <div className="p-5 space-y-8">
+                            {/* First Analytics Chart */}
+                            {project.AnalyticsDuneQueryID && (
+                              <div>
+                                {project.AnalyticsOneHeader && (
+                                  <h4 className="text-base font-bold text-white mb-3">{project.AnalyticsOneHeader}</h4>
+                                )}
+                                <div className="bg-[#0D0B26]/70 rounded-lg overflow-hidden">
+                                  <DuneData queryId={project.AnalyticsDuneQueryID} title="" />
+                                </div>
+                              </div>
                             )}
-                          </Link>
-                          {project.Twitter && (
-                            <Link
-                              href={project.Twitter}
-                              target="_blank"
-                              className="flex items-center justify-center w-10 h-10 rounded-full bg-[#0D0B26] border border-gray-800/50 text-gray-300 hover:text-white hover:border-[#1DA1F2]/30 hover:bg-[#1DA1F2]/10 transition-all duration-300 relative group"
-                              onMouseEnter={() => setHoverSocial("twitter")}
-                              onMouseLeave={() => setHoverSocial(null)}
-                            >
-                              <Twitter className="h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
-                              {hoverSocial === "twitter" && (
-                                <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs bg-[#0D0B26] border border-gray-800/50 px-2 py-1 rounded whitespace-nowrap">
-                                  Twitter
-                                </span>
-                              )}
-                            </Link>
-                          )}
-                          {project.Discord && (
-                            <Link
-                              href={project.Discord}
-                              target="_blank"
-                              className="flex items-center justify-center w-10 h-10 rounded-full bg-[#0D0B26] border border-gray-800/50 text-gray-300 hover:text-white hover:border-[#5865F2]/30 hover:bg-[#5865F2]/10 transition-all duration-300 relative group"
-                              onMouseEnter={() => setHoverSocial("discord")}
-                              onMouseLeave={() => setHoverSocial(null)}
-                            >
-                              <MessageCircle className="h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
-                              {hoverSocial === "discord" && (
-                                <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs bg-[#0D0B26] border border-gray-800/50 px-2 py-1 rounded whitespace-nowrap">
-                                  Discord
-                                </span>
-                              )}
-                            </Link>
-                          )}
-                          {project.Telegram && (
-                            <Link
-                              href={project.Telegram}
-                              target="_blank"
-                              className="flex items-center justify-center w-10 h-10 rounded-full bg-[#0D0B26] border border-gray-800/50 text-gray-300 hover:text-white hover:border-[#0088cc]/30 hover:bg-[#0088cc]/10 transition-all duration-300 relative group"
-                              onMouseEnter={() => setHoverSocial("telegram")}
-                              onMouseLeave={() => setHoverSocial(null)}
-                            >
-                              <MessageCircle className="h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
-                              {hoverSocial === "telegram" && (
-                                <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs bg-[#0D0B26] border border-gray-800/50 px-2 py-1 rounded whitespace-nowrap">
-                                  Telegram
-                                </span>
-                              )}
-                            </Link>
-                          )}
-                        </div>
+
+                            {/* Second Analytics Chart */}
+                            {project.dunequeryid2 && (
+                              <div>
+                                {project.AnalyticsTwoHeader && (
+                                  <h4 className="text-base font-bold text-white mb-3">{project.AnalyticsTwoHeader}</h4>
+                                )}
+                                <div className="bg-[#0D0B26]/70 rounded-lg overflow-hidden">
+                                  <DuneData queryId={project.dunequeryid2} title="" />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </Card>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </TabsContent>
               </Tabs>
@@ -543,7 +687,8 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
                       alt="Related project"
                       width={40}
                       height={40}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform
+ duration-300"
                     />
                   </div>
                   <div>

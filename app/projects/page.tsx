@@ -59,7 +59,9 @@ interface CryptoProject {
   DetailedDescription: any[]
   CurrentStatus: string
   Category: string
-  SubCategory: string | null
+  SubCategory: string | null  // This field is not being used correctly in the API
+  Subcategory: string | null  // This is the field actually used in the API response
+  OtherSubCategory: string | null // Additional subcategory field in API
   TokenType: string
   Website: string
   Symbol: string
@@ -73,6 +75,9 @@ interface CryptoProject {
   updatedAt: string
   publishedAt: string
   AnalyticsDuneQueryID: string | null
+  dunequeryid2: string | null
+  AnalyticsOneHeader: string | null
+  AnalyticsTwoHeader: string | null
   Logo?: Logo
 }
 
@@ -88,34 +93,97 @@ interface StrapiResponse {
   }
 }
 
-// Filters
-const tokenFilters = [
-  { id: "Has token", label: "Has token", count: 107 },
-  { id: "No token", label: "No token", count: 67 },
-]
+interface FilterItem {
+  id: string
+  label: string
+  count?: number
+}
 
-const categoryFilters = [
-  { id: "Computing", label: "Computing", count: 42 },
-  { id: "Storage", label: "Storage", count: 29 },
-  { id: "Wireless", label: "Wireless", count: 20 },
-  { id: "Sensor", label: "Sensor", count: 18 },
-  { id: "AI", label: "AI", count: 17 },
-  { id: "Mapping", label: "Mapping", count: 15 },
-  { id: "Geopositioning", label: "Geopositioning", count: 12 },
-]
+// Initial filters without counts (counts will be added dynamically)
+const categoryFilters: FilterItem[] = [
+  { id: "DePIN", label: "DePIN" },
+  { id: "Node", label: "Node" },
+  { id: "Due-Diligence", label: "Due-Diligence" },
+  { id: "Hardware Wallets", label: "Hardware Wallets" },
+  { id: "News, Insights & Data", label: "News, Insights & Data" },
+  { id: "Mining Equipment", label: "Mining Equipment" },
+  { id: "Seed Phrase Storage", label: "Seed Phrase Storage" },
+  { id: "Taxes", label: "Taxes" },
+  { id: "Non-Custodial Swap", label: "Non-Custodial Swap" },
+  { id: "Everyday Crypto Uses", label: "Everyday Crypto Uses" }
+];
+
+// Chain type filters
+const chainTypeFilters: FilterItem[] = [
+  { id: "Algorand", label: "Algorand" },
+  { id: "Arbitrum", label: "Arbitrum" },
+  { id: "Arweave", label: "Arweave" },
+  { id: "Avalanche", label: "Avalanche" },
+  { id: "Base", label: "Base" },
+  { id: "Bitcoin", label: "Bitcoin" },
+  { id: "BSC", label: "BSC" },
+  { id: "Cardano", label: "Cardano" },
+  { id: "Chain Types", label: "Chain Types" },
+  { id: "Constellation", label: "Constellation" },
+  { id: "Cosmos", label: "Cosmos" },
+  { id: "Ethereum", label: "Ethereum" },
+  { id: "Filecoin", label: "Filecoin" },
+  { id: "IoTeX", label: "IoTeX" },
+  { id: "Kadena", label: "Kadena" },
+  { id: "Monad", label: "Monad" },
+  { id: "Near", label: "Near" },
+  { id: "Peaq", label: "Peaq" },
+  { id: "Polkadot", label: "Polkadot" },
+  { id: "Polygon", label: "Polygon" },
+  { id: "Sentinel", label: "Sentinel" },
+  { id: "Solana", label: "Solana" },
+  { id: "Sui", label: "Sui" }
+];
+
+// Subcategory filters
+const subCategoryFilters: FilterItem[] = [
+  { id: "Compute", label: "Compute" },
+  { id: "Storage", label: "Storage" },
+  { id: "Wireless", label: "Wireless" },
+  { id: "Sensor", label: "Sensor" },
+  { id: "AI", label: "AI" },
+  { id: "CDN/Network/Bandwidth", label: "CDN/Network/Bandwidth" },
+  { id: "Privacy", label: "Privacy" },
+  { id: "Energy", label: "Energy" },
+  { id: "Mobility", label: "Mobility" },
+  { id: "Database", label: "Database" }
+];
+
+// Token filters
+const tokenFilters: FilterItem[] = [
+  { id: "Has token", label: "Has token" },
+  { id: "No token", label: "No token" }
+];
 
 export default function CryptoDirectoryPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedTokenFilters, setSelectedTokenFilters] = useState<string[]>([])
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [selectedChainTypes, setSelectedChainTypes] = useState<string[]>([])
+  const [selectedSubCategories, setSelectedSubCategories] = useState<string[]>([])
+  
   const [tokenFilterOpen, setTokenFilterOpen] = useState(true)
   const [categoryFilterOpen, setCategoryFilterOpen] = useState(true)
+  const [chainTypeFilterOpen, setChainTypeFilterOpen] = useState(true)
+  const [subCategoryFilterOpen, setSubCategoryFilterOpen] = useState(true)
+  
   const [projects, setProjects] = useState<CryptoProject[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [scrolled, setScrolled] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  
+  // Add state for the filters with counts
+  const [categoryFiltersWithCount, setCategoryFiltersWithCount] = useState<FilterItem[]>(categoryFilters)
+  const [chainTypeFiltersWithCount, setChainTypeFiltersWithCount] = useState<FilterItem[]>(chainTypeFilters)
+  const [subCategoryFiltersWithCount, setSubCategoryFiltersWithCount] = useState<FilterItem[]>(subCategoryFilters)
+  const [tokenFiltersWithCount, setTokenFiltersWithCount] = useState<FilterItem[]>(tokenFilters)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -126,11 +194,76 @@ export default function CryptoDirectoryPage() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
+  // Add a function to calculate counts for each filter
+  const calculateFilterCounts = (projects: CryptoProject[]) => {
+    const categoryCounts: Record<string, number> = {};
+    const chainTypeCounts: Record<string, number> = {};
+    const subCategoryCounts: Record<string, number> = {};
+    const tokenCounts = {
+      "Has token": 0,
+      "No token": 0
+    };
+
+    projects.forEach(project => {
+      // Count categories
+      if (project.Category) {
+        categoryCounts[project.Category] = (categoryCounts[project.Category] || 0) + 1;
+      }
+      
+      // Count chain types
+      if (project.ChainType) {
+        chainTypeCounts[project.ChainType] = (chainTypeCounts[project.ChainType] || 0) + 1;
+      }
+      
+      // Count subcategories - check both Subcategory and OtherSubCategory fields
+      if (project.Subcategory) {
+        subCategoryCounts[project.Subcategory] = (subCategoryCounts[project.Subcategory] || 0) + 1;
+      }
+      if (project.OtherSubCategory) {
+        subCategoryCounts[project.OtherSubCategory] = (subCategoryCounts[project.OtherSubCategory] || 0) + 1;
+      }
+
+      // Count token status
+      if (project.TokenType && project.TokenType !== "") {
+        tokenCounts["Has token"]++;
+      } else {
+        tokenCounts["No token"]++;
+      }
+    });
+
+    // Update the filter arrays with counts
+    const updatedCategoryFilters = categoryFilters.map(filter => ({
+      ...filter,
+      count: categoryCounts[filter.id] || 0
+    }));
+
+    const updatedChainTypeFilters = chainTypeFilters.map(filter => ({
+      ...filter,
+      count: chainTypeCounts[filter.id] || 0
+    }));
+
+    const updatedSubCategoryFilters = subCategoryFilters.map(filter => ({
+      ...filter,
+      count: subCategoryCounts[filter.id] || 0
+    }));
+
+    const updatedTokenFilters = [
+      { id: "Has token", label: "Has token", count: tokenCounts["Has token"] },
+      { id: "No token", label: "No token", count: tokenCounts["No token"] }
+    ];
+
+    return {
+      categoryFilters: updatedCategoryFilters,
+      chainTypeFilters: updatedChainTypeFilters,
+      subCategoryFilters: updatedSubCategoryFilters,
+      tokenFilters: updatedTokenFilters
+    };
+  };
+
   useEffect(() => {
     const fetchProjects = async () => {
       try {
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:1337"
-        // Update the API endpoint to include Logo in the response
         const response = await fetch(`${backendUrl}/api/crypto-projects?populate=Logo`)
 
         if (!response.ok) {
@@ -139,6 +272,18 @@ export default function CryptoDirectoryPage() {
 
         const data: StrapiResponse = await response.json()
         setProjects(data.data)
+        
+        // Calculate and update filter counts
+        const { categoryFilters: updatedCategoryFilters, 
+                chainTypeFilters: updatedChainTypeFilters, 
+                subCategoryFilters: updatedSubCategoryFilters,
+                tokenFilters: updatedTokenFilters } = calculateFilterCounts(data.data);
+        
+        setCategoryFiltersWithCount(updatedCategoryFilters);
+        setChainTypeFiltersWithCount(updatedChainTypeFilters);
+        setSubCategoryFiltersWithCount(updatedSubCategoryFilters);
+        setTokenFiltersWithCount(updatedTokenFilters);
+        
         setLoading(false)
       } catch (err) {
         console.error("Error fetching projects:", err)
@@ -155,17 +300,44 @@ export default function CryptoDirectoryPage() {
     document.documentElement.classList.toggle("dark")
   }
 
+  // Reset filters function
+  const resetFilters = () => {
+    setSearchQuery("");
+    setSelectedTokenFilters([]);
+    setSelectedCategories([]);
+    setSelectedChainTypes([]);
+    setSelectedSubCategories([]);
+  };
+
+  // Updated filteredProjects function
   const filteredProjects = projects.filter((project) => {
     const matchesSearch =
+      searchQuery === "" ||
       project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.ShortDescription.toLowerCase().includes(searchQuery.toLowerCase())
-
-    const matchesToken = selectedTokenFilters.length === 0 || selectedTokenFilters.includes(project.TokenType)
-
-    const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(project.Category)
-
-    return matchesSearch && matchesToken && matchesCategory
-  })
+      project.ShortDescription.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (project.Symbol && project.Symbol.toLowerCase().includes(searchQuery.toLowerCase()));
+  
+    const matchesToken = 
+      selectedTokenFilters.length === 0 || 
+      (selectedTokenFilters.includes("Has token") && project.TokenType && project.TokenType.toLowerCase().includes("has token")) ||
+      (selectedTokenFilters.includes("No token") && (!project.TokenType || !project.TokenType.toLowerCase().includes("has token")));
+  
+    const matchesCategory = 
+      selectedCategories.length === 0 || 
+      (project.Category && selectedCategories.includes(project.Category));
+  
+    const matchesChainType = 
+      selectedChainTypes.length === 0 || 
+      (project.ChainType && selectedChainTypes.includes(project.ChainType));
+  
+    // Update subcategory matching to check both Subcategory and OtherSubCategory fields
+    const matchesSubCategory = 
+      selectedSubCategories.length === 0 || 
+      (project.Subcategory && selectedSubCategories.includes(project.Subcategory)) ||
+      (project.OtherSubCategory && selectedSubCategories.includes(project.OtherSubCategory));
+  
+    return matchesSearch && matchesToken && matchesCategory && matchesChainType && matchesSubCategory;
+  });
 
   // Updated function to get the project logo URL
   const getProjectLogo = (project: CryptoProject) => {
@@ -209,7 +381,7 @@ export default function CryptoDirectoryPage() {
 
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Filters Sidebar */}
-            <div className="lg:w-64 flex-shrink-0 space-y-8">
+            <div className="lg:w-72 flex-shrink-0 space-y-8">
               {/* Search */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -221,6 +393,18 @@ export default function CryptoDirectoryPage() {
                   className="w-full pl-10 pr-4 py-3 bg-gray-800/70 border border-gray-700/50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#F7984A]/50 focus:border-[#F7984A]/50 transition-all"
                 />
               </div>
+              
+              {/* Reset Filters */}
+              {(selectedTokenFilters.length > 0 || selectedCategories.length > 0 || selectedChainTypes.length > 0 || selectedSubCategories.length > 0 || searchQuery) && (
+                <div className="flex justify-end">
+                  <button
+                    onClick={resetFilters}
+                    className="text-sm text-[#F7984A] hover:text-[#F7984A]/80 transition-colors"
+                  >
+                    Reset all filters
+                  </button>
+                </div>
+              )}
 
               {/* Token Status Filter */}
               <div className="space-y-4 bg-gray-800/20 p-4 rounded-lg border border-gray-800/50">
@@ -233,15 +417,15 @@ export default function CryptoDirectoryPage() {
                 </button>
                 {tokenFilterOpen && (
                   <div className="space-y-3 pt-2">
-                    {tokenFilters.map((filter) => (
+                    {tokenFiltersWithCount.map((filter) => (
                       <label key={filter.id} className="flex items-center space-x-3 text-sm">
                         <Checkbox
                           checked={selectedTokenFilters.includes(filter.id)}
                           onCheckedChange={(checked) => {
                             if (checked) {
-                              setSelectedTokenFilters([...selectedTokenFilters, filter.id])
+                              setSelectedTokenFilters([...selectedTokenFilters, filter.id]);
                             } else {
-                              setSelectedTokenFilters(selectedTokenFilters.filter((id) => id !== filter.id))
+                              setSelectedTokenFilters(selectedTokenFilters.filter((id) => id !== filter.id));
                             }
                           }}
                           className="border-white data-[state=checked]:bg-[#F7984A] data-[state=checked]:border-[#F7984A]"
@@ -264,16 +448,16 @@ export default function CryptoDirectoryPage() {
                   <span className="text-gray-400">{categoryFilterOpen ? "−" : "+"}</span>
                 </button>
                 {categoryFilterOpen && (
-                  <div className="space-y-3 pt-2">
-                    {categoryFilters.map((category) => (
+                  <div className="space-y-3 pt-2 max-h-60 overflow-y-auto pr-2">
+                    {categoryFiltersWithCount.map((category) => (
                       <label key={category.id} className="flex items-center space-x-3 text-sm">
                         <Checkbox
                           checked={selectedCategories.includes(category.id)}
                           onCheckedChange={(checked) => {
                             if (checked) {
-                              setSelectedCategories([...selectedCategories, category.id])
+                              setSelectedCategories([...selectedCategories, category.id]);
                             } else {
-                              setSelectedCategories(selectedCategories.filter((id) => id !== category.id))
+                              setSelectedCategories(selectedCategories.filter((id) => id !== category.id));
                             }
                           }}
                           className="border-white data-[state=checked]:bg-[#F7984A] data-[state=checked]:border-[#F7984A]"
@@ -284,6 +468,78 @@ export default function CryptoDirectoryPage() {
                     ))}
                   </div>
                 )}
+              </div>
+
+              {/* Chain Types Filter */}
+              <div className="space-y-4 bg-gray-800/20 p-4 rounded-lg border border-gray-800/50">
+                <button
+                  className="flex items-center justify-between w-full font-semibold text-lg"
+                  onClick={() => setChainTypeFilterOpen(!chainTypeFilterOpen)}
+                >
+                  <span>Chain Types</span>
+                  <span className="text-gray-400">{chainTypeFilterOpen ? "−" : "+"}</span>
+                </button>
+                {chainTypeFilterOpen && (
+                  <div className="space-y-3 pt-2 max-h-60 overflow-y-auto pr-2">
+                    {chainTypeFiltersWithCount.map((chainType) => (
+                      <label key={chainType.id} className="flex items-center space-x-3 text-sm">
+                        <Checkbox
+                          checked={selectedChainTypes.includes(chainType.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedChainTypes([...selectedChainTypes, chainType.id]);
+                            } else {
+                              setSelectedChainTypes(selectedChainTypes.filter((id) => id !== chainType.id));
+                            }
+                          }}
+                          className="border-white data-[state=checked]:bg-[#F7984A] data-[state=checked]:border-[#F7984A]"
+                        />
+                        <span className="flex-1">{chainType.label}</span>
+                        <span className="text-gray-500">{chainType.count}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* SubCategories Filter */}
+              <div className="space-y-4 bg-gray-800/20 p-4 rounded-lg border border-gray-800/50">
+                <button
+                  className="flex items-center justify-between w-full font-semibold text-lg"
+                  onClick={() => setSubCategoryFilterOpen(!subCategoryFilterOpen)}
+                >
+                  <span>SubCategories</span>
+                  <span className="text-gray-400">{subCategoryFilterOpen ? "−" : "+"}</span>
+                </button>
+                {subCategoryFilterOpen && (
+                  <div className="space-y-3 pt-2 max-h-60 overflow-y-auto pr-2">
+                    {subCategoryFiltersWithCount.map((subCategory) => (
+                      <label key={subCategory.id} className="flex items-center space-x-3 text-sm">
+                        <Checkbox
+                          checked={selectedSubCategories.includes(subCategory.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedSubCategories([...selectedSubCategories, subCategory.id]);
+                            } else {
+                              setSelectedSubCategories(selectedSubCategories.filter((id) => id !== subCategory.id));
+                            }
+                          }}
+                          className="border-white data-[state=checked]:bg-[#F7984A] data-[state=checked]:border-[#F7984A]"
+                        />
+                        <span className="flex-1">{subCategory.label}</span>
+                        <span className="text-gray-500">{subCategory.count}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Filter Stats */}
+              <div className="bg-gray-800/20 p-4 rounded-lg border border-gray-800/50 text-center">
+                <p className="text-gray-300">
+                  Showing <span className="font-bold text-white">{filteredProjects.length}</span> of{" "}
+                  <span className="font-bold text-white">{projects.length}</span> projects
+                </p>
               </div>
             </div>
 
@@ -349,9 +605,14 @@ export default function CryptoDirectoryPage() {
                               <Badge className="bg-gray-800/70 text-gray-300 border-none text-xs">
                                 {project.Category}
                               </Badge>
-                              {project.SubCategory && (
+                              {project.Subcategory && (
                                 <Badge className="bg-gray-800/70 text-gray-300 border-none text-xs">
-                                  {project.SubCategory}
+                                  {project.Subcategory}
+                                </Badge>
+                              )}
+                              {project.OtherSubCategory && (
+                                <Badge className="bg-gray-800/70 text-gray-300 border-none text-xs">
+                                  {project.OtherSubCategory}
                                 </Badge>
                               )}
                             </div>
@@ -386,4 +647,3 @@ export default function CryptoDirectoryPage() {
     </div>
   )
 }
-
