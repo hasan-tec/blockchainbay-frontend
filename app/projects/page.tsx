@@ -575,26 +575,26 @@ export default function CryptoDirectoryPage() {
                     <Link key={project.id} href={`/projects/${project.Slug}`}>
                       <Card className="bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl p-6 hover:border-gray-700/60 transition-all duration-300 h-full min-h-[180px] flex flex-col">
                         <div className="flex items-center gap-3 mb-4">
-                          <div className="relative">
-                            <div className="w-12 h-12 rounded-full overflow-hidden bg-[#0D0B26] border border-purple-500/20">
-                              <div className="w-full h-full">
-                                {project.Logo?.url ? (
-                                  <Image
-                                    src={getProjectLogo(project) || "/placeholder.svg"}
-                                    alt={project.title}
-                                    width={48}
-                                    height={48}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="w-12 h-12 bg-gradient-to-tr from-[#F7984A]/30 to-[#F7984A]/10 flex items-center justify-center text-[#F7984A] font-bold">
-                                    {project.title.substring(0, 2)}
-                                  </div>
-                                )}
-                              </div>
+                          <div className="relative w-12 h-12">
+                            {/* Square container with very subtle gradient */}
+                            <div className="absolute inset-0 rounded-lg border border-gray-800/60"></div>
+                            <div className="absolute inset-0 bg-gradient-to-tr from-[#F7984A]/10 to-blue-400/5 rounded-lg flex items-center justify-center overflow-hidden">
+                              {project.Logo?.url ? (
+                                <Image
+                                  src={getProjectLogo(project) || "/placeholder.svg"}
+                                  alt={project.title}
+                                  width={48}
+                                  height={48}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-[#F7984A] font-bold">
+                                  {project.title.substring(0, 2)}
+                                </div>
+                              )}
                             </div>
                             {project.CurrentStatus === "Verified" && (
-                              <div className="absolute -bottom-1 -right-1 bg-[#F7984A] rounded-full p-0.5">
+                              <div className="absolute -bottom-1 -right-1 bg-[#F7984A] rounded-full p-0.5 z-10">
                                 <CheckCircle className="w-3 h-3 text-white" />
                               </div>
                             )}

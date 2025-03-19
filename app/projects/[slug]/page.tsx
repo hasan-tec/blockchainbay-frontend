@@ -1,4 +1,3 @@
-// PAGE.TSX
 'use client'
 
 import { useState, useEffect } from "react"
@@ -31,8 +30,10 @@ export default function ProjectDetailPage() {
         // Use environment variable for API URL
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:1337'
         const apiUrl = `${backendUrl}/api/crypto-projects`
-        // Add populate=Logo to fetch logo data
-        const url = `${apiUrl}?filters[Slug]=${encodeURIComponent(slugValue)}&populate=Logo`
+        
+        // Use the Strapi advanced populate syntax
+        // This will ensure we get both Logo and Link fields
+        const url = `${apiUrl}?filters[Slug]=${encodeURIComponent(slugValue)}&populate=*`
         
         console.log('Client-side fetching from:', url)
         

@@ -14,6 +14,9 @@ import { ArrowUpRight, Globe, Mail, BarChart3, X } from "lucide-react"
 import { CheckCircle, MessageCircle } from "lucide-react"
 import YouTubeEmbed from "@/components/YouTubeEmbed"
 import DuneData from "@/components/DuneData"
+import { ChevronDown } from "lucide-react"
+import MoreLinksModal from "@/components/MoreLinksModal" // Path to the new component
+
 
 // Updated Logo interfaces to match API response
 interface LogoFormat {
@@ -54,6 +57,38 @@ interface Logo {
   publishedAt: string
 }
 
+// Update your CryptoProject interface to include AdditionalLinks
+interface AdditionalLink {
+  id: number
+  label: string
+  url: string
+  bgColorClass?: string
+  textColorClass?: string
+}
+
+// Define a proper interface for Link items
+interface LinkItem {
+  label: string;
+  url: string;
+  bgColorClass?: string;
+  textColorClass?: string;
+  sortOrder?: number;
+}
+
+// Interface for the Link object as it comes from Strapi
+interface StrapiLink {
+  id: number;
+  label: string;
+  url: string;
+  bgColorClass?: string;
+  textColorClass?: string;
+  sortOrder?: number;
+  // Additional Strapi fields
+  createdAt?: string;
+  updatedAt?: string;
+  publishedAt?: string;
+}
+
 interface CryptoProject {
   id: number
   documentId: string
@@ -78,8 +113,12 @@ interface CryptoProject {
   publishedAt: string
   AnalyticsDuneQueryID: string | null
   dunequeryid2: string | null
-  AnalyticsOneHeader: string | null // New field from Strapi
-  AnalyticsTwoHeader: string | null // New field from Strapi
+  AnalyticsOneHeader: string | null
+  AnalyticsTwoHeader: string | null
+  // Updated to handle Strapi's data structure
+  Link?: StrapiLink | StrapiLink[] | null
+  // For backward compatibility
+  AdditionalLinks?: LinkItem[]
   Logo?: Logo
 }
 
@@ -94,6 +133,7 @@ interface DetailedDescriptionBlock {
 
 export default function ProjectDetailClient({ project }: { project: CryptoProject }) {
   // State for scroll detection and dark mode
+  const [isMoreLinksOpen, setIsMoreLinksOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -122,6 +162,79 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
     setIsDarkMode(!isDarkMode)
     document.documentElement.classList.toggle("dark")
   }
+
+  const getAllLinks = (project: CryptoProject): LinkItem[] => {
+    // Start with the basic links that are already in the project model
+    const links: LinkItem[] = [
+      project.Website && {
+        label: "Website",
+        url: project.Website,
+        bgColorClass: "hover:bg-[#F7984A]/10",
+        textColorClass: "text-gray-300 hover:text-[#F7984A]"
+      },
+      project.Twitter && {
+        label: "Twitter",
+        url: project.Twitter,
+        bgColorClass: "hover:bg-black/10",
+        textColorClass: "text-gray-300 hover:text-white"
+      },
+      project.Discord && {
+        label: "Discord",
+        url: project.Discord,
+        bgColorClass: "hover:bg-[#5865F2]/10",
+        textColorClass: "text-gray-300 hover:text-[#5865F2]"
+      },
+      project.Telegram && {
+        label: "Telegram",
+        url: project.Telegram,
+        bgColorClass: "hover:bg-[#0088cc]/10",
+        textColorClass: "text-gray-300 hover:text-[#0088cc]"
+      }
+    ].filter(Boolean) as LinkItem[];
+  
+    // Handle Link relation from Strapi
+    if (project.Link) {
+      // Check if it's an array of links
+      if (Array.isArray(project.Link)) {
+        project.Link.forEach(link => {
+          if (link && typeof link === 'object' && 'url' in link && 'label' in link) {
+            links.push({
+              label: link.label,
+              url: link.url,
+              bgColorClass: link.bgColorClass || "hover:bg-gray-800",
+              textColorClass: link.textColorClass || "text-gray-300 hover:text-white"
+            });
+          }
+        });
+      } 
+      // If it's a single link object
+      else if (typeof project.Link === 'object' && 'url' in project.Link && 'label' in project.Link) {
+        links.push({
+          label: project.Link.label as string,
+          url: project.Link.url as string,
+          bgColorClass: (project.Link.bgColorClass as string) || "hover:bg-gray-800",
+          textColorClass: (project.Link.textColorClass as string) || "text-gray-300 hover:text-white"
+        });
+      }
+    }
+  
+    // For backward compatibility, also check AdditionalLinks
+    if (project.AdditionalLinks && Array.isArray(project.AdditionalLinks)) {
+      project.AdditionalLinks.forEach((link: any) => {
+        if (link && typeof link === 'object' && 'url' in link && 'label' in link) {
+          links.push({
+            label: link.label,
+            url: link.url,
+            bgColorClass: link.bgColorClass || "hover:bg-gray-800",
+            textColorClass: link.textColorClass || "text-gray-300 hover:text-white"
+          });
+        }
+      });
+    }
+  
+    return links;
+  }
+  
 
   // Process detailed description blocks into sections
   const extractFAQs = (description: DetailedDescriptionBlock[] | undefined) => {
@@ -373,7 +486,6 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
                                 </span>
                               )}
                             </Link>
-
                             {project.Twitter && (
                               <Link
                                 href={project.Twitter}
@@ -390,7 +502,6 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
                                 )}
                               </Link>
                             )}
-
                             {project.Discord && (
                               <Link
                                 href={project.Discord}
@@ -414,7 +525,6 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
                                 )}
                               </Link>
                             )}
-
                             {project.Telegram && (
                               <Link
                                 href={project.Telegram}
@@ -431,6 +541,28 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
                                 )}
                               </Link>
                             )}
+                            
+                            {/* More Links Button */}
+                            <button
+                              className="flex items-center justify-center w-8 h-8 rounded-full bg-[#0D0B26] border border-gray-800/50 text-gray-300 hover:text-[#F7984A] hover:border-[#F7984A]/30 hover:bg-[#F7984A]/10 transition-all duration-300 relative group"
+                              onClick={() => setIsMoreLinksOpen(true)}
+                              onMouseEnter={() => setHoverSocial("more")}
+                              onMouseLeave={() => setHoverSocial(null)}
+                            >
+                              <ChevronDown className="h-4 w-4 group-hover:scale-110 transition-transform duration-300" />
+                              {hoverSocial === "more" && (
+                                <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs bg-[#0D0B26] border border-gray-800/50 px-2 py-1 rounded whitespace-nowrap">
+                                  More Links
+                                </span>
+                              )}
+                            </button>
+
+                            {/* More Links Modal */}
+                           <MoreLinksModal 
+                              isOpen={isMoreLinksOpen} 
+                              onClose={() => setIsMoreLinksOpen(false)} 
+                              links={getAllLinks(project)}
+                            />
                           </div>
                         </div>
                         <p className="text-gray-300 leading-relaxed font-normal">{project.ShortDescription}</p>
@@ -451,7 +583,7 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
                                 <span>Subscribe now</span>
                               </div>
                               <Link
-                                href="https://spotify.com"
+                                href="https://open.spotify.com/show/6FB6i8Yc16Z0XAIu85EMOq?si=98a85f70763c47e0&nd=1&dlsi=ceafe8b78f7f403a"
                                 target="_blank"
                                 className="flex items-center justify-center w-8 h-8 rounded-full bg-[#0D0B26] border border-gray-800/50 text-gray-300 hover:text-[#1DB954] hover:border-[#1DB954]/30 hover:bg-[#1DB954]/10 transition-all duration-300 relative group"
                                 onMouseEnter={() => setHoverSocial("spotify")}
@@ -472,7 +604,7 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
                                 )}
                               </Link>
                               <Link
-                                href="https://podcasts.apple.com"
+                                href="https://podcasts.apple.com/us/podcast/blockchain-bay/id1643516087"
                                 target="_blank"
                                 className="flex items-center justify-center w-8 h-8 rounded-full bg-[#0D0B26] border border-gray-800/50 text-gray-300 hover:text-[#8c44ff] hover:border-[#8c44ff]/30 hover:bg-[#8c44ff]/10 transition-all duration-300 relative group"
                                 onMouseEnter={() => setHoverSocial("apple")}
@@ -480,11 +612,11 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
                               >
                                 <svg
                                   xmlns="http://www.w3.org/2000/svg"
-                                  viewBox="0 0 24 24"
+                                  viewBox="0 0 50 50"
                                   className="h-4 w-4 group-hover:scale-110 transition-transform duration-300"
                                   fill="currentColor"
                                 >
-                                  <path d="M5.34 0A5.328 5.328 0 000 5.34v13.32A5.328 5.328 0 005.34 24h13.32A5.328 5.328 0 0024 18.66V5.34A5.328 5.328 0 0018.66 0H5.34zm6.525 2.568c2.336 0 3.776 1.36 3.776 3.4 0 1.936-1.272 3.168-3.248 3.384 1.952.336 3.512 1.568 3.512 3.656 0 2.72-2.096 4.256-4.832 4.256-2.4 0-4.288-1.344-4.528-3.568l2.144-.752c.16 1.376.912 1.984 2.4 1.984 1.376 0 2.32-.8 2.32-2.176 0-1.504-1.04-2.224-2.896-2.224h-.672v-2.24h.624c1.648 0 2.592-.64 2.592-1.984 0-1.232-.8-1.824-2.128-1.824-1.264 0-2.112.576-2.304 1.728l-2.016-.864c.528-1.808 2.128-2.816 4.256-2.776zm5.725 12.616h1.968v1.888h-1.968v-1.888z" />
+                                  <path d="M25.009,1.982c-12.687,0-23.009,10.322-23.009,23.01s10.322,23.009,23.009,23.009s23.009-10.321,23.009-23.009 S37.696,1.982,25.009,1.982z M34.748,35.913c-0.311,0.749-1.041,1.25-1.876,1.25c-0.258,0-0.52-0.049-0.773-0.153 c-2.334-0.955-4.805-1.438-7.338-1.438c-2.533,0-5.004,0.483-7.337,1.438c-1.031,0.423-2.203-0.071-2.625-1.098 c-0.423-1.027,0.071-2.203,1.098-2.625c2.791-1.146,5.747-1.726,8.864-1.726c3.115,0,6.072,0.58,8.864,1.726 C34.676,33.71,35.171,34.885,34.748,35.913z M36.893,29.317c-0.378,0.909-1.268,1.51-2.265,1.51 c-0.311,0-0.627-0.06-0.933-0.185c-2.827-1.155-5.824-1.741-8.9-1.741c-3.076,0-6.073,0.586-8.898,1.741 c-1.245,0.51-2.673-0.086-3.184-1.326c-0.512-1.24,0.086-2.673,1.325-3.183c3.377-1.383,6.947-2.084,10.757-2.084 c3.812,0,7.383,0.701,10.761,2.084C36.806,26.644,37.404,28.076,36.893,29.317z M38.431,21.719 c-0.444,0-0.891-0.107-1.301-0.33c-3.317-1.745-7.215-2.623-11.226-2.623c-4.468,0-8.275,0.879-11.293,2.623 c-1.458,0.766-3.248,0.19-4.002-1.268c-0.775-1.458-0.2-3.248,1.268-4.013c3.792-1.989,8.275-2.989,14.027-2.989 c5.135,0,9.977,1,14.016,2.989c1.458,0.765,2.023,2.555,1.257,4.013C40.52,21.144,39.485,21.719,38.431,21.719z"/>
                                 </svg>
                                 {hoverSocial === "apple" && (
                                   <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs bg-[#0D0B26] border border-gray-800/50 px-2 py-1 rounded whitespace-nowrap">
@@ -493,7 +625,28 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
                                 )}
                               </Link>
                               <Link
-                                href="https://youtube.com"
+                                href="https://music.amazon.com/podcasts"
+                                target="_blank"
+                                className="flex items-center justify-center w-8 h-8 rounded-full bg-[#0D0B26] border border-gray-800/50 text-gray-300 hover:text-[#FF9900] hover:border-[#FF9900]/30 hover:bg-[#FF9900]/10 transition-all duration-300 relative group"
+                                onMouseEnter={() => setHoverSocial("amazon")}
+                                onMouseLeave={() => setHoverSocial(null)}
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  viewBox="0 0 24 24"
+                                  className="h-4 w-4 group-hover:scale-110 transition-transform duration-300"
+                                  fill="currentColor"
+                                >
+                                  <path d="M15.93 11.9c-.2 0-.39.1-.47.29-.08.19-.03.39.13.51.01.01.14.12.14.31 0 .18-.13.3-.14.31-.16.12-.21.32-.13.51.08.19.27.29.47.29h.02c.41-.02.87-.4.87-.95v-.32c0-.56-.45-.93-.87-.95h-.02zM14.97 14.95h-1.05c-.25 0-.47-.22-.47-.47v-1c0-.25.22-.47.47-.47h1.05c.25 0 .47.22.47.47v1c0 .25-.22.47-.47.47zM14.97 12.79h-1.05c-.25 0-.47-.22-.47-.47v-1c0-.25.22-.47.47-.47h1.05c.25 0 .47.22.47.47v1c0 .25-.22.47-.47.47zM2.03 11.9c-.2 0-.39.1-.47.29-.08.19-.03.39.13.51.01.01.14.12.14.31 0 .18-.13.3-.14.31-.16.12-.21.32-.13.51.08.19.27.29.47.29h.02c.41-.02.87-.4.87-.95v-.32c0-.56-.45-.93-.87-.95h-.02zM3 14.95H1.95c-.25 0-.47-.22-.47-.47v-1c0-.25.22-.47.47-.47H3c.25 0 .47.22.47.47v1c0 .25-.22.47-.47.47zM3 12.79H1.95c-.25 0-.47-.22-.47-.47v-1c0-.25.22-.47.47-.47H3c.25 0 .47.22.47.47v1c0 .25-.22.47-.47.47zM8.98 15.91c-1.18 0-2.05-1.28-2.05-2.96s.87-2.96 2.05-2.96 2.05 1.28 2.05 2.96-.87 2.96-2.05 2.96zM9 11.07c-.71 0-1.16.85-1.16 1.88S8.29 14.83 9 14.83s1.16-.85 1.16-1.88S9.71 11.07 9 11.07zM18 0H6C2.7 0 0 2.7 0 6v12c0 3.3 2.7 6 6 6h12c3.3 0 6-2.7 6-6V6c0-3.3-2.7-6-6-6zm2.15 13.86c-.16 1.11-1.01 2.07-2.12 2.4-.35.1-.71.15-1.07.15-.82 0-1.59-.29-2.22-.83-.62.54-1.41.83-2.22.83-.36 0-.72-.05-1.07-.15-1.11-.33-1.95-1.29-2.12-2.4-.22-1.38.47-2.99 1.45-3.89-.55-2.5.65-4.97 3.13-5.09 1.4-.05 2.64.82 3.27 2.3.54-.28 1.13-.54 1.7-.61.41-.05.83.17 1.01.54.18.37.11.81-.17 1.11-.31.33-.38.5-1.36 1.02-.05.03-.17.1-.17.1 1.46.98 2.63 3.02 2.37 4.79zM8.02 6.11c-.58 0-1.05.47-1.05 1.05v.56c0 .58.47 1.05 1.05 1.05s1.05-.47 1.05-1.05v-.56c0-.58-.47-1.05-1.05-1.05zM15.98 6.11c-.58 0-1.05.47-1.05 1.05v.56c0 .58.47 1.05 1.05 1.05s1.05-.47 1.05-1.05v-.56c0-.58-.47-1.05-1.05-1.05z"/>
+                                </svg>
+                                {hoverSocial === "amazon" && (
+                                  <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs bg-[#0D0B26] border border-gray-800/50 px-2 py-1 rounded whitespace-nowrap">
+                                    Amazon Music
+                                  </span>
+                                )}
+                              </Link>
+                              <Link
+                                href="https://www.youtube.com/@chrisbagnell"
                                 target="_blank"
                                 className="flex items-center justify-center w-8 h-8 rounded-full bg-[#0D0B26] border border-gray-800/50 text-gray-300 hover:text-[#FF0000] hover:border-[#FF0000]/30 hover:bg-[#FF0000]/10 transition-all duration-300 relative group"
                                 onMouseEnter={() => setHoverSocial("youtube")}
@@ -510,6 +663,27 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
                                 {hoverSocial === "youtube" && (
                                   <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs bg-[#0D0B26] border border-gray-800/50 px-2 py-1 rounded whitespace-nowrap">
                                     YouTube
+                                  </span>
+                                )}
+                              </Link>
+                              <Link
+                                href="https://x.com" 
+                                target="_blank"
+                                className="flex items-center justify-center w-8 h-8 rounded-full bg-[#0D0B26] border border-gray-800/50 text-gray-300 hover:text-white hover:border-white/30 hover:bg-black/20 transition-all duration-300 relative group"
+                                onMouseEnter={() => setHoverSocial("x")}
+                                onMouseLeave={() => setHoverSocial(null)}
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  viewBox="0 0 24 24"
+                                  className="h-4 w-4 group-hover:scale-110 transition-transform duration-300"
+                                  fill="currentColor"
+                                >
+                                  <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z" />
+                                </svg>
+                                {hoverSocial === "x" && (
+                                  <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs bg-[#0D0B26] border border-gray-800/50 px-2 py-1 rounded whitespace-nowrap">
+                                    X
                                   </span>
                                 )}
                               </Link>
