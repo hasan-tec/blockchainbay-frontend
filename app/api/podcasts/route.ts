@@ -3,6 +3,13 @@
 import { NextResponse } from 'next/server';
 import { parseString } from 'xml2js';
 
+// Add type for Next.js fetch options
+type NextFetchOptions = RequestInit & {
+  next?: {
+    revalidate?: number;
+  };
+};
+
 // Type definitions
 interface PodcastEnclosure {
   $: {
@@ -45,12 +52,19 @@ interface RSSFeed {
   };
 }
 
+// Function to strip HTML tags
+const stripHtmlTags = (html: string): string => {
+  return html?.replace(/<\/?[^>]+(>|$)/g, '') || '';
+};
+
 export async function GET() {
   try {
     // Fetch the RSS feed on the server side
-    const response = await fetch('https://media.rss.com/blockchainbay/feed.xml', {
+    const fetchOptions: NextFetchOptions = {
       next: { revalidate: 3600 } // Revalidate every hour
-    });
+    };
+    
+    const response = await fetch('https://media.rss.com/blockchainbay/feed.xml', fetchOptions);
     
     if (!response.ok) {
       return NextResponse.json(
@@ -84,7 +98,8 @@ export async function GET() {
           
           const podcasts = items.map((item: PodcastItem, index: number) => {
             const title = item.title.replace(/^##### /, '').trim();
-            const description = item.description || '';
+            // Strip HTML tags from description
+            const description = stripHtmlTags(item.description || '');
             const pubDate = item.pubDate || '';
             
             // Extract episode number from title

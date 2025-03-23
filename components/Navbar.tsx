@@ -81,7 +81,7 @@ export const Navbar = () => {
   const navItems = [
     { name: "Projects", href: "/projects", icon: <BarChart3 className="h-4 w-4 mr-1" /> },
     { name: "News", href: "/news", icon: <Newspaper className="h-4 w-4 mr-1" /> },
-    { name: "Podcasts", href: "#", icon: <Headphones className="h-4 w-4 mr-1" /> },
+    { name: "Podcasts", href: "/podcasts", icon: <Headphones className="h-4 w-4 mr-1" /> },
     { name: "Store", href: "/store", icon: <ShoppingCart className="h-4 w-4 mr-1" /> },
     { name: "Giveaways", href: "#", icon: <Gift className="h-4 w-4 mr-1" /> },
   ]
@@ -134,7 +134,7 @@ export const Navbar = () => {
             </div>
 
             <button
-              className="lg:hidden flex items-center justify-center w-10 h-10 rounded-md bg-gray-800/70 text-gray-200"
+              className="lg:hidden flex items-center justify-center w-10 h-10 rounded-md  text-gray-200"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}

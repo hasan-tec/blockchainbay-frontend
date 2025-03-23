@@ -45,6 +45,11 @@ interface RSSFeed {
   };
 }
 
+// Function to strip HTML tags
+const stripHtmlTags = (html: string): string => {
+  return html?.replace(/<\/?[^>]+(>|$)/g, '') || '';
+};
+
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
@@ -101,7 +106,8 @@ export async function GET(
             
             // Only process if this is the podcast we're looking for
             if (itemId === id) {
-              const description = item.description || '';
+              // Strip HTML tags from description
+              const description = stripHtmlTags(item.description || '');
               const pubDate = item.pubDate || '';
               
               // Get media URL from enclosure
