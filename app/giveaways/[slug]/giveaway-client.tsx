@@ -228,7 +228,7 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
                   ) : (
                     <Button
                       variant="outline"
-                      className="border-white/20 hover:bg-white/10 text-white px-8 py-6 text-lg rounded-md transition-all duration-300"
+                      className="border-white/20 bg-black  hover:bg-white hover:text-black text-white px-8 py-6 text-lg rounded-md shadow-lg shadow-black/20 transition-all duration-300"
                     >
                       <span>Set Reminder</span>
                       <Calendar className="ml-2 h-5 w-5" />
