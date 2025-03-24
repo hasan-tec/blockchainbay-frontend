@@ -12,7 +12,8 @@ export default async function GiveawayPage({ params }: { params: { slug: string 
       return notFound()
     }
     
-    const formattedGiveaway = formatGiveawayDetail(giveawayData)
+    // Convert null to undefined to match expected types
+    const formattedGiveaway = formatGiveawayDetail(giveawayData) || undefined
     const relatedGiveaways = await fetchRelatedGiveaways(params.slug)
     
     // Pass data to client component

@@ -1,27 +1,22 @@
-// lib/api.ts
+import axios from 'axios';
 
-// Use environment variable for the backend URL
-const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:1337';
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:1337';
 
-// Define types for the Strapi API response
-interface StrapiImage {
+// Types and Interfaces
+export interface FormattedGiveaway {
   id: number;
-  url: string;
-  width?: number;
-  height?: number;
-  alternativeText?: string;
-  caption?: string;
-  formats?: Record<string, any>;
+  title: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  image: string | null;
+  value: number;
+  status: 'upcoming' | 'active' | 'ended';
+  entries: number;
+  slug: string;
+  daysLeft: number;
+  views?: number;
 }
-
-interface StrapiRichTextNode {
-  type: string;
-  children: Array<{
-    type: string;
-    text: string;
-  }>;
-}
-
 
 export interface GiveawayEntry {
   id: number;
@@ -32,452 +27,529 @@ export interface GiveawayEntry {
   verified: boolean;
 }
 
-interface StrapiGiveaway {
-  id: number;
-  Title: string;
-  Description: StrapiRichTextNode[];
-  StartDate: string;
-  EndDate: string;
-  GiveawayStatus: string;
-  Prizes: StrapiRichTextNode[];
-  Rules: StrapiRichTextNode[];
-  Value: string;
-  Image: StrapiImage;
-  entries: GiveawayEntry[];
-  slug: string | null;
-}
-
-interface StrapiResponse<T> {
-  data: T[];
-  meta: {
-    pagination: {
-      page: number;
-      pageSize: number;
-      pageCount: number;
-      total: number;
-    };
-  };
-}
-
-// Add or update these types in lib/api.ts
-
-// Add views property to FormattedGiveaway when used in admin
-export interface FormattedGiveaway {
-    id: string;
-    title: string;
-    description: string;
-    image: string;
-    startDate: string;
-    endDate: string;
-    status: string;
-    entries: number;
-    daysLeft: number;
-    value: string;
-    slug: string;
-    views?: number; // Optional for admin view
-  }
-  
-  
-
-// Create a type for the giveaway detail with additional fields
 export interface GiveawayDetail extends FormattedGiveaway {
-  prizes: string[];
   rules: string[];
+  prizes: string[];
 }
 
-/**
- * Fetches all giveaways with related data
- */
-export async function fetchGiveaways(): Promise<StrapiResponse<StrapiGiveaway>> {
-  try {
-    const response = await fetch(`${API_URL}/api/giveaways?populate=*`);
+// Replace the entire getGiveawayStatus function with this improved version
+const getGiveawayStatus = (startDateRaw: string | number, endDateRaw: string | number): 'upcoming' | 'active' | 'ended' => {
+    const today = new Date();
     
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+    // Handle multiple date formats
+    let start: Date, end: Date;
+    
+    // Parse start date
+    if (typeof startDateRaw === 'number') {
+      start = new Date(startDateRaw); // Unix timestamp (milliseconds)
+    } else if (typeof startDateRaw === 'string') {
+      if (startDateRaw.includes('T')) {
+        start = new Date(startDateRaw); // ISO format
+      } else {
+        // Handle date format like "2025-03-20"
+        const [year, month, day] = startDateRaw.split('-').map(Number);
+        start = new Date(year, month - 1, day); // Month is 0-indexed
+      }
+    } else {
+      start = new Date(); // Fallback
     }
     
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error fetching giveaways:', error);
-    throw error;
-  }
-}
+    // Parse end date
+    if (typeof endDateRaw === 'number') {
+      end = new Date(endDateRaw);
+    } else if (typeof endDateRaw === 'string') {
+      if (endDateRaw.includes('T')) {
+        end = new Date(endDateRaw);
+      } else {
+        const [year, month, day] = endDateRaw.split('-').map(Number);
+        end = new Date(year, month - 1, day);
+      }
+    } else {
+      end = new Date(); // Fallback
+    }
+    
+    if (today < start) return 'upcoming';
+    if (today > end) return 'ended';
+    return 'active';
+  };
 
-/**
- * Formats the raw API data into a structure that works with our UI
- */
-export function formatGiveawayData(apiData: StrapiResponse<StrapiGiveaway>): FormattedGiveaway[] {
-  if (!apiData?.data) return [];
+// Format giveaway data for frontend use
+// Format giveaway data for frontend use
+export const formatGiveawayData = (apiResponse: any): FormattedGiveaway[] => {
+    // Handle case where data is not available or malformed
+    if (!apiResponse || !apiResponse.data || !Array.isArray(apiResponse.data)) {
+      console.warn('Invalid API response format:', apiResponse);
+      return [];
+    }
   
-  return apiData.data.map(item => {
-    // Parse description from blocks format
-    const description = item.Description?.[0]?.children?.[0]?.text || '';
+    return apiResponse.data
+      .filter((item: any) => {
+        // Safety check for item structure and required fields
+        return item && item.id && (item.startDate || item.attributes?.startDate) && 
+          (item.endDate || item.attributes?.endDate);
+      })
+      .map((item: any) => {
+        // Determine if data is in attributes or directly on the item
+        const attrs = item.attributes || item;
+        
+        const startDateRaw = attrs.startDate;
+        const endDateRaw = attrs.endDate;  
+        
+        // Convert numeric timestamps to ISO strings if needed
+        const startDate = typeof startDateRaw === 'number' 
+          ? new Date(startDateRaw).toISOString() 
+          : startDateRaw;
+          
+        const endDate = typeof endDateRaw === 'number' 
+          ? new Date(endDateRaw).toISOString() 
+          : endDateRaw;
+        
+        const today = new Date();
+        const endDateObj = new Date(endDate);
+        const status = getGiveawayStatus(startDateRaw, endDateRaw);
+        
+        // Calculate days left (or 0 if ended)
+        const daysLeft = status === 'ended' ? 0 : 
+          Math.round(Math.abs((today.getTime() - endDateObj.getTime()) / (24 * 60 * 60 * 1000)));
+        
+        // Map the image data correctly
+        let imageUrl = null;
+        if (attrs.image) {
+          if (attrs.image.data && attrs.image.data.attributes) {
+            imageUrl = attrs.image.data.attributes.url;
+          } else if (typeof attrs.image === 'string') {
+            imageUrl = attrs.image;
+          }
+        }
+        
+        // Count entries - Replace the current entries counting logic with this
+        let entriesCount = 0;
+        if (attrs.entries) {
+        if (attrs.entries.data && Array.isArray(attrs.entries.data)) {
+            // Strapi v4 format with entries.data
+            entriesCount = attrs.entries.data.length;
+        } else if (Array.isArray(attrs.entries)) {
+            // Direct array of entries
+            entriesCount = attrs.entries.length;
+        } else if (typeof attrs.entries === 'number') {
+            // Already a count
+            entriesCount = attrs.entries;
+        }
+        }
+        
+        // Parse description if it's in JSON format
+        let description = '';
+        if (attrs.description) {
+          if (typeof attrs.description === 'string') {
+            try {
+              // Check if it's a JSON string
+              if (attrs.description.startsWith('[') || attrs.description.startsWith('{')) {
+                const parsedDesc = JSON.parse(attrs.description);
+                // Extract text from JSON structure if possible
+                if (Array.isArray(parsedDesc) && parsedDesc[0]?.children) {
+                  description = parsedDesc[0].children
+                    .filter((child: any) => child.text)
+                    .map((child: any) => child.text)
+                    .join(' ');
+                } else {
+                  description = attrs.description;
+                }
+              } else {
+                description = attrs.description;
+              }
+            } catch {
+              description = attrs.description;
+            }
+          }
+        }
+        
+        return {
+          id: item.id,
+          title: attrs.title || 'Untitled Giveaway',
+          description: description,
+          startDate: new Date(startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          endDate: new Date(endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          image: imageUrl,
+          value: attrs.value || 0,
+          status,
+          entries: entriesCount,
+          slug: attrs.slug || `giveaway-${item.id}`,
+          daysLeft
+        };
+      });
+  };
+
+// Format detailed giveaway data
+export const formatGiveawayDetail = (apiResponse: any): GiveawayDetail | null => {
+    if (!apiResponse) {
+      console.warn('Invalid giveaway detail response:', apiResponse);
+      return null;
+    }
     
-    // Format image URL (Strapi stores relative URLs)
-    const imageUrl = item.Image?.url ? `${API_URL}${item.Image.url}` : '';
+    const item = apiResponse;
+    // Use item directly, or attributes if present
+    const attrs = item.attributes || item;
     
-    // Calculate days left
-    const endDate = new Date(item.EndDate);
-    const today = new Date();
-    const daysLeft = Math.max(0, Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+    if (!attrs.startDate || !attrs.endDate) {
+      console.warn('Giveaway detail missing required fields:', item);
+      return null;
+    }
     
-    // Format dates for display
-    const startDateFormatted = new Date(item.StartDate).toLocaleDateString('en-US', {
-      month: 'long', day: 'numeric', year: 'numeric'
-    });
+    const formatted = formatGiveawayData({ data: [item] })[0];
     
-    const endDateFormatted = new Date(item.EndDate).toLocaleDateString('en-US', {
-      month: 'long', day: 'numeric', year: 'numeric'
-    });
+    if (!formatted) {
+      return null;
+    }
+    
+    // Parse rules and prizes
+    let rules: string[] = [];
+    if (attrs.rules) {
+      if (typeof attrs.rules === 'string') {
+        rules = attrs.rules.split('\n').filter(Boolean);
+      } else if (Array.isArray(attrs.rules)) {
+        rules = attrs.rules;
+      }
+    }
+    
+    let prizes: string[] = [];
+    if (attrs.prizes) {
+      if (typeof attrs.prizes === 'string') {
+        prizes = attrs.prizes.split('\n').filter(Boolean);
+      } else if (Array.isArray(attrs.prizes)) {
+        prizes = attrs.prizes;
+      }
+    }
     
     return {
-      id: item.id.toString(),
-      title: item.Title || "",
-      description: description,
-      image: imageUrl,
-      startDate: startDateFormatted,
-      endDate: endDateFormatted,
-      status: item.GiveawayStatus || "active",
-      entries: item.entries?.length || 0,
-      daysLeft: daysLeft,
-      value: item.Value || "",
-      slug: item.slug || item.id.toString(),
+      ...formatted,
+      rules,
+      prizes
     };
-  });
-}
+  };
 
-/**
- * Fetches a single giveaway by slug or ID
- */
-export async function fetchGiveawayBySlug(slugOrId: string): Promise<StrapiGiveaway | null> {
+// Fetch all giveaways
+export const fetchGiveaways = async (): Promise<FormattedGiveaway[]> => {
   try {
-    // Try to fetch by slug first
-    let query = `filters[slug]=${encodeURIComponent(slugOrId)}&populate=*`;
-    let response = await fetch(`${API_URL}/api/giveaways?${query}`);
+    const response = await axios.get(`${API_URL}/api/giveaways?populate=*`);
+    return formatGiveawayData(response.data);
+  } catch (error) {
+    console.error('Error fetching giveaways:', error);
+    return [];
+  }
+};
+
+// Fetch giveaways for admin
+export const fetchGiveawaysAdmin = async (): Promise<FormattedGiveaway[]> => {
+  try {
+    const response = await axios.get(`${API_URL}/api/giveaways?populate=*`);
+    return formatGiveawayData(response.data);
+  } catch (error) {
+    console.error('Error fetching giveaways for admin:', error);
+    return [];
+  }
+};
+
+// Fetch a specific giveaway by slug
+export const fetchGiveawayBySlug = async (slug: string): Promise<any> => {
+  try {
+    const response = await axios.get(`${API_URL}/api/giveaways?filters[slug][$eq]=${slug}&populate=*`);
     
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+    if (!response.data || !response.data.data || !response.data.data.length) {
+      console.warn(`No giveaway found with slug: ${slug}`);
+      return null;
     }
     
-    let data = await response.json();
-    
-    // If no giveaway found with this slug, try to fetch by ID
-    if (!data.data || data.data.length === 0) {
-      query = `filters[id]=${encodeURIComponent(slugOrId)}&populate=*`;
-      response = await fetch(`${API_URL}/api/giveaways?${query}`);
+    return response.data.data[0];
+  } catch (error) {
+    console.error(`Error fetching giveaway with slug ${slug}:`, error);
+    return null;
+  }
+};
+
+// Fetch entries for a specific giveaway
+// Fetch entries for a specific giveaway
+export const fetchGiveawayEntries = async (giveawayId: number): Promise<GiveawayEntry[]> => {
+    try {
+      // Using a more direct filter approach
+      const response = await axios.get(`${API_URL}/api/entries?filters[giveaway][id][$eq]=${giveawayId}&populate=*`);
       
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+      console.log("Entries response:", response.data);
+      
+      if (!response.data || !response.data.data || !Array.isArray(response.data.data)) {
+        console.warn(`No entries found for giveaway ID ${giveawayId}`);
+        return [];
       }
       
-      data = await response.json();
+      // Map the entries with proper field access
+      return response.data.data.map((entry: any) => {
+        return {
+          id: entry.id,
+          name: entry.name || entry.attributes?.name || "Unknown",
+          email: entry.email || entry.attributes?.email || "no-email@example.com",
+          date: entry.createdAt || entry.attributes?.createdAt || new Date().toISOString(),
+          ip: entry.ip || entry.attributes?.ip || "127.0.0.1",
+          verified: true // Default verification status
+        };
+      });
+    } catch (error) {
+      console.error(`Error fetching entries for giveaway ${giveawayId}:`, error);
+      return [];
+    }
+  };
+
+// Submit an entry for a giveaway
+export const submitGiveawayEntry = async (
+    giveawayId: number, 
+    name: string, 
+    email: string,
+    captchaToken: string
+  ): Promise<boolean> => {
+    try {
+      // First check if this email has already entered
+      const checkResponse = await axios.get(
+        `${API_URL}/api/entries?filters[giveaway][id][$eq]=${giveawayId}&filters[email][$eq]=${encodeURIComponent(email)}`
+      );
       
-      // If still no results, return null
-      if (!data.data || data.data.length === 0) {
+      if (checkResponse.data.data.length > 0) {
+        console.log('Email already used for this giveaway');
+        return false;
+      }
+      
+      // Create the entry with the correct format for Strapi
+      const response = await axios.post(`${API_URL}/api/entries`, {
+        data: {
+          name,
+          email,
+          giveaway: giveawayId // Simple ID format for Strapi
+        }
+      });
+      
+      console.log('Entry submission response:', response.data);
+      return true;
+    } catch (error) {
+      console.error('Error submitting giveaway entry:', error);
+      if (axios.isAxiosError(error) && error.response) {
+        console.error('Error details:', error.response.data);
+      }
+      return false;
+    }
+  };
+
+  export const selectWinner = async (giveawaySlug: string): Promise<GiveawayEntry | null> => {
+    try {
+      // Get the giveaway ID
+      const giveawayResponse = await axios.get(`${API_URL}/api/giveaways?filters[slug][$eq]=${giveawaySlug}`);
+      
+      if (!giveawayResponse.data || !giveawayResponse.data.data || !giveawayResponse.data.data[0]) {
+        console.warn(`No giveaway found with slug: ${giveawaySlug}`);
         return null;
       }
+      
+      const giveaway = giveawayResponse.data.data[0];
+      const giveawayId = giveaway.id;
+      
+      // Get entries
+      const entriesResponse = await axios.get(`${API_URL}/api/entries?filters[giveaway][id][$eq]=${giveawayId}`);
+      if (!entriesResponse.data || !entriesResponse.data.data || !entriesResponse.data.data.length) {
+        console.warn(`No entries found for giveaway ID ${giveawayId}`);
+        return null;
+      }
+      
+      // Check if winner already exists - use previouswinners endpoint with populate
+      const winnersResponse = await axios.get(`${API_URL}/api/previouswinners?filters[giveaway][id][$eq]=${giveawayId}&populate=*`);
+      console.log("Winners response data structure:", JSON.stringify(winnersResponse.data, null, 2).substring(0, 200) + "...");
+      
+      // If winner exists, return it
+      if (winnersResponse.data && winnersResponse.data.data && winnersResponse.data.data.length > 0) {
+        const winner = winnersResponse.data.data[0];
+        
+        // Check for entry directly in the winner object (not in attributes.entry.data)
+        if (winner.entry && winner.entry.id) {
+          // We already have the entry data directly in the winner object
+          return {
+            id: winner.entry.id,
+            name: winner.entry.name || "Unknown",
+            email: winner.entry.email || "no-email@example.com",
+            date: winner.entry.createdAt || new Date().toISOString(),
+            ip: winner.entry.ip || "127.0.0.1",
+            verified: true
+          };
+        } 
+        // For Strapi v4 format, check if it's in attributes
+        else if (winner.attributes && winner.attributes.entry) {
+          const entryData = winner.attributes.entry;
+          
+          if (typeof entryData === 'object' && entryData !== null) {
+            // If entry is directly an object with the data
+            if (entryData.id) {
+              return {
+                id: entryData.id,
+                name: entryData.name || "Unknown",
+                email: entryData.email || "no-email@example.com",
+                date: entryData.createdAt || new Date().toISOString(),
+                ip: entryData.ip || "127.0.0.1",
+                verified: true
+              };
+            }
+            // If entry is in Strapi v4 format with data property
+            else if (entryData.data && entryData.data.id) {
+              const entryId = entryData.data.id;
+              const entryResponse = await axios.get(`${API_URL}/api/entries/${entryId}?populate=*`);
+              const entry = entryResponse.data.data;
+              const attrs = entry.attributes || entry;
+              
+              return {
+                id: entry.id,
+                name: attrs.name || "Unknown",
+                email: attrs.email || "no-email@example.com",
+                date: attrs.createdAt || new Date().toISOString(),
+                ip: attrs.ip || "127.0.0.1",
+                verified: true
+              };
+            }
+          }
+        }
+        
+        console.warn("Winner exists but entry data is missing or in an unexpected format:", winner);
+        // Fall through to select a new winner
+      }
+      
+      // Randomly select winner
+      const entries = entriesResponse.data.data;
+      console.log("Entries available for selection:", entries.length);
+      
+      if (entries.length === 0) {
+        console.warn("No entries available to select a winner");
+        return null;
+      }
+  
+      const randomIndex = Math.floor(Math.random() * entries.length);
+      const winnerEntry = entries[randomIndex];
+  
+      // Create winner record - use previouswinners endpoint
+      try {
+        await axios.post(`${API_URL}/api/previouswinners`, {
+          data: {
+            giveaway: giveawayId,
+            entry: winnerEntry.id,
+            selected_at: new Date().toISOString()
+          }
+        });
+        console.log("Winner record created successfully");
+      } catch (postError) {
+        console.error("Error creating winner record:", postError);
+        // Continue anyway to return the selected winner
+      }
+  
+      // Safely extract properties with fallbacks
+      const attrs = winnerEntry.attributes || winnerEntry;
+  
+      return {
+        id: winnerEntry.id,
+        name: attrs.name || "Unknown",
+        email: attrs.email || "no-email@example.com",
+        date: attrs.createdAt || new Date().toISOString(),
+        ip: attrs.ip || "127.0.0.1",
+        verified: true
+      };
+    } catch (error) {
+      console.error('Error selecting winner:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', error.message);
+      }
+      return null;
     }
-    
-    // Return the first giveaway
-    return data.data[0];
-  } catch (error) {
-    console.error('Error fetching giveaway by slug or ID:', error);
-    throw error;
-  }
-}
-
-/**
- * Process rich text blocks from Strapi
- */
-function processRichText(blocks: StrapiRichTextNode[]): string[] {
-  if (!blocks || !Array.isArray(blocks)) return [];
-  
-  return blocks.map(block => {
-    if (block.type === 'paragraph' && block.children && Array.isArray(block.children)) {
-      return block.children.map(child => child.text || '').join('');
-    }
-    return '';
-  }).filter(text => text.trim().length > 0);
-}
-
-/**
- * Formats a giveaway for detailed view, including prizes and rules
- */
-export function formatGiveawayDetail(item: StrapiGiveaway): GiveawayDetail {
-  // First get the basic formatted giveaway data
-  const baseFormatted = formatGiveawayData({ data: [item], meta: { pagination: { page: 1, pageSize: 1, pageCount: 1, total: 1 } } })[0];
-  
-  // Parse prizes and rules using the rich text processor
-  const prizes = processRichText(item.Prizes || []);
-  const rules = processRichText(item.Rules || []);
-  
-  // Return the enhanced giveaway object
-  return {
-    ...baseFormatted,
-    prizes,
-    rules,
   };
-}
 
-/**
- * Fetches related giveaways (excludes the current one, returns active only)
- */
-export async function fetchRelatedGiveaways(currentSlug: string, limit: number = 3): Promise<FormattedGiveaway[]> {
+  // Add this to your api.ts file
+
+export const fetchGiveawayWinner = async (giveawayId: number): Promise<GiveawayEntry | null> => {
   try {
-    // Fetch active giveaways, excluding the current one
-    const query = `filters[GiveawayStatus][$eq]=active&filters[slug][$ne]=${encodeURIComponent(currentSlug)}&populate=*&pagination[limit]=${limit}`;
-    const response = await fetch(`${API_URL}/api/giveaways?${query}`);
+    // Get the winner from the previouswinners endpoint
+    const winnersResponse = await axios.get(`${API_URL}/api/previouswinners?filters[giveaway][id][$eq]=${giveawayId}&populate=*`);
     
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+    if (!winnersResponse.data || !winnersResponse.data.data || !winnersResponse.data.data.length) {
+      console.log(`No winner found for giveaway ID ${giveawayId}`);
+      return null;
     }
     
-    const data = await response.json();
-    return formatGiveawayData(data);
+    const winner = winnersResponse.data.data[0];
+    
+    // Check for entry directly in the winner object
+    if (winner.entry && winner.entry.id) {
+      return {
+        id: winner.entry.id,
+        name: winner.entry.name || "Unknown",
+        email: winner.entry.email || "no-email@example.com",
+        date: winner.entry.createdAt || new Date().toISOString(),
+        ip: winner.entry.ip || "127.0.0.1",
+        verified: true
+      };
+    }
+    
+    // If we need to get the entry separately
+    if (winner.attributes && winner.attributes.entry) {
+      const entryData = winner.attributes.entry;
+      
+      if (typeof entryData === 'object' && entryData !== null) {
+        // If entry is directly an object with the data
+        if (entryData.id) {
+          return {
+            id: entryData.id,
+            name: entryData.name || "Unknown",
+            email: entryData.email || "no-email@example.com",
+            date: entryData.createdAt || new Date().toISOString(),
+            ip: entryData.ip || "127.0.0.1",
+            verified: true
+          };
+        }
+        // If entry is in Strapi v4 format with data property
+        else if (entryData.data && entryData.data.id) {
+          const entryId = entryData.data.id;
+          const entryResponse = await axios.get(`${API_URL}/api/entries/${entryId}?populate=*`);
+          const entry = entryResponse.data.data;
+          const attrs = entry.attributes || entry;
+          
+          return {
+            id: entry.id,
+            name: attrs.name || "Unknown",
+            email: attrs.email || "no-email@example.com",
+            date: attrs.createdAt || new Date().toISOString(),
+            ip: attrs.ip || "127.0.0.1",
+            verified: true
+          };
+        }
+      }
+    }
+    
+    console.warn("Winner exists but entry data is missing or in an unexpected format:", winner);
+    return null;
+  } catch (error) {
+    console.error('Error fetching winner:', error);
+    if (error instanceof Error) {
+      console.error('Error details:', error.message);
+    }
+    return null;
+  }
+};
+
+// In your api.ts file, update the fetchRelatedGiveaways function:
+
+// Fetch related giveaways (only active and upcoming ones)
+export const fetchRelatedGiveaways = async (currentSlug: string): Promise<FormattedGiveaway[]> => {
+  try {
+    // Get all giveaways except the current one
+    const response = await axios.get(`${API_URL}/api/giveaways?filters[slug][$ne]=${currentSlug}&populate=*&limit=3`);
+    const allRelated = formatGiveawayData(response.data);
+    
+    // Filter out ended giveaways
+    const activeOrUpcoming = allRelated.filter(giveaway => giveaway.status !== 'ended');
+    
+    return activeOrUpcoming;
   } catch (error) {
     console.error('Error fetching related giveaways:', error);
     return [];
   }
-}
-
-/**
- * Submits a giveaway entry
- */
-export async function submitGiveawayEntry(giveawayId: string, name: string, email: string): Promise<boolean> {
-  try {
-    const response = await fetch(`${API_URL}/api/giveaway-entry-collections`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        data: {
-          Name: name,
-          Email: email,
-          EntryDate: new Date().toISOString(),
-          giveaway: giveawayId
-        }
-      }),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Error submitting giveaway entry:', error);
-    return false;
-  }
-}
+};
 
 
-
-// Add these functions to your existing lib/api.ts file
-
-/**
- * Fetches all giveaways with additional admin data (for admin panel)
- */
-export async function fetchGiveawaysAdmin(): Promise<FormattedGiveaway[]> {
-    try {
-      const response = await fetch(`${API_URL}/api/giveaways?populate=*`);
-      
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      return formatGiveawayDataAdmin(data);
-    } catch (error) {
-      console.error('Error fetching giveaways for admin:', error);
-      throw error;
-    }
-  }
-  
-  /**
-   * Format giveaway data for admin panel (includes view counts)
-   */
-  function formatGiveawayDataAdmin(apiData: StrapiResponse<StrapiGiveaway>): FormattedGiveaway[] {
-    const formatted = formatGiveawayData(apiData);
-    
-    // Add admin-specific fields like view counts
-    // In a real implementation, this would come from the API
-    return formatted.map(giveaway => ({
-      ...giveaway,
-      views: Math.floor(Math.random() * 10000) + 500, // Placeholder for demo
-    }));
-  }
-  
-  // lib/api.ts - Updated functions
-
-/**
- * Fetches entries for a specific giveaway
- */
-export async function fetchGiveawayEntries(giveawayId: string): Promise<GiveawayEntry[]> {
-  try {
-    console.log(`Fetching entries for giveaway ID: ${giveawayId}`);
-    
-    // Make the API call with appropriate filters
-    const response = await fetch(`${API_URL}/api/giveaway-entry-collections?filters[giveaway][id][$eq]=${giveawayId}&populate=*`);
-    
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    console.log('Full API response data structure:', JSON.stringify(data, null, 2));
-    
-    // Call our formatter with the data
-    const formattedEntries = formatGiveawayEntries(data);
-    console.log('Formatted entries:', formattedEntries);
-    
-    return formattedEntries;
-  } catch (error) {
-    console.error('Error fetching giveaway entries:', error);
-    return [];
-  }
-}
-
-/**
- * Format giveaway entries for display
- */
-function formatGiveawayEntries(apiData: any): GiveawayEntry[] {
-  console.log("API data to format:", apiData);
-  
-  if (!apiData?.data) {
-    console.warn("No data array found in API response");
-    return [];
-  }
-  
-  return apiData.data.map((entry: any) => {
-    console.log("Processing entry ID:", entry.id);
-    
-    // In this Strapi response, the fields are directly on the entry object
-    // NOT inside an attributes property as we initially thought
-    return {
-      id: entry.id,
-      // Access fields directly from the entry object
-      name: entry.Name || 'Unknown',
-      email: entry.Email || 'unknown@example.com',
-      date: entry.EntryDate || entry.createdAt || new Date().toISOString(),
-      ip: entry.ip || "0.0.0.0",
-      verified: true
-    };
-  });
-}
-  
- // lib/api.ts - Updated selectWinner function to use slug instead of id
-
-/**
- * Select a random winner from entries
- */
-// lib/api.ts - Updated selectWinner function
-export async function selectWinner(giveawaySlug: string): Promise<GiveawayEntry | null> {
-  try {
-    const response = await fetch(`${API_URL}/api/giveaways/${giveawaySlug}/pick-winner`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-    
-    const winner = await response.json();
-    return {
-      id: winner.id,
-      name: winner.Name,
-      email: winner.Email,
-      date: winner.EntryDate || winner.createdAt,
-      ip: winner.ip || "0.0.0.0",
-      verified: true
-    };
-  } catch (error) {
-    console.error('Error selecting winner:', error);
-    return null;
-  }
-}
-
-
-// lib/api.ts - New functions for auto-updating giveaway status
-
-/**
- * Updates a giveaway's status
- */
-// lib/api.ts - Updated updateGiveawayStatus function
-// lib/api.ts - Updated updateGiveawayStatus function to include publishedAt
-export async function updateGiveawayStatus(
-  giveawayId: string | number, 
-  status: 'active' | 'upcoming' | 'ended'
-): Promise<boolean> {
-  try {
-    // Using the endpoint structure for Strapi 5
-    const response = await fetch(`${API_URL}/api/giveaways/${giveawayId}/status`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ 
-        status,
-        publishedAt: new Date().toISOString() // Add this to ensure it's published
-      }),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-    
-    return true;
-  } catch (error) {
-    console.error(`Error updating giveaway ${giveawayId} status to ${status}:`, error);
-    return false;
-  }
-}
-
-
-// lib/api.ts - Updated checkAndUpdateGiveawayStatuses function
-export async function checkAndUpdateGiveawayStatuses(): Promise<void> {
-  try {
-    // Use the bulk update endpoint instead of individual updates
-    const response = await fetch(`${API_URL}/api/giveaways/update-statuses`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-    
-    const result = await response.json();
-    console.log(`Updated ${result.updates.length} giveaways`);
-    
-    // No need to do anything else as the server handled all updates
-  } catch (error) {
-    console.error('Error checking and updating giveaway statuses:', error);
-  }
-}
-
-  // Add this function for debugging
-export async function debugGiveawayEntries(giveawayId: string) {
-  try {
-    const response = await fetch(`${API_URL}/api/giveaway-entry-collections?filters[giveaway][id][$eq]=${giveawayId}`);
-    const data = await response.json();
-    console.log('DEBUG - Raw entry data:', JSON.stringify(data, null, 2));
-    
-    // Check the first entry's structure if it exists
-    if (data.data && data.data.length > 0) {
-      console.log('DEBUG - First entry:', JSON.stringify(data.data[0], null, 2));
-      console.log('DEBUG - First entry attributes:', JSON.stringify(data.data[0].attributes, null, 2));
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Debug error:', error);
-    return null;
-  }
-}

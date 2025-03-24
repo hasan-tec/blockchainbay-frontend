@@ -30,13 +30,12 @@ import {
   fetchGiveawaysAdmin, 
   fetchGiveawayEntries, 
   selectWinner,
-  checkAndUpdateGiveawayStatuses,
   FormattedGiveaway,
-  GiveawayEntry 
+  GiveawayEntry,
+  fetchGiveawayWinner,
 } from "@/lib/api"
 
 export default function AdminGiveawaysPage() {
-  const [scrolled, setScrolled] = useState(false)
   const [giveaways, setGiveaways] = useState<(FormattedGiveaway & { views?: number })[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -47,33 +46,21 @@ export default function AdminGiveawaysPage() {
   const [pickingWinner, setPickingWinner] = useState(false)
   const [winner, setWinner] = useState<GiveawayEntry | null>(null)
 
-  // Scroll handler
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20)
-    }
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
-
-  // Fetch giveaways and check statuses
+  // Fetch giveaways
   useEffect(() => {
     async function loadGiveaways() {
       try {
         setLoading(true)
-        
-        // First, check and update all giveaway statuses
-        await checkAndUpdateGiveawayStatuses()
-        
-        // Then fetch the updated giveaways
+
+        // Fetch the giveaways
         const data = await fetchGiveawaysAdmin()
         setGiveaways(data)
-        
+
         // Select the first giveaway by default
         if (data.length > 0 && !selectedGiveaway) {
           setSelectedGiveaway(data[0])
         }
-        
+
         setError(null)
       } catch (err) {
         console.error("Failed to load giveaways:", err)
@@ -82,43 +69,51 @@ export default function AdminGiveawaysPage() {
         setLoading(false)
       }
     }
-    
+
     loadGiveaways()
-    
-    // Set up an interval to check giveaway statuses every minute
+
+    // Set up an interval to refresh the giveaways list every minute to update calculated statuses
     const intervalId = setInterval(async () => {
       try {
-        await checkAndUpdateGiveawayStatuses()
-        // Refresh the giveaways list after updating statuses
         const updatedData = await fetchGiveawaysAdmin()
         setGiveaways(updatedData)
       } catch (err) {
-        console.error("Failed to update giveaway statuses:", err)
+        console.error("Failed to update giveaways:", err)
       }
     }, 60000) // Check every minute
-    
+
     return () => clearInterval(intervalId) // Clean up on unmount
   }, [])
 
   // Fetch entries when selected giveaway changes
   useEffect(() => {
-    async function loadEntries() {
-      if (!selectedGiveaway) return;
-      
+    async function loadEntriesAndWinner() {
+      if (!selectedGiveaway) return
+
       try {
-        setEntriesLoading(true);
-        const entriesData = await fetchGiveawayEntries(selectedGiveaway.id);
-        console.log("Loaded entries:", entriesData);
-        setEntries(entriesData);
+        setEntriesLoading(true)
+
+        const entriesData = await fetchGiveawayEntries(selectedGiveaway.id)
+        setEntries(entriesData)
+
+        // Also fetch the winner if this giveaway has ended
+        if (selectedGiveaway.status === "ended") {
+          const winnerData = await fetchGiveawayWinner(selectedGiveaway.id)
+          if (winnerData) {
+            setWinner(winnerData)
+          } else {
+            setWinner(null)
+          }
+        }
       } catch (err) {
-        console.error("Failed to load entries:", err);
+        console.error("Failed to load entries or winner:", err)
       } finally {
-        setEntriesLoading(false);
+        setEntriesLoading(false)
       }
     }
-    
-    loadEntries();
-  }, [selectedGiveaway]);
+
+    loadEntriesAndWinner()
+  }, [selectedGiveaway])
 
   // Handler for selecting a giveaway
   const handleSelectGiveaway = (giveaway: FormattedGiveaway) => {
@@ -126,15 +121,32 @@ export default function AdminGiveawaysPage() {
     setWinner(null) // Reset winner when changing giveaways
   }
 
-  // Handler for picking a winner - FIXED TO USE SLUG
+  // Handle picking a winner
   const handlePickWinner = async () => {
     if (!selectedGiveaway) return
-    
+
+    // Ensure the giveaway has ended
+    if (selectedGiveaway.status !== "ended") {
+      console.error("Cannot pick a winner for a giveaway that hasn't ended yet")
+      return
+    }
+
     try {
       setPickingWinner(true)
-      // Use the slug instead of the ID for picking a winner
-      const winnerEntry = await selectWinner(selectedGiveaway.slug)
-      setWinner(winnerEntry)
+
+      // First check if there's already a winner
+      const existingWinner = await fetchGiveawayWinner(selectedGiveaway.id)
+      if (existingWinner) {
+        setWinner(existingWinner)
+      } else {
+        // If no winner exists, select one
+        const winnerEntry = await selectWinner(selectedGiveaway.slug)
+        setWinner(winnerEntry)
+      }
+
+      // Refresh entries to show the winner
+      const updatedEntries = await fetchGiveawayEntries(selectedGiveaway.id)
+      setEntries(updatedEntries)
     } catch (err) {
       console.error("Failed to pick winner:", err)
     } finally {
@@ -143,9 +155,7 @@ export default function AdminGiveawaysPage() {
   }
 
   // Filter giveaways by status
-  const filteredGiveaways = giveaways.filter(giveaway => 
-    statusFilter === "all" || giveaway.status === statusFilter
-  )
+  const filteredGiveaways = giveaways.filter((giveaway) => statusFilter === "all" || giveaway.status === statusFilter)
 
   // Helper function to get status color
   const getStatusColor = (status: string) => {
@@ -155,20 +165,9 @@ export default function AdminGiveawaysPage() {
       case "upcoming":
         return "text-blue-500 bg-blue-500/20 border-blue-500"
       case "ended":
-        return "text-gray-500 bg-gray-500/20 border-gray-500"
+        return "text-gray-400 bg-gray-500/20 border-gray-400"
       default:
-        return "text-gray-500 bg-gray-500/20 border-gray-500"
-    }
-  }
-
-  // Manual trigger for checking and updating statuses
-  const handleRefreshStatuses = async () => {
-    try {
-      await checkAndUpdateGiveawayStatuses()
-      const updatedData = await fetchGiveawaysAdmin()
-      setGiveaways(updatedData)
-    } catch (err) {
-      console.error("Failed to refresh giveaway statuses:", err)
+        return "text-gray-400 bg-gray-500/20 border-gray-400"
     }
   }
 
@@ -185,7 +184,7 @@ export default function AdminGiveawaysPage() {
       </div>
 
       {/* Navigation */}
-      <Navbar  />
+      <Navbar />
 
       {/* Main Content */}
       <main className="pt-32 pb-20">
@@ -198,20 +197,6 @@ export default function AdminGiveawaysPage() {
                 Admin Dashboard
               </div>
               <h1 className="text-4xl font-bold tracking-tight">Giveaway Management</h1>
-            </div>
-            <div className="flex gap-2">
-              <Button 
-                onClick={handleRefreshStatuses}
-                className="bg-blue-500 hover:bg-blue-600 text-white rounded-md px-5 shadow-lg"
-              >
-                Refresh Statuses
-              </Button>
-              <Link href="/admin/giveaways/new">
-                <Button className="bg-[#F7984A] hover:bg-[#F7984A]/90 text-white rounded-md px-5 shadow-lg shadow-[#F7984A]/20 transition-all duration-300 hover:shadow-[#F7984A]/30 hover:translate-y-[-2px]">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Giveaway
-                </Button>
-              </Link>
             </div>
           </div>
 
@@ -229,7 +214,7 @@ export default function AdminGiveawaysPage() {
               <div className="bg-red-500/10 p-6 rounded-xl border border-red-500/20 mb-6">
                 <p className="text-red-400">{error}</p>
               </div>
-              <Button 
+              <Button
                 onClick={() => window.location.reload()}
                 className="bg-[#F7984A] hover:bg-[#F7984A]/90 text-white"
               >
@@ -245,43 +230,45 @@ export default function AdminGiveawaysPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <Card className="bg-[#0D0B26]/80 border border-gray-800/50 p-6 hover:border-gray-700/60 transition-all duration-300">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-gray-400 font-medium">Active Giveaways</h3>
+                    <h3 className="text-gray-300 font-medium">Active Giveaways</h3>
                     <div className="p-2 bg-green-500/20 rounded-full">
                       <div className="h-2 w-2 rounded-full bg-green-500"></div>
                     </div>
                   </div>
-                  <p className="text-3xl font-bold">{giveaways.filter(g => g.status === "active").length}</p>
-                  <div className="mt-4 text-sm text-gray-400">
+                  <p className="text-3xl font-bold text-white">
+                    {giveaways.filter((g) => g.status === "active").length}
+                  </p>
+                  <div className="mt-4 text-sm text-gray-300">
                     <span className="text-green-500">↑ 12%</span> from last month
                   </div>
                 </Card>
 
                 <Card className="bg-[#0D0B26]/80 border border-gray-800/50 p-6 hover:border-gray-700/60 transition-all duration-300">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-gray-400 font-medium">Total Entries</h3>
+                    <h3 className="text-gray-300 font-medium">Total Entries</h3>
                     <div className="p-2 bg-[#F7984A]/20 rounded-full">
                       <Users className="h-4 w-4 text-[#F7984A]" />
                     </div>
                   </div>
-                  <p className="text-3xl font-bold">
+                  <p className="text-3xl font-bold text-white">
                     {giveaways.reduce((sum, giveaway) => sum + giveaway.entries, 0).toLocaleString()}
                   </p>
-                  <div className="mt-4 text-sm text-gray-400">
+                  <div className="mt-4 text-sm text-gray-300">
                     <span className="text-green-500">↑ 24%</span> from last month
                   </div>
                 </Card>
 
                 <Card className="bg-[#0D0B26]/80 border border-gray-800/50 p-6 hover:border-gray-700/60 transition-all duration-300">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-gray-400 font-medium">Ended Giveaways</h3>
+                    <h3 className="text-gray-300 font-medium">Ended Giveaways</h3>
                     <div className="p-2 bg-gray-500/20 rounded-full">
-                      <div className="h-4 w-4 flex items-center justify-center text-gray-500">#</div>
+                      <div className="h-4 w-4 flex items-center justify-center text-gray-400">#</div>
                     </div>
                   </div>
-                  <p className="text-3xl font-bold">{giveaways.filter(g => g.status === "ended").length}</p>
-                  <div className="mt-4 text-sm text-gray-400">
-                    Total completed giveaways
-                  </div>
+                  <p className="text-3xl font-bold text-white">
+                    {giveaways.filter((g) => g.status === "ended").length}
+                  </p>
+                  <div className="mt-4 text-sm text-gray-300">Total completed giveaways</div>
                 </Card>
               </div>
 
@@ -289,19 +276,19 @@ export default function AdminGiveawaysPage() {
               <Card className="bg-[#0D0B26]/80 border border-gray-800/50 mb-8 overflow-hidden">
                 <div className="p-6 border-b border-gray-800/50">
                   <div className="flex justify-between items-center">
-                    <h3 className="text-xl font-bold">All Giveaways</h3>
+                    <h3 className="text-xl font-bold text-white">All Giveaways</h3>
                     <div className="flex space-x-3">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+                        className="border-gray-700 text-gray-300 bg-black hover:bg-white hover:text-black"
                       >
                         <Filter className="h-4 w-4 mr-2" />
                         Filter
                       </Button>
                       <div className="relative">
-                        <select 
-                          className="bg-[#0D0B26] border border-gray-700 px-3 py-2 rounded-md appearance-none pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-[#F7984A]/50"
+                        <select
+                          className="bg-[#0D0B26] border border-gray-700 px-3 py-2 rounded-md appearance-none pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-[#F7984A]/50 text-gray-200"
                           value={statusFilter}
                           onChange={(e) => setStatusFilter(e.target.value)}
                         >
@@ -310,7 +297,7 @@ export default function AdminGiveawaysPage() {
                           <option value="upcoming">Upcoming</option>
                           <option value="ended">Ended</option>
                         </select>
-                        <ChevronDown className="h-4 w-4 absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none" />
+                        <ChevronDown className="h-4 w-4 absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-400" />
                       </div>
                     </div>
                   </div>
@@ -320,31 +307,40 @@ export default function AdminGiveawaysPage() {
                   <table className="w-full">
                     <thead className="bg-gray-800/50 text-left">
                       <tr>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Giveaway</th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Dates</th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Entries</th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Views</th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
+                        <th className="px-6 py-3 text-xs font-medium text-gray-300 uppercase tracking-wider">
+                          Giveaway
+                        </th>
+                        <th className="px-6 py-3 text-xs font-medium text-gray-300 uppercase tracking-wider">Dates</th>
+                        <th className="px-6 py-3 text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-3 text-xs font-medium text-gray-300 uppercase tracking-wider">
+                          Entries
+                        </th>
+                        <th className="px-6 py-3 text-xs font-medium text-gray-300 uppercase tracking-wider">Views</th>
+                        <th className="px-6 py-3 text-xs font-medium text-gray-300 uppercase tracking-wider">
+                          Actions
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-800/50">
                       {filteredGiveaways.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="px-6 py-8 text-center text-gray-400">
+                          <td colSpan={6} className="px-6 py-8 text-center text-gray-300">
                             No giveaways found with the selected filter.
                           </td>
                         </tr>
                       ) : (
                         filteredGiveaways.map((giveaway) => (
-                          <tr key={giveaway.id} className={cn(
-                            "hover:bg-gray-800/30 transition duration-150",
-                            selectedGiveaway?.id === giveaway.id && "bg-gray-800/20"
-                          )}>
+                          <tr
+                            key={giveaway.id}
+                            className={cn(
+                              "hover:bg-gray-800/30 transition duration-150",
+                              selectedGiveaway?.id === giveaway.id && "bg-gray-800/20",
+                            )}
+                          >
                             <td className="px-6 py-4">
-                              <div className="font-medium">{giveaway.title}</div>
+                              <div className="font-medium text-white">{giveaway.title}</div>
                             </td>
-                            <td className="px-6 py-4 text-sm">
+                            <td className="px-6 py-4 text-sm text-gray-300">
                               <div>{giveaway.startDate}</div>
                               <div>{giveaway.endDate}</div>
                             </td>
@@ -353,14 +349,14 @@ export default function AdminGiveawaysPage() {
                                 {giveaway.status}
                               </Badge>
                             </td>
-                            <td className="px-6 py-4">{giveaway.entries.toLocaleString()}</td>
-                            <td className="px-6 py-4">{giveaway.views?.toLocaleString() || "N/A"}</td>
+                            <td className="px-6 py-4 text-gray-300">{giveaway.entries.toLocaleString()}</td>
+                            <td className="px-6 py-4 text-gray-300">{giveaway.views?.toLocaleString() || "N/A"}</td>
                             <td className="px-6 py-4">
                               <div className="flex space-x-2">
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-8 w-8 p-0" 
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 p-0"
                                   title="View Entries"
                                   onClick={() => handleSelectGiveaway(giveaway)}
                                 >
@@ -368,17 +364,11 @@ export default function AdminGiveawaysPage() {
                                 </Button>
                                 <Link href={`/giveaways/${giveaway.slug}`} target="_blank">
                                   <Button variant="ghost" size="icon" className="h-8 w-8 p-0" title="View Giveaway">
-                                    <Eye className="h-4 w-4 text-gray-400" />
+                                    <Eye className="h-4 w-4 text-gray-300" />
                                   </Button>
                                 </Link>
-                                <Link href={`/admin/giveaways/edit/${giveaway.id}`}>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8 p-0" title="Edit Giveaway">
-                                    <Edit className="h-4 w-4 text-[#F7984A]" />
-                                  </Button>
-                                </Link>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 p-0" title="Delete Giveaway">
-                                  <Trash2 className="h-4 w-4 text-red-400" />
-                                </Button>
+                                
+                                
                               </div>
                             </td>
                           </tr>
@@ -389,9 +379,10 @@ export default function AdminGiveawaysPage() {
                 </div>
 
                 <div className="p-4 border-t border-gray-800/50 flex justify-between items-center">
-                  <div className="text-sm text-gray-400">
-                    Showing <span className="font-medium">1</span> to <span className="font-medium">{filteredGiveaways.length}</span> of{" "}
-                    <span className="font-medium">{filteredGiveaways.length}</span> results
+                  <div className="text-sm text-gray-300">
+                    Showing <span className="font-medium">1</span> to{" "}
+                    <span className="font-medium">{filteredGiveaways.length}</span> of{" "}
+                    <span className="font-medium">{filteredGiveaways.length}</span> entries
                   </div>
                   <div className="flex space-x-1">
                     <Button
@@ -426,16 +417,16 @@ export default function AdminGiveawaysPage() {
                 <Card className="bg-[#0D0B26]/80 border border-gray-800/50 overflow-hidden">
                   <div className="p-6 border-b border-gray-800/50">
                     <div className="flex justify-between items-center">
-                      <h3 className="text-xl font-bold">Entries: {selectedGiveaway.title}</h3>
+                      <h3 className="text-xl font-bold text-white">Entries: {selectedGiveaway.title}</h3>
                       <div className="flex space-x-3">
                         <Button className="bg-[#0D0B26] border border-gray-700 hover:bg-gray-800 text-gray-300">
                           <Download className="h-4 w-4 mr-2" />
                           Export CSV
                         </Button>
-                        <Button 
+                        <Button
                           className="bg-[#F7984A] hover:bg-[#F7984A]/90 text-white"
                           onClick={handlePickWinner}
-                          disabled={pickingWinner || entries.length === 0 || selectedGiveaway.status !== 'ended'}
+                          disabled={pickingWinner || entries.length === 0 || selectedGiveaway.status !== "ended"}
                         >
                           {pickingWinner ? (
                             <>
@@ -452,16 +443,16 @@ export default function AdminGiveawaysPage() {
                       </div>
                     </div>
                   </div>
-                  
-                  {selectedGiveaway.status !== 'ended' && (
+
+                  {selectedGiveaway.status !== "ended" && (
                     <div className="mx-6 my-4 p-4 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
                       <div className="flex items-center">
                         <div className="text-yellow-400 mr-3">⚠️</div>
                         <div>
                           <p className="text-gray-300">
-                            You can only pick a winner after the giveaway has ended. 
-                            {selectedGiveaway.status === 'active' 
-                              ? ` This giveaway will end on ${selectedGiveaway.endDate}.` 
+                            You can only pick a winner after the giveaway has ended.
+                            {selectedGiveaway.status === "active"
+                              ? ` This giveaway will end on ${selectedGiveaway.endDate}.`
                               : ` This giveaway hasn't started yet.`}
                           </p>
                         </div>
@@ -477,7 +468,9 @@ export default function AdminGiveawaysPage() {
                           <Trophy className="h-5 w-5 text-[#F7984A] mr-3" />
                           <div>
                             <h4 className="font-bold text-white">Winner Selected!</h4>
-                            <p className="text-gray-300">Congratulations to {winner.name} ({winner.email})</p>
+                            <p className="text-gray-300">
+                              Congratulations to {winner.name} ({winner.email})
+                            </p>
                           </div>
                         </div>
                         <Button variant="outline" className="border-[#F7984A] text-[#F7984A] hover:bg-[#F7984A]/10">
@@ -490,43 +483,57 @@ export default function AdminGiveawaysPage() {
                   {entriesLoading ? (
                     <div className="text-center py-8">
                       <div className="inline-block w-8 h-8 border-4 border-[#F7984A] border-t-transparent rounded-full animate-spin mb-4"></div>
-                      <p className="text-gray-400">Loading entries...</p>
+                      <p className="text-gray-300">Loading entries...</p>
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full">
                         <thead className="bg-gray-800/50 text-left">
                           <tr>
-                            <th className="px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">ID</th>
-                            <th className="px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Name</th>
-                            <th className="px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Email</th>
-                            <th className="px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Date</th>
-                            <th className="px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">IP Address</th>
-                            <th className="px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
-                            <th className="px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
+                            <th className="px-6 py-3 text-xs font-medium text-gray-300 uppercase tracking-wider">ID</th>
+                            <th className="px-6 py-3 text-xs font-medium text-gray-300 uppercase tracking-wider">
+                              Name
+                            </th>
+                            <th className="px-6 py-3 text-xs font-medium text-gray-300 uppercase tracking-wider">
+                              Email
+                            </th>
+                            <th className="px-6 py-3 text-xs font-medium text-gray-300 uppercase tracking-wider">
+                              Date
+                            </th>
+                            <th className="px-6 py-3 text-xs font-medium text-gray-300 uppercase tracking-wider">
+                              IP Address
+                            </th>
+                            <th className="px-6 py-3 text-xs font-medium text-gray-300 uppercase tracking-wider">
+                              Status
+                            </th>
+                            <th className="px-6 py-3 text-xs font-medium text-gray-300 uppercase tracking-wider">
+                              Actions
+                            </th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-800/50">
                           {entries.length === 0 ? (
                             <tr>
-                              <td colSpan={7} className="px-6 py-8 text-center text-gray-400">
+                              <td colSpan={7} className="px-6 py-8 text-center text-gray-300">
                                 No entries found for this giveaway.
                               </td>
                             </tr>
                           ) : (
                             entries.map((entry) => (
-                              <tr 
-                                key={entry.id} 
+                              <tr
+                                key={entry.id}
                                 className={cn(
                                   "hover:bg-gray-800/30 transition duration-150",
-                                  winner?.id === entry.id && "bg-[#F7984A]/10"
+                                  winner?.id === entry.id && "bg-[#F7984A]/10",
                                 )}
                               >
-                                <td className="px-6 py-4">{entry.id}</td>
-                                <td className="px-6 py-4">{entry.name}</td>
-                                <td className="px-6 py-4">{entry.email}</td>
-                                <td className="px-6 py-4 text-sm">{new Date(entry.date).toLocaleDateString()}</td>
-                                <td className="px-6 py-4 text-sm">{entry.ip}</td>
+                                <td className="px-6 py-4 text-gray-300">{entry.id}</td>
+                                <td className="px-6 py-4 text-white">{entry.name}</td>
+                                <td className="px-6 py-4 text-gray-300">{entry.email}</td>
+                                <td className="px-6 py-4 text-sm text-gray-300">
+                                  {new Date(entry.date).toLocaleDateString()}
+                                </td>
+                                <td className="px-6 py-4 text-sm text-gray-300">{entry.ip}</td>
                                 <td className="px-6 py-4">
                                   <Badge
                                     className={`px-2 py-1 ${entry.verified ? "text-green-500 bg-green-500/20 border-green-500" : "text-yellow-500 bg-yellow-500/20 border-yellow-500"} border`}
@@ -536,7 +543,7 @@ export default function AdminGiveawaysPage() {
                                 </td>
                                 <td className="px-6 py-4">
                                   <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
-                                    <MoreHorizontal className="h-4 w-4 text-gray-400" />
+                                    <MoreHorizontal className="h-4 w-4 text-gray-300" />
                                   </Button>
                                 </td>
                               </tr>
@@ -548,15 +555,16 @@ export default function AdminGiveawaysPage() {
                   )}
 
                   <div className="p-4 border-t border-gray-800/50 flex justify-between items-center">
-                    <div className="text-sm text-gray-400">
-                      Showing <span className="font-medium">1</span> to <span className="font-medium">{entries.length}</span> of{" "}
+                    <div className="text-sm text-gray-300">
+                      Showing <span className="font-medium">1</span> to{" "}
+                      <span className="font-medium">{entries.length}</span> of{" "}
                       <span className="font-medium">{selectedGiveaway.entries}</span> entries
                     </div>
                     <div className="flex space-x-1">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+                        className="bg-black text-gray-300 hover:bg-white hover:text-black"
                         disabled
                       >
                         Previous
@@ -571,7 +579,7 @@ export default function AdminGiveawaysPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+                        className="bg-black text-gray-300 hover:bg-white hover:text-black"
                         disabled={entries.length < 10}
                       >
                         Next
@@ -590,3 +598,4 @@ export default function AdminGiveawaysPage() {
     </div>
   )
 }
+
