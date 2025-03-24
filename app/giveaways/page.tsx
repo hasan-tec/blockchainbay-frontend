@@ -48,14 +48,16 @@ export default function GiveawaysPage() {
   const featuredGiveaway = activeGiveaways.length > 0 ? activeGiveaways[0] : null
 
   return (
-    <div className="min-h-screen bg-[#07071C] text-white">
-      {/* Background elements */}
-      <div className="fixed inset-0 bg-[#07071C] overflow-hidden -z-10">
-        <div className="absolute top-0 left-0 w-full h-full opacity-30">
-          <div className="absolute top-[10%] left-[5%] w-[30rem] h-[30rem] rounded-full bg-[#F7984A]/5 blur-[8rem]"></div>
-          <div className="absolute bottom-[10%] right-[5%] w-[25rem] h-[25rem] rounded-full bg-[#F7984A]/5 blur-[8rem]"></div>
-          <div className="absolute top-[40%] right-[15%] w-[20rem] h-[20rem] rounded-full bg-blue-500/5 blur-[8rem]"></div>
-        </div>
+    <div className="min-h-screen text-white relative">
+      {/* Enhanced Background elements with more visible gradients and grid */}
+      <div className="fixed inset-0 bg-[#07071C] overflow-hidden z-[-1]">
+        {/* Main gradient orbs - more visible now */}
+        <div className="absolute top-[5%] left-[10%] w-[40rem] h-[40rem] rounded-full bg-gradient-to-r from-[#F7984A]/30 to-transparent opacity-50 blur-[100px]"></div>
+        <div className="absolute bottom-[10%] right-[10%] w-[35rem] h-[35rem] rounded-full bg-gradient-to-l from-[#F7984A]/30 to-transparent opacity-50 blur-[100px]"></div>
+        <div className="absolute top-[40%] right-[15%] w-[30rem] h-[30rem] rounded-full bg-gradient-to-t from-blue-500/20 to-transparent opacity-40 blur-[100px]"></div>
+        {/* Grid overlay */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] opacity-70"></div>
+        {/* Keep the original texture overlay */}
         <div className="absolute inset-0 bg-[url('/placeholder.svg?height=100&width=100')] bg-repeat opacity-[0.015]"></div>
       </div>
 
@@ -63,7 +65,7 @@ export default function GiveawaysPage() {
       <Navbar />
 
       {/* Main Content */}
-      <main className="pt-32 pb-20">
+      <main className="pt-32 pb-20 relative z-20">
         <div className="container mx-auto px-4 md:px-6">
           {/* Header */}
           <div className="max-w-4xl mx-auto text-center mb-16">
@@ -119,7 +121,7 @@ export default function GiveawaysPage() {
 
               {/* Featured Giveaway */}
               {featuredGiveaway && (
-                <div className="mb-16">
+                <div className="mb-16 relative z-20">
                   <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#07071C] via-gray-900 to-[#07071C] border border-gray-800/50">
                     <div className="absolute inset-0 overflow-hidden">
                       <div className="absolute top-0 left-[10%] w-[30rem] h-[30rem] rounded-full bg-[#F7984A]/5 blur-[10rem] -z-10"></div>
@@ -218,7 +220,7 @@ export default function GiveawaysPage() {
                       .filter((giveaway) => giveaway.id !== featuredGiveaway?.id)
                       .map((giveaway) => (
                         <Link key={giveaway.id} href={`/giveaways/${giveaway.slug}`}>
-                          <Card className="bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl overflow-hidden hover:border-gray-700/60 transition-all duration-300 group h-full flex flex-col">
+                          <Card className="bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl overflow-hidden hover:border-gray-700/60 transition-all duration-300 group h-full flex flex-col relative z-20">
                             <div className="relative aspect-video w-full overflow-hidden">
                               <Image
                                 src={giveaway.image || "/placeholder.svg"}
@@ -408,7 +410,7 @@ export default function GiveawaysPage() {
       </main>
 
       {/* Footer */}
-      <Footer />
+      <Footer className="relative z-20"  />
     </div>
   )
 }

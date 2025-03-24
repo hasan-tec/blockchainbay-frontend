@@ -115,9 +115,21 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
   // Show error state if we have an error but no giveaway
   if (error || !giveaway) {
     return (
-      <div className="min-h-screen bg-[#07071C] text-white">
-        <Navbar />
-        <main className="pt-32 pb-20">
+      <div className="min-h-screen text-white relative">
+        {/* Enhanced Background elements with more visible gradients and grid */}
+        <div className="fixed inset-0 bg-[#07071C] overflow-hidden z-10">
+          {/* Main gradient orbs - more visible now */}
+          <div className="absolute top-[5%] left-[10%] w-[40rem] h-[40rem] rounded-full bg-gradient-to-r from-[#F7984A]/30 to-transparent opacity-50 blur-[100px]"></div>
+          <div className="absolute bottom-[10%] right-[10%] w-[35rem] h-[35rem] rounded-full bg-gradient-to-l from-[#F7984A]/30 to-transparent opacity-50 blur-[100px]"></div>
+          <div className="absolute top-[40%] right-[15%] w-[30rem] h-[30rem] rounded-full bg-gradient-to-t from-blue-500/20 to-transparent opacity-40 blur-[100px]"></div>
+          {/* Grid overlay */}
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] opacity-70"></div>
+          {/* Keep the original texture overlay */}
+          <div className="absolute inset-0 bg-[url('/placeholder.svg?height=100&width=100')] bg-repeat opacity-[0.015]"></div>
+        </div>
+
+        <Navbar  />
+        <main className="pt-32 pb-20 relative z-20">
           <div className="container mx-auto px-4 md:px-6">
             <div className="max-w-xl mx-auto text-center py-16">
               <div className="bg-red-500/10 p-6 rounded-xl border border-red-500/20 mb-6">
@@ -132,7 +144,7 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
             </div>
           </div>
         </main>
-        <Footer />
+        <Footer className="relative z-20" />
       </div>
     )
   }
@@ -141,22 +153,24 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
   const isActive = giveaway.status === "active"
 
   return (
-    <div className="min-h-screen bg-[#07071C] text-white">
-      {/* Background elements */}
-      <div className="fixed inset-0 bg-[#07071C] overflow-hidden -z-10">
-        <div className="absolute top-0 left-0 w-full h-full opacity-30">
-          <div className="absolute top-[10%] left-[5%] w-[30rem] h-[30rem] rounded-full bg-[#F7984A]/5 blur-[8rem]"></div>
-          <div className="absolute bottom-[10%] right-[5%] w-[25rem] h-[25rem] rounded-full bg-[#F7984A]/5 blur-[8rem]"></div>
-          <div className="absolute top-[40%] right-[15%] w-[20rem] h-[20rem] rounded-full bg-blue-500/5 blur-[8rem]"></div>
-        </div>
+    <div className="min-h-screen text-white relative">
+      {/* Enhanced Background elements with more visible gradients and grid */}
+      <div className="fixed inset-0 bg-[#07071C] overflow-hidden z-10">
+        {/* Main gradient orbs - more visible now */}
+        <div className="absolute top-[5%] left-[10%] w-[40rem] h-[40rem] rounded-full bg-gradient-to-r from-[#F7984A]/30 to-transparent opacity-50 blur-[100px]"></div>
+        <div className="absolute bottom-[10%] right-[10%] w-[35rem] h-[35rem] rounded-full bg-gradient-to-l from-[#F7984A]/30 to-transparent opacity-50 blur-[100px]"></div>
+        <div className="absolute top-[40%] right-[15%] w-[30rem] h-[30rem] rounded-full bg-gradient-to-t from-blue-500/20 to-transparent opacity-40 blur-[100px]"></div>
+        {/* Grid overlay */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] opacity-70"></div>
+        {/* Keep the original texture overlay */}
         <div className="absolute inset-0 bg-[url('/placeholder.svg?height=100&width=100')] bg-repeat opacity-[0.015]"></div>
       </div>
 
       {/* Navigation */}
-      <Navbar />
+      <Navbar  />
 
       {/* Main Content */}
-      <main className="pt-32 pb-20">
+      <main className="pt-32 pb-20 relative z-20">
         <div className="container mx-auto px-4 md:px-6">
           {/* Breadcrumb */}
           <div className="text-sm mb-6 flex items-center text-gray-400">
@@ -554,16 +568,12 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
             </div>
           </div>
 
-          
-
           {/* Related Giveaways */}
-          {relatedGiveaways.length > 0 && (
+          {relatedGiveaways.length > 0 &&
             // Filter out ended giveaways
             (() => {
-              const activeOrUpcomingGiveaways = relatedGiveaways.filter(
-                (giveaway) => giveaway.status !== "ended"
-              );
-              
+              const activeOrUpcomingGiveaways = relatedGiveaways.filter((giveaway) => giveaway.status !== "ended")
+
               // Only show section if there are active or upcoming giveaways
               return activeOrUpcomingGiveaways.length > 0 ? (
                 <section className="mt-16">
@@ -609,7 +619,9 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
                             <h3 className="font-bold text-xl mb-3 group-hover:text-[#F7984A] transition-colors line-clamp-2 text-white">
                               {relatedGiveaway.title}
                             </h3>
-                            <p className="text-gray-300 text-sm mb-4 line-clamp-3 flex-1">{relatedGiveaway.description}</p>
+                            <p className="text-gray-300 text-sm mb-4 line-clamp-3 flex-1">
+                              {relatedGiveaway.description}
+                            </p>
                             <div className="flex items-center justify-between mt-auto">
                               <span className="text-sm text-gray-300">Value: ${relatedGiveaway.value}</span>
                               <Button
@@ -626,14 +638,13 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
                     ))}
                   </div>
                 </section>
-              ) : null;
-            })()
-          )}
+              ) : null
+            })()}
         </div>
       </main>
 
       {/* Footer */}
-      <Footer />
+      <Footer className="relative z-20" />
     </div>
   )
 }
