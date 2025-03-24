@@ -83,7 +83,7 @@ export const Navbar = () => {
     { name: "News", href: "/news", icon: <Newspaper className="h-4 w-4 mr-1" /> },
     { name: "Podcasts", href: "/podcasts", icon: <Headphones className="h-4 w-4 mr-1" /> },
     { name: "Store", href: "/store", icon: <ShoppingCart className="h-4 w-4 mr-1" /> },
-    { name: "Giveaways", href: "#", icon: <Gift className="h-4 w-4 mr-1" /> },
+    { name: "Giveaways", href: "/giveaways", icon: <Gift className="h-4 w-4 mr-1" /> },
   ]
 
   return (
@@ -127,10 +127,11 @@ export const Navbar = () => {
                 </span>
                 <span className="absolute inset-0 rounded-full bg-gray-800 -z-10 opacity-0 hover:opacity-100 transition-opacity"></span>
               </button>
-
+              <Link href="/admin/giveaways" >
               <Button className="bg-[#F7984A] hover:bg-[#F7984A]/90 text-white rounded-full px-5 shadow-lg shadow-[#F7984A]/20 transition-all duration-300 hover:shadow-[#F7984A]/30 hover:translate-y-[-2px]">
                 Sign In
               </Button>
+              </Link>
             </div>
 
             <button
@@ -173,13 +174,14 @@ export const Navbar = () => {
                   className="w-full pl-10 pr-4 py-3 rounded-lg bg-gray-800/70 border border-gray-700/50 text-sm focus:outline-none"
                 />
               </div>
-
+              <Link href="/admin/giveaways" >
               <Button
                 className="w-full bg-[#F7984A] hover:bg-[#F7984A]/90 text-white py-6"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Sign In
               </Button>
+              </Link>
             </div>
           </div>
         </div>
