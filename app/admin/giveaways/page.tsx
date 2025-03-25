@@ -15,6 +15,7 @@ import {
   Download,
   Trophy,
   Users,
+  LogOut,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -35,6 +36,11 @@ import {
   fetchGiveawayWinner,
 } from "@/lib/api"
 
+// Add at the top of your file after other imports
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
+
+
 export default function AdminGiveawaysPage() {
   const [giveaways, setGiveaways] = useState<(FormattedGiveaway & { views?: number })[]>([])
   const [loading, setLoading] = useState(true)
@@ -45,6 +51,17 @@ export default function AdminGiveawaysPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [pickingWinner, setPickingWinner] = useState(false)
   const [winner, setWinner] = useState<GiveawayEntry | null>(null)
+  const { user, isAdmin, logout } = useAuth();
+  const router = useRouter();
+
+
+
+// Add useEffect to check auth status
+useEffect(() => {
+  if (!loading && !isAdmin) {
+    router.push('/admin/login');
+  }
+}, [loading, isAdmin, router]);
 
   // Fetch giveaways
   useEffect(() => {
@@ -186,10 +203,13 @@ export default function AdminGiveawaysPage() {
       {/* Navigation */}
       <Navbar />
 
+     
+
       {/* Main Content */}
       <main className="pt-32 pb-20">
         <div className="container mx-auto px-4 md:px-6">
           {/* Dashboard Title */}
+        
           <div className="flex justify-between items-center mb-8">
             <div>
               <div className="inline-flex items-center px-3 py-1 rounded-full bg-white/10 border border-white/20 text-white text-sm font-medium mb-4 backdrop-blur-sm">
@@ -197,6 +217,23 @@ export default function AdminGiveawaysPage() {
                 Admin Dashboard
               </div>
               <h1 className="text-4xl font-bold tracking-tight">Giveaway Management</h1>
+            </div>
+            
+            {/* Add the logout button here */}
+            <div className="flex items-center space-x-4">
+              {user && (
+                <div className="text-gray-300 text-sm hidden md:block">
+                  Logged in as <span className="text-white font-medium">{user.username}</span>
+                </div>
+              )}
+              <Button 
+                onClick={logout} 
+                variant="outline" 
+                className="border border-gray-700 bg-black hover:bg-white hover:text-black text-gray-300"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
             </div>
           </div>
 
@@ -238,9 +275,7 @@ export default function AdminGiveawaysPage() {
                   <p className="text-3xl font-bold text-white">
                     {giveaways.filter((g) => g.status === "active").length}
                   </p>
-                  <div className="mt-4 text-sm text-gray-300">
-                    <span className="text-green-500">↑ 12%</span> from last month
-                  </div>
+                 
                 </Card>
 
                 <Card className="bg-[#0D0B26]/80 border border-gray-800/50 p-6 hover:border-gray-700/60 transition-all duration-300">
@@ -253,9 +288,7 @@ export default function AdminGiveawaysPage() {
                   <p className="text-3xl font-bold text-white">
                     {giveaways.reduce((sum, giveaway) => sum + giveaway.entries, 0).toLocaleString()}
                   </p>
-                  <div className="mt-4 text-sm text-gray-300">
-                    <span className="text-green-500">↑ 24%</span> from last month
-                  </div>
+                  
                 </Card>
 
                 <Card className="bg-[#0D0B26]/80 border border-gray-800/50 p-6 hover:border-gray-700/60 transition-all duration-300">
@@ -396,7 +429,7 @@ export default function AdminGiveawaysPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="border-gray-700 bg-[#F7984A] hover:bg-[#F7984A]/90 text-white border-[#F7984A]"
+                      className="border-gray-700 bg-[#F7984A] hover:bg-[#F7984A]/90 text-white"
                     >
                       1
                     </Button>
@@ -572,7 +605,7 @@ export default function AdminGiveawaysPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="border-gray-700 bg-[#F7984A] hover:bg-[#F7984A]/90 text-white border-[#F7984A]"
+                        className="border-gray-700 bg-[#F7984A] hover:bg-[#F7984A]/90 text-white"
                       >
                         1
                       </Button>

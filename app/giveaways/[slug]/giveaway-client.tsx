@@ -544,26 +544,7 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
                   </div>
                 )}
 
-                {/* Bonus Entries */}
-                {isActive && !formSubmitted && (
-                  <div className="mt-6 pt-6 border-t border-gray-800/50">
-                    <h3 className="font-bold text-lg mb-3 text-white">Get Bonus Entries</h3>
-                    <ul className="space-y-3">
-                      <li className="flex items-center justify-between">
-                        <span className="text-gray-300">Share on Twitter</span>
-                        <Badge className="bg-blue-500/20 text-blue-300 hover:bg-blue-500/30">+3 Entries</Badge>
-                      </li>
-                      <li className="flex items-center justify-between">
-                        <span className="text-gray-300">Follow on Twitter</span>
-                        <Badge className="bg-blue-500/20 text-blue-300 hover:bg-blue-500/30">+2 Entries</Badge>
-                      </li>
-                      <li className="flex items-center justify-between">
-                        <span className="text-gray-300">Join Discord Server</span>
-                        <Badge className="bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30">+5 Entries</Badge>
-                      </li>
-                    </ul>
-                  </div>
-                )}
+                
               </Card>
             </div>
           </div>
