@@ -47,26 +47,28 @@ export default function GiveawaysPage() {
   }, [])
 
   // Helper function to generate Google Calendar event link
-const generateGoogleCalendarLink = (giveaway: FormattedGiveaway) => {
-  // Parse start date
-  const startDate = new Date(giveaway.startDate);
-  
-  // Format as YYYYMMDDTHHMMSSZ for Google Calendar
-  const formattedStart = startDate.toISOString().replace(/-|:|\.\d+/g, '');
-  
-  // Set event end time to 1 hour after start
-  const endDate = new Date(startDate);
-  endDate.setHours(endDate.getHours() + 1);
-  const formattedEnd = endDate.toISOString().replace(/-|:|\.\d+/g, '');
-  
-  // Create calendar text
-  const eventTitle = encodeURIComponent(`${giveaway.title} Giveaway Opens`);
-  const eventDetails = encodeURIComponent(`The ${giveaway.title} giveaway is now open for entries! Don't miss your chance to win. Check it out at ${window.location.origin}/giveaways/${giveaway.slug}`);
-  const eventLocation = encodeURIComponent(`${window.location.origin}/giveaways/${giveaway.slug}`);
-  
-  // Generate Google Calendar link
-  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${eventTitle}&details=${eventDetails}&location=${eventLocation}&dates=${formattedStart}/${formattedEnd}`;
-};
+  const generateGoogleCalendarLink = (giveaway: FormattedGiveaway) => {
+    // Parse start date
+    const startDate = new Date(giveaway.startDate)
+
+    // Format as YYYYMMDDTHHMMSSZ for Google Calendar
+    const formattedStart = startDate.toISOString().replace(/-|:|\.\d+/g, "")
+
+    // Set event end time to 1 hour after start
+    const endDate = new Date(startDate)
+    endDate.setHours(endDate.getHours() + 1)
+    const formattedEnd = endDate.toISOString().replace(/-|:|\.\d+/g, "")
+
+    // Create calendar text
+    const eventTitle = encodeURIComponent(`${giveaway.title} Giveaway Opens`)
+    const eventDetails = encodeURIComponent(
+      `The ${giveaway.title} giveaway is now open for entries! Don't miss your chance to win. Check it out at ${window.location.origin}/giveaways/${giveaway.slug}`,
+    )
+    const eventLocation = encodeURIComponent(`${window.location.origin}/giveaways/${giveaway.slug}`)
+
+    // Generate Google Calendar link
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${eventTitle}&details=${eventDetails}&location=${eventLocation}&dates=${formattedStart}/${formattedEnd}`
+  }
 
   // Filter giveaways
   const activeGiveaways = giveaways.filter((giveaway) => giveaway.status === "active")
@@ -91,7 +93,7 @@ const generateGoogleCalendarLink = (giveaway: FormattedGiveaway) => {
   const totalUpcomingPages = Math.ceil(upcomingGiveaways.length / itemsPerPage)
 
   // Add this state to track which giveaway's calendar button was clicked
-const [calendarClicked, setCalendarClicked] = useState<number | null>(null);
+  const [calendarClicked, setCalendarClicked] = useState<number | null>(null)
 
   return (
     <div className="min-h-screen text-white relative">
@@ -175,15 +177,17 @@ const [calendarClicked, setCalendarClicked] = useState<number | null>(null);
                     </div>
 
                     <div className="relative p-8 md:p-12">
-                      <div className="flex flex-col lg:flex-row items-center gap-8 lg:gap-12">
-                        <div className="lg:w-1/2">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 items-center gap-8 lg:gap-12">
+                        <div>
                           <Badge className="bg-[#F7984A] hover:bg-[#F7984A]/90 mb-4 text-white">
                             FEATURED GIVEAWAY
                           </Badge>
                           <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight text-white">
                             {featuredGiveaway.title}
                           </h2>
-                          <p className="text-lg text-gray-300 mb-6">{featuredGiveaway.description}</p>
+                          <div className="max-w-full break-words">
+                            <p className="text-lg text-gray-300 mb-6">{featuredGiveaway.description}</p>
+                          </div>
 
                           <div className="grid grid-cols-3 gap-4 mb-6">
                             <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 text-center">
@@ -210,7 +214,7 @@ const [calendarClicked, setCalendarClicked] = useState<number | null>(null);
                             </Link>
                           </Button>
                         </div>
-                        <div className="lg:w-1/2">
+                        <div>
                           <div className="relative rounded-xl overflow-hidden">
                             <Image
                               src={featuredGiveaway.image || "/placeholder.svg"}
@@ -294,7 +298,9 @@ const [calendarClicked, setCalendarClicked] = useState<number | null>(null);
                             <h3 className="font-bold text-xl mb-3 group-hover:text-[#F7984A] transition-colors line-clamp-2 text-white">
                               {giveaway.title}
                             </h3>
-                            <p className="text-gray-300 text-sm mb-4 line-clamp-3 flex-1">{giveaway.description}</p>
+                            <div className="max-w-full break-words flex-1">
+                              <p className="text-gray-300 text-sm mb-4 line-clamp-3">{giveaway.description}</p>
+                            </div>
                             <div className="flex items-center justify-between mt-auto">
                               <span className="text-sm text-gray-300">Ends: {giveaway.endDate}</span>
                               <Button
@@ -403,34 +409,36 @@ const [calendarClicked, setCalendarClicked] = useState<number | null>(null);
                           <h3 className="font-bold text-xl mb-3 transition-colors line-clamp-2 text-white">
                             {giveaway.title}
                           </h3>
-                          <p className="text-gray-300 text-sm mb-4 line-clamp-3 flex-1">{giveaway.description}</p>
+                          <div className="max-w-full break-words flex-1">
+                            <p className="text-gray-300 text-sm mb-4 line-clamp-3">{giveaway.description}</p>
+                          </div>
                           <div className="flex items-center justify-between mt-auto">
                             <span className="text-sm text-gray-300">Opens: {giveaway.startDate}</span>
                             <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-gray-300 bg-black border-gray-700 hover:bg-white hover:text-black"
-                          onClick={(e) => {
-                            e.preventDefault(); // Prevent navigation
-                            window.open(generateGoogleCalendarLink(giveaway), '_blank');
-                            // Set the clicked giveaway id to show feedback
-                            setCalendarClicked(giveaway.id);
-                            // Reset after 2 seconds
-                            setTimeout(() => setCalendarClicked(null), 2000);
-                          }}
-                        >
-                          {calendarClicked === giveaway.id ? (
-                            <>
-                              <Check className="h-4 w-4 mr-2 text-green-500" />
-                              Set Reminder
-                            </>
-                          ) : (
-                            <>
-                              <Calendar className="h-4 w-4 mr-2" />
-                              Set Reminder
-                            </>
-                          )}
-                        </Button>
+                              variant="outline"
+                              size="sm"
+                              className="text-gray-300 bg-black border-gray-700 hover:bg-white hover:text-black"
+                              onClick={(e) => {
+                                e.preventDefault() // Prevent navigation
+                                window.open(generateGoogleCalendarLink(giveaway), "_blank")
+                                // Set the clicked giveaway id to show feedback
+                                setCalendarClicked(giveaway.id)
+                                // Reset after 2 seconds
+                                setTimeout(() => setCalendarClicked(null), 2000)
+                              }}
+                            >
+                              {calendarClicked === giveaway.id ? (
+                                <>
+                                  <Check className="h-4 w-4 mr-2 text-green-500" />
+                                  Set Reminder
+                                </>
+                              ) : (
+                                <>
+                                  <Calendar className="h-4 w-4 mr-2" />
+                                  Set Reminder
+                                </>
+                              )}
+                            </Button>
                           </div>
                         </div>
                       </Card>

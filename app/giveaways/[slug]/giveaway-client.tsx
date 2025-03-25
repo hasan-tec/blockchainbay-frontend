@@ -209,8 +209,8 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
               <div className="absolute bottom-0 right-[10%] w-[25rem] h-[25rem] rounded-full bg-purple-500/5 blur-[10rem] -z-10"></div>
             </div>
             <div className="relative p-8 md:p-12">
-              <div className="flex flex-col lg:flex-row items-center gap-8 lg:gap-12">
-                <div className="lg:w-1/2">
+              <div className="grid grid-cols-1 lg:grid-cols-2 items-center gap-8 lg:gap-12">
+                <div>
                   <Badge
                     className={cn(
                       "mb-4 text-white",
@@ -220,7 +220,9 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
                     {isActive ? "ACTIVE GIVEAWAY" : "COMING SOON"}
                   </Badge>
                   <h1 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight text-white">{giveaway.title}</h1>
-                  <p className="text-lg text-gray-300 mb-6">{giveaway.description}</p>
+                  <div className="max-w-full break-words">
+                    <p className="text-lg text-gray-300 mb-6">{giveaway.description}</p>
+                  </div>
                   <div className="grid grid-cols-3 gap-4 mb-6">
                     <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 text-center">
                       <Clock className="h-5 w-5 mx-auto mb-2 text-[#F7984A]" />
@@ -253,7 +255,7 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
                     </Button>
                   )}
                 </div>
-                <div className="lg:w-1/2">
+                <div>
                   <div className="relative rounded-xl overflow-hidden">
                     <Image
                       src={giveaway.image || "/placeholder.svg"}
