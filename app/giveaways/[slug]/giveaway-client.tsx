@@ -6,18 +6,7 @@ import { useRef, useState } from "react"
 import ReCAPTCHA from "react-google-recaptcha"
 import Link from "next/link"
 import Image from "next/image"
-import {
-  ArrowRight,
-  Clock,
-  Calendar,
-  Users,
-  Check,
-  ChevronRight,
-  Facebook,
-  Twitter,
-  Instagram,
-  Copy,
-} from "lucide-react"
+import { ArrowRight, Clock, Calendar, Users, Check, ChevronRight, Facebook, Instagram, Copy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -52,29 +41,30 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 3 // Number of giveaways per page
 
-
   // Add this function to your GiveawayClient component
-const generateGoogleCalendarLink = () => {
-  if (!giveaway) return '';
-  
-  // Format dates properly for Google Calendar
-  const startDate = new Date(giveaway.startDate);
-  // Format as YYYYMMDDTHHMMSSZ
-  const formattedStart = startDate.toISOString().replace(/-|:|\.\d+/g, '');
-  
-  // Set event end time to 1 hour after start
-  const endDate = new Date(startDate);
-  endDate.setHours(endDate.getHours() + 1);
-  const formattedEnd = endDate.toISOString().replace(/-|:|\.\d+/g, '');
-  
-  // Create calendar text
-  const eventTitle = encodeURIComponent(`${giveaway.title} Giveaway Opens`);
-  const eventDetails = encodeURIComponent(`The ${giveaway.title} giveaway is now open for entries! Enter at ${window.location.href}`);
-  const eventLocation = encodeURIComponent(window.location.href);
-  
-  // Generate Google Calendar link
-  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${eventTitle}&details=${eventDetails}&location=${eventLocation}&dates=${formattedStart}/${formattedEnd}`;
-};
+  const generateGoogleCalendarLink = () => {
+    if (!giveaway) return ""
+
+    // Format dates properly for Google Calendar
+    const startDate = new Date(giveaway.startDate)
+    // Format as YYYYMMDDTHHMMSSZ
+    const formattedStart = startDate.toISOString().replace(/-|:|\.\d+/g, "")
+
+    // Set event end time to 1 hour after start
+    const endDate = new Date(startDate)
+    endDate.setHours(endDate.getHours() + 1)
+    const formattedEnd = endDate.toISOString().replace(/-|:|\.\d+/g, "")
+
+    // Create calendar text
+    const eventTitle = encodeURIComponent(`${giveaway.title} Giveaway Opens`)
+    const eventDetails = encodeURIComponent(
+      `The ${giveaway.title} giveaway is now open for entries! Enter at ${window.location.href}`,
+    )
+    const eventLocation = encodeURIComponent(window.location.href)
+
+    // Generate Google Calendar link
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${eventTitle}&details=${eventDetails}&location=${eventLocation}&dates=${formattedStart}/${formattedEnd}`
+  }
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href)
@@ -255,8 +245,8 @@ const generateGoogleCalendarLink = () => {
                   ) : (
                     <Button
                       variant="outline"
-                      onClick={() => window.open(generateGoogleCalendarLink(), '_blank')}
-                      className="border-white/20 bg-black  hover:bg-white hover:text-black text-white px-8 py-6 text-lg rounded-md shadow-lg shadow-black/20 transition-all duration-300"
+                      onClick={() => window.open(generateGoogleCalendarLink(), "_blank")}
+                      className="border-white/20 bg-black hover:bg-white hover:text-black text-white px-8 py-6 text-lg rounded-md shadow-lg shadow-black/20 transition-all duration-300"
                     >
                       <span>Set Reminder</span>
                       <Calendar className="ml-2 h-5 w-5" />
@@ -311,7 +301,6 @@ const generateGoogleCalendarLink = () => {
                   >
                     Rules & Eligibility
                   </TabsTrigger>
-                 
                 </TabsList>
                 <TabsContent value="prizes" className="mt-6">
                   <Card className="bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl p-6">
@@ -414,9 +403,9 @@ const generateGoogleCalendarLink = () => {
                       size="icon"
                       className="rounded-full border-gray-700 bg-black text-blue-400 hover:text-blue-300 hover:bg-gray-800"
                       onClick={() => {
-                        const url = encodeURIComponent(window.location.href);
-                        const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
-                        window.open(shareUrl, '_blank', 'width=600,height=400');
+                        const url = encodeURIComponent(window.location.href)
+                        const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`
+                        window.open(shareUrl, "_blank", "width=600,height=400")
                       }}
                     >
                       <Facebook className="h-5 w-5" />
@@ -426,14 +415,19 @@ const generateGoogleCalendarLink = () => {
                       size="icon"
                       className="rounded-full border-gray-700 bg-black text-white hover:text-gray-200 hover:bg-gray-800"
                       onClick={() => {
-                        const text = encodeURIComponent(`Check out this awesome giveaway: ${giveaway.title}`);
-                        const url = encodeURIComponent(window.location.href);
-                        const shareUrl = `https://twitter.com/intent/tweet?text=${text}&url=${url}`;
-                        window.open(shareUrl, '_blank', 'width=600,height=400');
+                        const text = encodeURIComponent(`Check out this awesome giveaway: ${giveaway.title}`)
+                        const url = encodeURIComponent(window.location.href)
+                        const shareUrl = `https://twitter.com/intent/tweet?text=${text}&url=${url}`
+                        window.open(shareUrl, "_blank", "width=600,height=400")
                       }}
                     >
                       {/* X logo instead of Twitter */}
-                      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                      <svg
+                        className="h-5 w-5"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
                         <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932L18.901 1.153ZM17.61 20.644h2.039L6.486 3.24H4.298L17.61 20.644Z" />
                       </svg>
                     </Button>
@@ -444,8 +438,8 @@ const generateGoogleCalendarLink = () => {
                       onClick={() => {
                         // Instagram doesn't have a direct share URL like Facebook and Twitter
                         // So we'll copy the link and show a message
-                        navigator.clipboard.writeText(window.location.href);
-                        alert('Link copied! Share this on Instagram with your friends.');
+                        navigator.clipboard.writeText(window.location.href)
+                        alert("Link copied! Share this on Instagram with your friends.")
                       }}
                     >
                       <Instagram className="h-5 w-5" />
@@ -461,7 +455,7 @@ const generateGoogleCalendarLink = () => {
                   </div>
                 </div>
               </Card>
-              </div>
+            </div>
 
             {/* Right Column - Entry Form */}
             <div>
