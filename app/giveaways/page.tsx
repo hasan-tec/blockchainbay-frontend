@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Gift, ArrowRight, Clock, Calendar, Users } from "lucide-react"
+import { Gift, ArrowRight, Clock, Calendar, Users, ChevronRight, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 
 // Import our components
 import Navbar from "@/components/Navbar"
@@ -19,6 +20,11 @@ export default function GiveawaysPage() {
   const [giveaways, setGiveaways] = useState<FormattedGiveaway[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Pagination states
+  const [activeCurrentPage, setActiveCurrentPage] = useState(1)
+  const [upcomingCurrentPage, setUpcomingCurrentPage] = useState(1)
+  const itemsPerPage = 6 // Number of giveaways per page
 
   // Fetch giveaway data when component mounts
   useEffect(() => {
@@ -40,12 +46,52 @@ export default function GiveawaysPage() {
     loadGiveaways()
   }, [])
 
+  // Helper function to generate Google Calendar event link
+const generateGoogleCalendarLink = (giveaway: FormattedGiveaway) => {
+  // Parse start date
+  const startDate = new Date(giveaway.startDate);
+  
+  // Format as YYYYMMDDTHHMMSSZ for Google Calendar
+  const formattedStart = startDate.toISOString().replace(/-|:|\.\d+/g, '');
+  
+  // Set event end time to 1 hour after start
+  const endDate = new Date(startDate);
+  endDate.setHours(endDate.getHours() + 1);
+  const formattedEnd = endDate.toISOString().replace(/-|:|\.\d+/g, '');
+  
+  // Create calendar text
+  const eventTitle = encodeURIComponent(`${giveaway.title} Giveaway Opens`);
+  const eventDetails = encodeURIComponent(`The ${giveaway.title} giveaway is now open for entries! Don't miss your chance to win. Check it out at ${window.location.origin}/giveaways/${giveaway.slug}`);
+  const eventLocation = encodeURIComponent(`${window.location.origin}/giveaways/${giveaway.slug}`);
+  
+  // Generate Google Calendar link
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${eventTitle}&details=${eventDetails}&location=${eventLocation}&dates=${formattedStart}/${formattedEnd}`;
+};
+
   // Filter giveaways
   const activeGiveaways = giveaways.filter((giveaway) => giveaway.status === "active")
   const upcomingGiveaways = giveaways.filter((giveaway) => giveaway.status === "upcoming")
 
   // Get the featured giveaway (first active one)
   const featuredGiveaway = activeGiveaways.length > 0 ? activeGiveaways[0] : null
+
+  // Filter out the featured giveaway from active giveaways
+  const nonFeaturedActiveGiveaways = activeGiveaways.filter((giveaway) => giveaway.id !== featuredGiveaway?.id)
+
+  // Pagination logic for active giveaways
+  const indexOfLastActiveItem = activeCurrentPage * itemsPerPage
+  const indexOfFirstActiveItem = indexOfLastActiveItem - itemsPerPage
+  const currentActiveGiveaways = nonFeaturedActiveGiveaways.slice(indexOfFirstActiveItem, indexOfLastActiveItem)
+  const totalActivePages = Math.ceil(nonFeaturedActiveGiveaways.length / itemsPerPage)
+
+  // Pagination logic for upcoming giveaways
+  const indexOfLastUpcomingItem = upcomingCurrentPage * itemsPerPage
+  const indexOfFirstUpcomingItem = indexOfLastUpcomingItem - itemsPerPage
+  const currentUpcomingGiveaways = upcomingGiveaways.slice(indexOfFirstUpcomingItem, indexOfLastUpcomingItem)
+  const totalUpcomingPages = Math.ceil(upcomingGiveaways.length / itemsPerPage)
+
+  // Add this state to track which giveaway's calendar button was clicked
+const [calendarClicked, setCalendarClicked] = useState<number | null>(null);
 
   return (
     <div className="min-h-screen text-white relative">
@@ -216,56 +262,97 @@ export default function GiveawaysPage() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {activeGiveaways
-                      .filter((giveaway) => giveaway.id !== featuredGiveaway?.id)
-                      .map((giveaway) => (
-                        <Link key={giveaway.id} href={`/giveaways/${giveaway.slug}`}>
-                          <Card className="bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl overflow-hidden hover:border-gray-700/60 transition-all duration-300 group h-full flex flex-col relative z-20">
-                            <div className="relative aspect-video w-full overflow-hidden">
-                              <Image
-                                src={giveaway.image || "/placeholder.svg"}
-                                alt={giveaway.title}
-                                width={600}
-                                height={300}
-                                className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
-                              />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-                              <div className="absolute top-4 left-4">
-                                <Badge className="bg-green-500 hover:bg-green-600 text-white">ACTIVE</Badge>
-                              </div>
-                              <div className="absolute bottom-4 left-4 right-4">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-sm bg-black/50 px-2 py-1 rounded-full flex items-center text-white">
-                                    <Clock className="h-3 w-3 mr-1" />
-                                    {giveaway.daysLeft} days left
-                                  </span>
-                                  <span className="text-sm bg-black/50 px-2 py-1 rounded-full flex items-center text-white">
-                                    <Users className="h-3 w-3 mr-1" />
-                                    {giveaway.entries} entries
-                                  </span>
-                                </div>
+                    {currentActiveGiveaways.map((giveaway) => (
+                      <Link key={giveaway.id} href={`/giveaways/${giveaway.slug}`}>
+                        <Card className="bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl overflow-hidden hover:border-gray-700/60 transition-all duration-300 group h-full flex flex-col relative z-20">
+                          <div className="relative aspect-video w-full overflow-hidden">
+                            <Image
+                              src={giveaway.image || "/placeholder.svg"}
+                              alt={giveaway.title}
+                              width={600}
+                              height={300}
+                              className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                            <div className="absolute top-4 left-4">
+                              <Badge className="bg-green-500 hover:bg-green-600 text-white">ACTIVE</Badge>
+                            </div>
+                            <div className="absolute bottom-4 left-4 right-4">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm bg-black/50 px-2 py-1 rounded-full flex items-center text-white">
+                                  <Clock className="h-3 w-3 mr-1" />
+                                  {giveaway.daysLeft} days left
+                                </span>
+                                <span className="text-sm bg-black/50 px-2 py-1 rounded-full flex items-center text-white">
+                                  <Users className="h-3 w-3 mr-1" />
+                                  {giveaway.entries} entries
+                                </span>
                               </div>
                             </div>
-                            <div className="p-6 flex-1 flex flex-col">
-                              <h3 className="font-bold text-xl mb-3 group-hover:text-[#F7984A] transition-colors line-clamp-2 text-white">
-                                {giveaway.title}
-                              </h3>
-                              <p className="text-gray-300 text-sm mb-4 line-clamp-3 flex-1">{giveaway.description}</p>
-                              <div className="flex items-center justify-between mt-auto">
-                                <span className="text-sm text-gray-300">Ends: {giveaway.endDate}</span>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-[#F7984A] hover:text-[#F7984A]/90 hover:bg-gray-800 p-0 h-auto"
-                                >
-                                  Enter now <ArrowRight className="ml-1 h-4 w-4" />
-                                </Button>
-                              </div>
+                          </div>
+                          <div className="p-6 flex-1 flex flex-col">
+                            <h3 className="font-bold text-xl mb-3 group-hover:text-[#F7984A] transition-colors line-clamp-2 text-white">
+                              {giveaway.title}
+                            </h3>
+                            <p className="text-gray-300 text-sm mb-4 line-clamp-3 flex-1">{giveaway.description}</p>
+                            <div className="flex items-center justify-between mt-auto">
+                              <span className="text-sm text-gray-300">Ends: {giveaway.endDate}</span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-[#F7984A] hover:text-[#F7984A]/90 hover:bg-gray-800 p-0 h-auto"
+                              >
+                                Enter now <ArrowRight className="ml-1 h-4 w-4" />
+                              </Button>
                             </div>
-                          </Card>
-                        </Link>
-                      ))}
+                          </div>
+                        </Card>
+                      </Link>
+                    ))}
                   </div>
+
+                  {/* Pagination for Active Giveaways */}
+                  {totalActivePages > 1 && (
+                    <div className="flex justify-center mt-8">
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 border-gray-700 bg-black text-gray-300 hover:text-white hover:bg-gray-800 disabled:opacity-50"
+                          onClick={() => setActiveCurrentPage((prev) => Math.max(prev - 1, 1))}
+                          disabled={activeCurrentPage === 1}
+                        >
+                          <ChevronRight className="h-4 w-4 rotate-180" />
+                        </Button>
+
+                        {Array.from({ length: totalActivePages }, (_, i) => i + 1).map((page) => (
+                          <Button
+                            key={page}
+                            variant={activeCurrentPage === page ? "default" : "outline"}
+                            className={cn(
+                              "h-8 w-8 p-0",
+                              activeCurrentPage === page
+                                ? "bg-[#F7984A] hover:bg-[#F7984A]/90 text-white"
+                                : "border-gray-700 bg-black text-gray-300 hover:text-white hover:bg-gray-800",
+                            )}
+                            onClick={() => setActiveCurrentPage(page)}
+                          >
+                            {page}
+                          </Button>
+                        ))}
+
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 border-gray-700 bg-black text-gray-300 hover:text-white hover:bg-gray-800 disabled:opacity-50"
+                          onClick={() => setActiveCurrentPage((prev) => Math.min(prev + 1, totalActivePages))}
+                          disabled={activeCurrentPage === totalActivePages}
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </section>
               )}
 
@@ -286,7 +373,7 @@ export default function GiveawaysPage() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {upcomingGiveaways.map((giveaway) => (
+                    {currentUpcomingGiveaways.map((giveaway) => (
                       <Card
                         key={giveaway.id}
                         className="bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl overflow-hidden transition-all duration-300 group h-full flex flex-col"
@@ -320,17 +407,78 @@ export default function GiveawaysPage() {
                           <div className="flex items-center justify-between mt-auto">
                             <span className="text-sm text-gray-300">Opens: {giveaway.startDate}</span>
                             <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-gray-300 bg-black border-gray-700 hover:bg-white hover:text-black"
-                            >
+                          variant="outline"
+                          size="sm"
+                          className="text-gray-300 bg-black border-gray-700 hover:bg-white hover:text-black"
+                          onClick={(e) => {
+                            e.preventDefault(); // Prevent navigation
+                            window.open(generateGoogleCalendarLink(giveaway), '_blank');
+                            // Set the clicked giveaway id to show feedback
+                            setCalendarClicked(giveaway.id);
+                            // Reset after 2 seconds
+                            setTimeout(() => setCalendarClicked(null), 2000);
+                          }}
+                        >
+                          {calendarClicked === giveaway.id ? (
+                            <>
+                              <Check className="h-4 w-4 mr-2 text-green-500" />
                               Set Reminder
-                            </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Calendar className="h-4 w-4 mr-2" />
+                              Set Reminder
+                            </>
+                          )}
+                        </Button>
                           </div>
                         </div>
                       </Card>
                     ))}
                   </div>
+
+                  {/* Pagination for Upcoming Giveaways */}
+                  {totalUpcomingPages > 1 && (
+                    <div className="flex justify-center mt-8">
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 border-gray-700 bg-black text-gray-300 hover:text-white hover:bg-gray-800 disabled:opacity-50"
+                          onClick={() => setUpcomingCurrentPage((prev) => Math.max(prev - 1, 1))}
+                          disabled={upcomingCurrentPage === 1}
+                        >
+                          <ChevronRight className="h-4 w-4 rotate-180" />
+                        </Button>
+
+                        {Array.from({ length: totalUpcomingPages }, (_, i) => i + 1).map((page) => (
+                          <Button
+                            key={page}
+                            variant={upcomingCurrentPage === page ? "default" : "outline"}
+                            className={cn(
+                              "h-8 w-8 p-0",
+                              upcomingCurrentPage === page
+                                ? "bg-[#F7984A] hover:bg-[#F7984A]/90 text-white"
+                                : "border-gray-700 bg-black text-gray-300 hover:text-white hover:bg-gray-800",
+                            )}
+                            onClick={() => setUpcomingCurrentPage(page)}
+                          >
+                            {page}
+                          </Button>
+                        ))}
+
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 border-gray-700 bg-black text-gray-300 hover:text-white hover:bg-gray-800 disabled:opacity-50"
+                          onClick={() => setUpcomingCurrentPage((prev) => Math.min(prev + 1, totalUpcomingPages))}
+                          disabled={upcomingCurrentPage === totalUpcomingPages}
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </section>
               )}
             </>
@@ -410,7 +558,7 @@ export default function GiveawaysPage() {
       </main>
 
       {/* Footer */}
-      <Footer className="relative z-20"  />
+      <Footer className="relative z-20" />
     </div>
   )
 }

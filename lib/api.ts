@@ -674,3 +674,70 @@ export const isUserAdmin = async (): Promise<boolean> => {
     return false;
   }
 };
+
+
+// lib/api.ts - updated notifyWinner function
+export const notifyWinner = async (
+  giveawayId: number,
+  winnerId: number,
+  winnerEmail: string,
+  winnerName: string,
+  giveawayTitle: string
+): Promise<boolean> => {
+  try {
+    // Call the API route instead of using NodeMailer directly
+    const response = await fetch('/api/email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        winnerEmail,
+        winnerName,
+        giveawayTitle
+      }),
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok && result.success) {
+      console.log("Email sent successfully via API route");
+      
+      // Update database if needed
+      try {
+        const headers = getAuthHeaders();
+        await axios.put(`${API_URL}/api/previouswinners/update-notification`, {
+          giveawayId,
+          winnerId,
+          notified: true,
+          notifiedAt: new Date().toISOString()
+        }, { headers });
+      } catch (updateError) {
+        console.warn("Email sent but failed to update notification status");
+      }
+      
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('Error notifying winner:', error);
+    return false;
+  }
+};
+
+// This can stay in lib/api.ts
+export const getWinnerMailtoLink = (
+  winnerEmail: string,
+  giveawayTitle: string
+): string => {
+  const subject = encodeURIComponent(`Congratulations! You won the ${giveawayTitle} giveaway!`);
+  const body = encodeURIComponent(
+    `Dear Winner,\n\nCongratulations! We're excited to inform you that you've been selected as the winner of our "${giveawayTitle}" giveaway.\n\nTo claim your prize, please reply to this email with your preferred contact information.\n\nThank you for participating!\n\nBest regards,\nThe BlockchainBay Team`
+  );
+  
+  return `mailto:${winnerEmail}?subject=${subject}&body=${body}`;
+};
+
+
+

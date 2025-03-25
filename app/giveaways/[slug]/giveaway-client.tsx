@@ -49,6 +49,33 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
     terms: false,
   })
 
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 3 // Number of giveaways per page
+
+
+  // Add this function to your GiveawayClient component
+const generateGoogleCalendarLink = () => {
+  if (!giveaway) return '';
+  
+  // Format dates properly for Google Calendar
+  const startDate = new Date(giveaway.startDate);
+  // Format as YYYYMMDDTHHMMSSZ
+  const formattedStart = startDate.toISOString().replace(/-|:|\.\d+/g, '');
+  
+  // Set event end time to 1 hour after start
+  const endDate = new Date(startDate);
+  endDate.setHours(endDate.getHours() + 1);
+  const formattedEnd = endDate.toISOString().replace(/-|:|\.\d+/g, '');
+  
+  // Create calendar text
+  const eventTitle = encodeURIComponent(`${giveaway.title} Giveaway Opens`);
+  const eventDetails = encodeURIComponent(`The ${giveaway.title} giveaway is now open for entries! Enter at ${window.location.href}`);
+  const eventLocation = encodeURIComponent(window.location.href);
+  
+  // Generate Google Calendar link
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${eventTitle}&details=${eventDetails}&location=${eventLocation}&dates=${formattedStart}/${formattedEnd}`;
+};
+
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href)
     setCopied(true)
@@ -128,7 +155,7 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
           <div className="absolute inset-0 bg-[url('/placeholder.svg?height=100&width=100')] bg-repeat opacity-[0.015]"></div>
         </div>
 
-        <Navbar  />
+        <Navbar />
         <main className="pt-32 pb-20 relative z-20">
           <div className="container mx-auto px-4 md:px-6">
             <div className="max-w-xl mx-auto text-center py-16">
@@ -167,7 +194,7 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
       </div>
 
       {/* Navigation */}
-      <Navbar  />
+      <Navbar />
 
       {/* Main Content */}
       <main className="pt-32 pb-20 relative z-20">
@@ -228,6 +255,7 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
                   ) : (
                     <Button
                       variant="outline"
+                      onClick={() => window.open(generateGoogleCalendarLink(), '_blank')}
                       className="border-white/20 bg-black  hover:bg-white hover:text-black text-white px-8 py-6 text-lg rounded-md shadow-lg shadow-black/20 transition-all duration-300"
                     >
                       <span>Set Reminder</span>
@@ -283,12 +311,7 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
                   >
                     Rules & Eligibility
                   </TabsTrigger>
-                  <TabsTrigger
-                    value="winners"
-                    className="data-[state=active]:bg-[#F7984A] data-[state=active]:text-white text-gray-300"
-                  >
-                    Past Winners
-                  </TabsTrigger>
+                 
                 </TabsList>
                 <TabsContent value="prizes" className="mt-6">
                   <Card className="bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl p-6">
@@ -390,20 +413,40 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
                       variant="outline"
                       size="icon"
                       className="rounded-full border-gray-700 bg-black text-blue-400 hover:text-blue-300 hover:bg-gray-800"
+                      onClick={() => {
+                        const url = encodeURIComponent(window.location.href);
+                        const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
+                        window.open(shareUrl, '_blank', 'width=600,height=400');
+                      }}
                     >
                       <Facebook className="h-5 w-5" />
                     </Button>
                     <Button
                       variant="outline"
                       size="icon"
-                      className="rounded-full border-gray-700 bg-black text-blue-300 hover:text-blue-200 hover:bg-gray-800"
+                      className="rounded-full border-gray-700 bg-black text-white hover:text-gray-200 hover:bg-gray-800"
+                      onClick={() => {
+                        const text = encodeURIComponent(`Check out this awesome giveaway: ${giveaway.title}`);
+                        const url = encodeURIComponent(window.location.href);
+                        const shareUrl = `https://twitter.com/intent/tweet?text=${text}&url=${url}`;
+                        window.open(shareUrl, '_blank', 'width=600,height=400');
+                      }}
                     >
-                      <Twitter className="h-5 w-5" />
+                      {/* X logo instead of Twitter */}
+                      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932L18.901 1.153ZM17.61 20.644h2.039L6.486 3.24H4.298L17.61 20.644Z" />
+                      </svg>
                     </Button>
                     <Button
                       variant="outline"
                       size="icon"
                       className="rounded-full border-gray-700 bg-black text-pink-400 hover:text-pink-300 hover:bg-gray-800"
+                      onClick={() => {
+                        // Instagram doesn't have a direct share URL like Facebook and Twitter
+                        // So we'll copy the link and show a message
+                        navigator.clipboard.writeText(window.location.href);
+                        alert('Link copied! Share this on Instagram with your friends.');
+                      }}
                     >
                       <Instagram className="h-5 w-5" />
                     </Button>
@@ -418,7 +461,7 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
                   </div>
                 </div>
               </Card>
-            </div>
+              </div>
 
             {/* Right Column - Entry Form */}
             <div>
@@ -543,24 +586,29 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
                     </div>
                   </div>
                 )}
-
-                
               </Card>
             </div>
           </div>
 
           {/* Related Giveaways */}
           {relatedGiveaways.length > 0 &&
-            // Filter out ended giveaways
             (() => {
               const activeOrUpcomingGiveaways = relatedGiveaways.filter((giveaway) => giveaway.status !== "ended")
 
               // Only show section if there are active or upcoming giveaways
-              return activeOrUpcomingGiveaways.length > 0 ? (
+              if (activeOrUpcomingGiveaways.length === 0) return null
+
+              // Pagination logic
+              const indexOfLastItem = currentPage * itemsPerPage
+              const indexOfFirstItem = indexOfLastItem - itemsPerPage
+              const currentItems = activeOrUpcomingGiveaways.slice(indexOfFirstItem, indexOfLastItem)
+              const totalPages = Math.ceil(activeOrUpcomingGiveaways.length / itemsPerPage)
+
+              return (
                 <section className="mt-16">
                   <h2 className="text-3xl font-bold mb-8 text-white">More Giveaways You Might Like</h2>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {activeOrUpcomingGiveaways.map((relatedGiveaway) => (
+                    {currentItems.map((relatedGiveaway) => (
                       <Link key={relatedGiveaway.id} href={`/giveaways/${relatedGiveaway.slug}`}>
                         <Card className="bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl overflow-hidden hover:border-gray-700/60 transition-all duration-300 group h-full flex flex-col">
                           <div className="relative aspect-video w-full overflow-hidden">
@@ -618,8 +666,51 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
                       </Link>
                     ))}
                   </div>
+
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div className="flex justify-center mt-8">
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 border-gray-700 bg-black text-gray-300 hover:text-white hover:bg-gray-800 disabled:opacity-50"
+                          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                          disabled={currentPage === 1}
+                        >
+                          <ChevronRight className="h-4 w-4 rotate-180" />
+                        </Button>
+
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                          <Button
+                            key={page}
+                            variant={currentPage === page ? "default" : "outline"}
+                            className={cn(
+                              "h-8 w-8 p-0",
+                              currentPage === page
+                                ? "bg-[#F7984A] hover:bg-[#F7984A]/90 text-white"
+                                : "border-gray-700 bg-black text-gray-300 hover:text-white hover:bg-gray-800",
+                            )}
+                            onClick={() => setCurrentPage(page)}
+                          >
+                            {page}
+                          </Button>
+                        ))}
+
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 border-gray-700 bg-black text-gray-300 hover:text-white hover:bg-gray-800 disabled:opacity-50"
+                          onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                          disabled={currentPage === totalPages}
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </section>
-              ) : null
+              )
             })()}
         </div>
       </main>

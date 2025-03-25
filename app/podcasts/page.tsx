@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
+import { determineCategory } from "@/lib/rssUtils" // Import determineCategory
 
 // Import Navbar and Footer components
 import Navbar from "@/components/Navbar"
@@ -70,16 +71,20 @@ export default function PodcastsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const podcastsPerPage = 8
 
-  // Calculate category filters based on actual data
-  const categoryFilters = getCategoryFilters(podcasts)
-
   // Fetch podcasts on component mount
   useEffect(() => {
     const loadPodcasts = async () => {
       try {
         setLoading(true)
         const data = await fetchPodcasts()
-        setPodcasts(data)
+        
+        // Force recategorization when loading podcasts
+        const recategorizedPodcasts = data.map(podcast => ({
+          ...podcast,
+          category: determineCategory(podcast.description)
+        }))
+        
+        setPodcasts(recategorizedPodcasts)
         setError(null)
       } catch (err) {
         console.error("Failed to load podcasts:", err)
@@ -100,6 +105,9 @@ export default function PodcastsPage() {
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
+
+  // Calculate category filters based on actual data
+  const categoryFilters = getCategoryFilters(podcasts)
 
   const filteredPodcasts = podcasts.filter((podcast) => {
     const matchesSearch =
@@ -194,46 +202,53 @@ export default function PodcastsPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {featuredPodcasts.map((podcast) => (
-                  <Link key={podcast.id} href={`/podcasts/${podcast.id}`}>
-                    <Card className="bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl overflow-hidden hover:border-[#F7984A]/30 transition-all duration-300 group h-full flex flex-col">
-                      <div className="relative aspect-video w-full overflow-hidden">
-                        <Image
-                          src={podcast.thumbnail || "/placeholder.svg"}
-                          alt={podcast.title}
-                          width={600}
-                          height={300}
-                          className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
-                        />
-                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="w-16 h-16 rounded-full bg-[#F7984A]/90 flex items-center justify-center">
-                            <Play className="h-8 w-8 text-white" />
+                {featuredPodcasts.map((podcast) => {
+                  // Ensure correct category display
+                  const displayCategory = podcast.description.toLowerCase().includes('depin') 
+                    ? "DePIN" 
+                    : podcast.category;
+                    
+                  return (
+                    <Link key={podcast.id} href={`/podcasts/${podcast.id}`}>
+                      <Card className="bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl overflow-hidden hover:border-[#F7984A]/30 transition-all duration-300 group h-full flex flex-col">
+                        <div className="relative aspect-video w-full overflow-hidden">
+                          <Image
+                            src={podcast.thumbnail || "/placeholder.svg"}
+                            alt={podcast.title}
+                            width={600}
+                            height={300}
+                            className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
+                          />
+                          <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="w-16 h-16 rounded-full bg-[#F7984A]/90 flex items-center justify-center">
+                              <Play className="h-8 w-8 text-white" />
+                            </div>
+                          </div>
+                          <div className="absolute top-4 left-4">
+                            <Badge className="bg-[#F7984A] hover:bg-[#F7984A]/90 text-white">{displayCategory}</Badge>
                           </div>
                         </div>
-                        <div className="absolute top-4 left-4">
-                          <Badge className="bg-[#F7984A] hover:bg-[#F7984A]/90 text-white">{podcast.category}</Badge>
-                        </div>
-                      </div>
-                      <div className="p-6 flex-1 flex flex-col">
-                        <h3 className="font-bold text-xl mb-3 group-hover:text-[#F7984A] transition-colors line-clamp-2 text-white">
-                          {podcast.title}
-                        </h3>
-                        <p className="text-gray-300 text-sm mb-4 line-clamp-3 flex-1">
-                          {podcast.description.length > 120
-                            ? `${podcast.description.substring(0, 120)}...`
-                            : podcast.description}
-                        </p>
-                        <div className="flex items-center justify-between mt-auto">
-                          <div className="flex items-center gap-2 text-sm text-gray-400">
-                            <Headphones className="h-4 w-4" />
-                            <span>{podcast.duration}</span>
+                        <div className="p-6 flex-1 flex flex-col">
+                          <h3 className="font-bold text-xl mb-3 group-hover:text-[#F7984A] transition-colors line-clamp-2 text-white">
+                            {podcast.title}
+                          </h3>
+                          <p className="text-gray-300 text-sm mb-4 line-clamp-3 flex-1">
+                            {podcast.description.length > 120
+                              ? `${podcast.description.substring(0, 120)}...`
+                              : podcast.description}
+                          </p>
+                          <div className="flex items-center justify-between mt-auto">
+                            <div className="flex items-center gap-2 text-sm text-gray-400">
+                              <Headphones className="h-4 w-4" />
+                              <span>{podcast.duration}</span>
+                            </div>
+                            <span className="text-sm text-gray-400">{podcast.date}</span>
                           </div>
-                          <span className="text-sm text-gray-400">{podcast.date}</span>
                         </div>
-                      </div>
-                    </Card>
-                  </Link>
-                ))}
+                      </Card>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -366,8 +381,7 @@ export default function PodcastsPage() {
                           fill="#00A8E1"
                         >
                           <path
-                            d="M36,5H14c-4.971,0-9,4.029-9,9v22c0,4.971,4.029,9,9,9h22c4.971,0,9-4.029,9-9V14C45,9.029,40.971,5,36,5z M38.19,21.254	c0.65-0.279,1.42-0.317,2.07-0.121c0.27,0.084,0.51,0.196,0.74,0.335v1.23c-0.72-0.494-1.55-0.634-2.19-0.289	c-0.68,0.373-1.08,1.155-1.06,1.975c-0.01,0.904,0.29,1.742,0.92,2.133c0.56,0.382,1.44,0.382,2.33,0.242v1.025	c-0.35,0.112-0.72,0.177-1.1,0.214c-0.63,0.047-1.33-0.047-1.95-0.382c-0.63-0.326-1.09-0.894-1.35-1.463	c-0.25-0.587-0.34-1.183-0.35-1.752C36.22,23.191,36.87,21.831,38.19,21.254z M34,18.01c0.552,0,1,0.448,1,1s-0.448,1-1,1	s-1-0.448-1-1S33.448,18.01,34,18.01z M34.75,21.01v7h-1.5v-7H34.75z M27,26.175c0.64,0.261,1.42,0.532,2.03,0.59	c0.61,0.068,1.28-0.01,1.67-0.223c0.19-0.116,0.23-0.278,0.23-0.458s-0.036-0.282-0.123-0.417c-0.159-0.246-0.597-0.432-1.287-0.597	c-0.34-0.097-0.71-0.194-1.12-0.416c-0.41-0.184-1.243-0.852-1.081-1.991c0.087-0.609,0.718-1.205,1.601-1.483	c1.029-0.325,2.15-0.164,3.08,0.281V22.7c-0.83-0.426-1.82-0.641-2.66-0.361c-0.25,0.077-0.58,0.251-0.58,0.564	c0,0.751,0.87,0.893,1.2,1c0.34,0.106,0.71,0.203,1.11,0.406c0.4,0.194,1.202,0.678,1.202,1.783c0,1.058-0.522,1.447-0.952,1.621	c-0.89,0.387-1.68,0.319-2.45,0.213c-0.65-0.116-1.28-0.31-1.87-0.677C27,27.249,27,26.175,27,26.175z M20.25,21.012l1.5-0.002	l0.003,2.42c0.014,0.79,0.012,1.651,0.003,2.383c-0.035,0.391,0.402,0.847,0.976,0.917c0.306,0.034,0.534,0.009,0.886-0.14	c0.208-0.082,0.42-0.152,0.632-0.225V21.01l1.5,0.001v6.818h-1.5v-0.236c-0.041,0.022-0.08,0.046-0.12,0.067	c-0.381,0.228-0.992,0.386-1.514,0.343c-0.542-0.035-1.088
--0.225-1.533-0.586c-0.442-0.356-0.776-0.915-0.819-1.529	c-0.027-0.88-0.02-1.634-0.011-2.457L20.25,21.012z M9.25,21.01h1.5v0.688c0.37-0.134,0.737-0.274,1.109-0.401	c0.535-0.19,1.206-0.152,1.733,0.141c0.218,0.117,0.409,0.282,0.577,0.469c0.562-0.208,1.123-0.417,1.689-0.611	c0.535-0.19,1.206-0.152,1.733,0.141c0.532,0.286,0.946,0.809,1.093,1.418c0.039,0.152,0.056,0.306,0.065,0.461l0.004,0.317	l0.006,0.625l-0.006,1.25l-0.003,2.5h-1.5l-0.006-4.844c-0.042-0.425-0.519-0.797-1.019-0.661c-0.51,0.135-1.024,0.255-1.537,0.379	c0.034,0.143,0.052,0.287,0.061,0.433l0.004,0.317l0.006,0.625l-0.006,1.25l-0.003,2.5h-1.5l-0.006-4.844	c-0.042-0.426-0.519-0.797-1.019-0.661c-0.489,0.13-0.983,0.245-1.475,0.364v5.14h-1.5C9.25,28.006,9.25,21.01,9.25,21.01z M38.768,33.932c-2.214,1.57-4.688,2.605-7.285,3.277c-2.595,0.663-5.297,0.914-7.986,0.729c-2.688-0.18-5.313-0.836-7.787-1.794	c-2.466-0.99-4.797-2.263-6.857-3.931c-0.107-0.087-0.124-0.245-0.037-0.352c0.077-0.095,0.209-0.119,0.313-0.063l0.014,0.008	c2.249,1.217,4.653,2.149,7.067,2.889c2.433,0.692,4.909,1.187,7.4,1.288c2.485,0.087,4.997-0.107,7.449-0.617	c2.442-0.504,4.905-1.236,7.17-2.279l0.039-0.018c0.251-0.115,0.547-0.006,0.663,0.245C39.035,33.537,38.961,33.796,38.768,33.932z M39.882,36.892c-0.278,0.21-0.556,0.14-0.417-0.21c0.417-1.12,1.32-3.501,0.903-4.061c-0.486-0.63-2.987-0.28-4.098-0.14	c-0.347,0-0.347-0.28-0.069-0.49c0.972-0.7,2.292-0.98,3.404-0.98c1.111,0,2.084,0.21,2.292,0.56	C42.243,31.99,41.757,35.281,39.882,36.892z"
+                            d="M36,5H14c-4.971,0-9,4.029-9,9v22c0,4.971,4.029,9,9,9h22c4.971,0,9-4.029,9-9V14C45,9.029,40.971,5,36,5z M38.19,21.254	c0.65-0.279,1.42-0.317,2.07-0.121c0.27,0.084,0.51,0.196,0.74,0.335v1.23c-0.72-0.494-1.55-0.634-2.19-0.289	c-0.68,0.373-1.08,1.155-1.06,1.975c-0.01,0.904,0.29,1.742,0.92,2.133c0.56,0.382,1.44,0.382,2.33,0.242v1.025	c-0.35,0.112-0.72,0.177-1.1,0.214c-0.63,0.047-1.33-0.047-1.95-0.382c-0.63-0.326-1.09-0.894-1.35-1.463	c-0.25-0.587-0.34-1.183-0.35-1.752C36.22,23.191,36.87,21.831,38.19,21.254z M34,18.01c0.552,0,1,0.448,1,1s-0.448,1-1,1	s-1-0.448-1-1S33.448,18.01,34,18.01z M34.75,21.01v7h-1.5v-7H34.75z M27,26.175c0.64,0.261,1.42,0.532,2.03,0.59	c0.61,0.068,1.28-0.01,1.67-0.223c0.19-0.116,0.23-0.278,0.23-0.458s-0.036-0.282-0.123-0.417c-0.159-0.246-0.597-0.432-1.287-0.597	c-0.34-0.097-0.71-0.194-1.12-0.416c-0.41-0.184-1.243-0.852-1.081-1.991c0.087-0.609,0.718-1.205,1.601-1.483	c1.029-0.325,2.15-0.164,3.08,0.281V22.7c-0.83-0.426-1.82-0.641-2.66-0.361c-0.25,0.077-0.58,0.251-0.58,0.564	c0,0.751,0.87,0.893,1.2,1c0.34,0.106,0.71,0.203,1.11,0.406c0.4,0.194,1.202,0.678,1.202,1.783c0,1.058-0.522,1.447-0.952,1.621	c-0.89,0.387-1.68,0.319-2.45,0.213c-0.65-0.116-1.28-0.31-1.87-0.677C27,27.249,27,26.175,27,26.175z M20.25,21.012l1.5-0.002	l0.003,2.42c0.014,0.79,0.012,1.651,0.003,2.383c-0.035,0.391,0.402,0.847,0.976,0.917c0.306,0.034,0.534,0.009,0.886-0.14	c0.208-0.082,0.42-0.152,0.632-0.225V21.01l1.5,0.001v6.818h-1.5v-0.236c-0.041,0.022-0.08,0.046-0.12,0.067	c-0.381,0.228-0.992,0.386-1.514,0.343c-0.542-0.035-1.088-0.225-1.533-0.586c-0.442-0.356-0.776-0.915-0.819-1.529	c-0.027-0.88-0.02-1.634-0.011-2.457L20.25,21.012z M9.25,21.01h1.5v0.688c0.37-0.134,0.737-0.274,1.109-0.401	c0.535-0.19,1.206-0.152,1.733,0.141c0.218,0.117,0.409,0.282,0.577,0.469c0.562-0.208,1.123-0.417,1.689-0.611	c0.535-0.19,1.206-0.152,1.733,0.141c0.532,0.286,0.946,0.809,1.093,1.418c0.039,0.152,0.056,0.306,0.065,0.461l0.004,0.317	l0.006,0.625l-0.006,1.25l-0.003,2.5h-1.5l-0.006-4.844c-0.042-0.425-0.519-0.797-1.019-0.661c-0.51,0.135-1.024,0.255-1.537,0.379	c0.034,0.143,0.052,0.287,0.061,0.433l0.004,0.317l0.006,0.625l-0.006,1.25l-0.003,2.5h-1.5l-0.006-4.844	c-0.042-0.426-0.519-0.797-1.019-0.661c-0.489,0.13-0.983,0.245-1.475,0.364v5.14h-1.5C9.25,28.006,9.25,21.01,9.25,21.01z M38.768,33.932c-2.214,1.57-4.688,2.605-7.285,3.277c-2.595,0.663-5.297,0.914-7.986,0.729c-2.688-0.18-5.313-0.836-7.787-1.794	c-2.466-0.99-4.797-2.263-6.857-3.931c-0.107-0.087-0.124-0.245-0.037-0.352c0.077-0.095,0.209-0.119,0.313-0.063l0.014,0.008	c2.249,1.217,4.653,2.149,7.067,2.889c2.433,0.692,4.909,1.187,7.4,1.288c2.485,0.087,4.997-0.107,7.449-0.617	c2.442-0.504,4.905-1.236,7.17-2.279l0.039-0.018c0.251-0.115,0.547-0.006,0.663,0.245C39.035,33.537,38.961,33.796,38.768,33.932z M39.882,36.892c-0.278,0.21-0.556,0.14-0.417-0.21c0.417-1.12,1.32-3.501,0.903-4.061c-0.486-0.63-2.987-0.28-4.098-0.14	c-0.347,0-0.347-0.28-0.069-0.49c0.972-0.7,2.292-0.98,3.404-0.98c1.111,0,2.084,0.21,2.292,0.56	C42.243,31.99,41.757,35.281,39.882,36.892z"
                           />
                         </svg>
                       </div>
@@ -390,73 +404,80 @@ export default function PodcastsPage() {
 
                 {currentPodcasts.length > 0 ? (
                   <div className="space-y-4">
-                    {currentPodcasts.map((podcast) => (
-                      <div
-                        key={podcast.id}
-                        className="bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl p-4 hover:border-[#F7984A]/30 transition-all duration-300 group"
-                      >
-                        <div className="flex flex-col sm:flex-row gap-4">
-                          <div className="sm:w-1/4 lg:w-1/5">
-                            <div className="relative aspect-square rounded-lg overflow-hidden">
-                              <Image
-                                src={podcast.thumbnail || "/placeholder.svg"}
-                                alt={podcast.title}
-                                width={200}
-                                height={200}
-                                className="object-cover w-full h-full"
-                              />
-                              <button
-                                onClick={(e) => {
-                                  e.preventDefault()
-                                  togglePlay(podcast.id)
-                                }}
-                                className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity"
-                              >
-                                <div className="w-12 h-12 rounded-full bg-[#F7984A]/90 flex items-center justify-center">
-                                  {isPlaying === podcast.id ? (
-                                    <Pause className="h-6 w-6 text-white" />
-                                  ) : (
-                                    <Play className="h-6 w-6 text-white" />
-                                  )}
-                                </div>
-                              </button>
+                    {currentPodcasts.map((podcast) => {
+                      // Ensure correct category display for all podcasts
+                      const displayCategory = podcast.description.toLowerCase().includes('depin') 
+                        ? "DePIN" 
+                        : podcast.category;
+                        
+                      return (
+                        <div
+                          key={podcast.id}
+                          className="bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl p-4 hover:border-[#F7984A]/30 transition-all duration-300 group"
+                        >
+                          <div className="flex flex-col sm:flex-row gap-4">
+                            <div className="sm:w-1/4 lg:w-1/5">
+                              <div className="relative aspect-square rounded-lg overflow-hidden">
+                                <Image
+                                  src={podcast.thumbnail || "/placeholder.svg"}
+                                  alt={podcast.title}
+                                  width={200}
+                                  height={200}
+                                  className="object-cover w-full h-full"
+                                />
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    togglePlay(podcast.id)
+                                  }}
+                                  className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <div className="w-12 h-12 rounded-full bg-[#F7984A]/90 flex items-center justify-center">
+                                    {isPlaying === podcast.id ? (
+                                      <Pause className="h-6 w-6 text-white" />
+                                    ) : (
+                                      <Play className="h-6 w-6 text-white" />
+                                    )}
+                                  </div>
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
-                              <Badge className="bg-[#0D0B26] border border-[#F7984A]/20 text-[#F7984A] hover:bg-[#0D0B26]/80">
-                                {podcast.category}
-                              </Badge>
-                              <span className="text-sm text-gray-400">{podcast.date}</span>
-                            </div>
-                            <Link
-                              href={`/podcasts/${podcast.id}`}
-                              className="block group-hover:text-[#F7984A] transition-colors"
-                            >
-                              <h3 className="font-bold text-lg mb-2 text-white">{podcast.title}</h3>
-                            </Link>
-                            <p className="text-gray-300 text-sm mb-3">
-                              {podcast.description.length > 150
-                                ? `${podcast.description.substring(0, 150)}...`
-                                : podcast.description}
-                            </p>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2 text-sm text-gray-400">
-                                <Headphones className="h-4 w-4" />
-                                <span>{podcast.duration}</span>
+                            <div className="flex-1">
+                              <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
+                                <Badge className="bg-[#0D0B26] border border-[#F7984A]/20 text-[#F7984A] hover:bg-[#0D0B26]/80">
+                                  {displayCategory}
+                                </Badge>
+                                <span className="text-sm text-gray-400">{podcast.date}</span>
                               </div>
                               <Link
                                 href={`/podcasts/${podcast.id}`}
-                                className="text-[#F7984A] hover:text-[#F7984A]/80 text-sm flex items-center gap-1"
+                                className="block group-hover:text-[#F7984A] transition-colors"
                               >
-                                <span>Listen now</span>
-                                <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                                <h3 className="font-bold text-lg mb-2 text-white">{podcast.title}</h3>
                               </Link>
+                              <p className="text-gray-300 text-sm mb-3">
+                                {podcast.description.length > 150
+                                  ? `${podcast.description.substring(0, 150)}...`
+                                  : podcast.description}
+                              </p>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-sm text-gray-400">
+                                  <Headphones className="h-4 w-4" />
+                                  <span>{podcast.duration}</span>
+                                </div>
+                                <Link
+                                  href={`/podcasts/${podcast.id}`}
+                                  className="text-[#F7984A] hover:text-[#F7984A]/80 text-sm flex items-center gap-1"
+                                >
+                                  <span>Listen now</span>
+                                  <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                                </Link>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -555,4 +576,3 @@ export default function PodcastsPage() {
     </div>
   )
 }
-

@@ -1,45 +1,94 @@
-// app/admin/giveaways/page.tsx
 "use client"
+
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
+
+import { DropdownMenuContent } from "@/components/ui/dropdown-menu"
+
+import { DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+
+import { DropdownMenu } from "@/components/ui/dropdown-menu"
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import {
-  Search,
-  Filter,
-  ChevronDown,
-  Eye,
-  Edit,
-  Trash2,
-  MoreHorizontal,
-  Plus,
-  Download,
-  Trophy,
-  Users,
-  LogOut,
-} from "lucide-react"
+import { Filter, ChevronDown, Eye, MoreHorizontal, Trophy, Users, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import type { ColumnDef } from "@tanstack/react-table"
 
 // Import components
 import Navbar from "@/components/Navbar"
-import {Footer} from "@/components/NewsletterFooter"
+import { Footer } from "@/components/NewsletterFooter"
 
 // Import API utilities
-import { 
-  fetchGiveawaysAdmin, 
-  fetchGiveawayEntries, 
+import {
+  fetchGiveawaysAdmin,
+  fetchGiveawayEntries,
   selectWinner,
-  FormattedGiveaway,
-  GiveawayEntry,
+  type FormattedGiveaway,
+  type GiveawayEntry,
   fetchGiveawayWinner,
 } from "@/lib/api"
 
 // Add at the top of your file after other imports
-import { useAuth } from "@/contexts/AuthContext";
-import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext"
+import { useRouter } from "next/navigation"
+// Add these imports at the top
+import { getWinnerMailtoLink } from "@/lib/api"
+import { Check, Mail, Copy } from "lucide-react"
+// Add these imports at the top of your AdminGiveawaysPage file
 
+interface Giveaway {
+  id: string
+  name: string
+  status: string
+  startDate: string
+  endDate: string
+}
+
+const columns: ColumnDef<Giveaway>[] = [
+  {
+    accessorKey: "name",
+    header: "Name",
+  },
+  {
+    accessorKey: "status",
+    header: "Status",
+  },
+  {
+    accessorKey: "startDate",
+    header: "Start Date",
+  },
+  {
+    accessorKey: "endDate",
+    header: "End Date",
+  },
+  {
+    id: "actions",
+    cell: ({ row }) => {
+      const giveaway = row.original
+
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-4 w-4 text-gray-300" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(giveaway.id)}>
+              Copy giveaway ID
+            </DropdownMenuItem>
+            <DropdownMenuItem>Edit</DropdownMenuItem>
+            <DropdownMenuItem>Delete</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )
+    },
+  },
+]
 
 export default function AdminGiveawaysPage() {
   const [giveaways, setGiveaways] = useState<(FormattedGiveaway & { views?: number })[]>([])
@@ -51,17 +100,85 @@ export default function AdminGiveawaysPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [pickingWinner, setPickingWinner] = useState(false)
   const [winner, setWinner] = useState<GiveawayEntry | null>(null)
-  const { user, isAdmin, logout } = useAuth();
-  const router = useRouter();
+  const { user, isAdmin, logout } = useAuth()
+  const router = useRouter()
 
+  const [notifying, setNotifying] = useState(false)
+  const [notificationSent, setNotificationSent] = useState(false)
+  const [copiedEmail, setCopiedEmail] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [entriesPerPage] = useState(10)
 
+  // Calculate total pages
+  const totalPages = Math.ceil(entries.length / entriesPerPage)
 
-// Add useEffect to check auth status
-useEffect(() => {
-  if (!loading && !isAdmin) {
-    router.push('/admin/login');
+  // Get current entries
+  const indexOfLastEntry = currentPage * entriesPerPage
+  const indexOfFirstEntry = indexOfLastEntry - entriesPerPage
+  const currentEntries = entries.slice(indexOfFirstEntry, indexOfLastEntry)
+
+  // Add this function to reset the notification state when changing giveaways
+  const handleSelectGiveaway = (giveaway: FormattedGiveaway) => {
+    setSelectedGiveaway(giveaway)
+    setWinner(null) // Reset winner when changing giveaways
+    setNotificationSent(false) // Reset notification state
+    setNotifying(false)
+    setCurrentPage(1) // Reset to first page when changing giveaways
   }
-}, [loading, isAdmin, router]);
+
+  const handleNotifyWinner = async (winner: GiveawayEntry) => {
+    if (!selectedGiveaway) {
+      console.error("No giveaway selected")
+      return
+    }
+
+    console.log("Notifying winner:", winner.email, "for giveaway:", selectedGiveaway.title)
+    setNotifying(true)
+
+    try {
+      // Use fetch to call your API endpoint instead
+      const response = await fetch("/api/email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          winnerEmail: winner.email,
+          winnerName: winner.name,
+          giveawayTitle: selectedGiveaway.title,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.success) {
+        setNotificationSent(true)
+        console.log("Email notification sent successfully")
+      } else {
+        console.error("API error:", result.error)
+        // Fall back to mailto: link
+        const mailtoLink = getWinnerMailtoLink(winner.email, selectedGiveaway.title)
+        window.location.href = mailtoLink
+        setNotificationSent(true)
+      }
+    } catch (error) {
+      console.error("Failed to notify winner:", error)
+
+      // Fallback to mailto: link
+      const mailtoLink = getWinnerMailtoLink(winner.email, selectedGiveaway.title)
+      window.location.href = mailtoLink
+      setNotificationSent(true)
+    } finally {
+      setNotifying(false)
+    }
+  }
+
+  // Add useEffect to check auth status
+  useEffect(() => {
+    if (!loading && !isAdmin) {
+      router.push("/admin/login")
+    }
+  }, [loading, isAdmin, router])
 
   // Fetch giveaways
   useEffect(() => {
@@ -112,6 +229,7 @@ useEffect(() => {
 
         const entriesData = await fetchGiveawayEntries(selectedGiveaway.id)
         setEntries(entriesData)
+        setCurrentPage(1) // Reset to first page when changing giveaways
 
         // Also fetch the winner if this giveaway has ended
         if (selectedGiveaway.status === "ended") {
@@ -131,12 +249,6 @@ useEffect(() => {
 
     loadEntriesAndWinner()
   }, [selectedGiveaway])
-
-  // Handler for selecting a giveaway
-  const handleSelectGiveaway = (giveaway: FormattedGiveaway) => {
-    setSelectedGiveaway(giveaway)
-    setWinner(null) // Reset winner when changing giveaways
-  }
 
   // Handle picking a winner
   const handlePickWinner = async () => {
@@ -203,13 +315,11 @@ useEffect(() => {
       {/* Navigation */}
       <Navbar />
 
-     
-
       {/* Main Content */}
       <main className="pt-32 pb-20">
         <div className="container mx-auto px-4 md:px-6">
           {/* Dashboard Title */}
-        
+
           <div className="flex justify-between items-center mb-8">
             <div>
               <div className="inline-flex items-center px-3 py-1 rounded-full bg-white/10 border border-white/20 text-white text-sm font-medium mb-4 backdrop-blur-sm">
@@ -218,7 +328,7 @@ useEffect(() => {
               </div>
               <h1 className="text-4xl font-bold tracking-tight">Giveaway Management</h1>
             </div>
-            
+
             {/* Add the logout button here */}
             <div className="flex items-center space-x-4">
               {user && (
@@ -226,9 +336,9 @@ useEffect(() => {
                   Logged in as <span className="text-white font-medium">{user.username}</span>
                 </div>
               )}
-              <Button 
-                onClick={logout} 
-                variant="outline" 
+              <Button
+                onClick={logout}
+                variant="outline"
                 className="border border-gray-700 bg-black hover:bg-white hover:text-black text-gray-300"
               >
                 <LogOut className="h-4 w-4 mr-2" />
@@ -275,7 +385,7 @@ useEffect(() => {
                   <p className="text-3xl font-bold text-white">
                     {giveaways.filter((g) => g.status === "active").length}
                   </p>
-                 
+                  <div className="mt-4 text-sm text-gray-300">Total Active giveaways</div>
                 </Card>
 
                 <Card className="bg-[#0D0B26]/80 border border-gray-800/50 p-6 hover:border-gray-700/60 transition-all duration-300">
@@ -288,7 +398,7 @@ useEffect(() => {
                   <p className="text-3xl font-bold text-white">
                     {giveaways.reduce((sum, giveaway) => sum + giveaway.entries, 0).toLocaleString()}
                   </p>
-                  
+                  <div className="mt-4 text-sm text-gray-300">Total Entries giveaways</div>
                 </Card>
 
                 <Card className="bg-[#0D0B26]/80 border border-gray-800/50 p-6 hover:border-gray-700/60 transition-all duration-300">
@@ -400,8 +510,6 @@ useEffect(() => {
                                     <Eye className="h-4 w-4 text-gray-300" />
                                   </Button>
                                 </Link>
-                                
-                                
                               </div>
                             </td>
                           </tr>
@@ -452,10 +560,6 @@ useEffect(() => {
                     <div className="flex justify-between items-center">
                       <h3 className="text-xl font-bold text-white">Entries: {selectedGiveaway.title}</h3>
                       <div className="flex space-x-3">
-                        <Button className="bg-[#0D0B26] border border-gray-700 hover:bg-gray-800 text-gray-300">
-                          <Download className="h-4 w-4 mr-2" />
-                          Export CSV
-                        </Button>
                         <Button
                           className="bg-[#F7984A] hover:bg-[#F7984A]/90 text-white"
                           onClick={handlePickWinner}
@@ -493,10 +597,10 @@ useEffect(() => {
                     </div>
                   )}
 
-                  {/* Winner Announcement */}
+                  {/* Winner Announcement with Enhanced Notify Options */}
                   {winner && (
                     <div className="mx-6 my-4 p-4 bg-[#F7984A]/20 border border-[#F7984A]/30 rounded-lg">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between flex-wrap gap-3">
                         <div className="flex items-center">
                           <Trophy className="h-5 w-5 text-[#F7984A] mr-3" />
                           <div>
@@ -506,9 +610,56 @@ useEffect(() => {
                             </p>
                           </div>
                         </div>
-                        <Button variant="outline" className="border-[#F7984A] text-[#F7984A] hover:bg-[#F7984A]/10">
-                          Notify Winner
-                        </Button>
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="outline"
+                            className="border-[#F7984A] text-[#F7984A] hover:bg-[#F7984A]/10"
+                            onClick={() => handleNotifyWinner(winner)}
+                            disabled={notifying}
+                          >
+                            {notifying ? (
+                              <>
+                                <div className="h-4 w-4 border-2 border-[#F7984A] border-t-transparent rounded-full animate-spin mr-2"></div>
+                                Notifying...
+                              </>
+                            ) : (
+                              <>
+                                {notificationSent ? (
+                                  <>
+                                    <Check className="h-4 w-4 mr-2" />
+                                    Notified
+                                  </>
+                                ) : (
+                                  <>
+                                    <Mail className="h-4 w-4 mr-2" />
+                                    Email Winner
+                                  </>
+                                )}
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="border-gray-700 bg-black hover:bg-gray-800 text-gray-300"
+                            onClick={() => {
+                              navigator.clipboard.writeText(winner.email)
+                              setCopiedEmail(true)
+                              setTimeout(() => setCopiedEmail(false), 2000)
+                            }}
+                          >
+                            {copiedEmail ? (
+                              <>
+                                <Check className="h-4 w-4 mr-2" />
+                                Copied
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="h-4 w-4 mr-2" />
+                                Copy Email
+                              </>
+                            )}
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -552,7 +703,7 @@ useEffect(() => {
                               </td>
                             </tr>
                           ) : (
-                            entries.map((entry) => (
+                            currentEntries.map((entry) => (
                               <tr
                                 key={entry.id}
                                 className={cn(
@@ -589,31 +740,54 @@ useEffect(() => {
 
                   <div className="p-4 border-t border-gray-800/50 flex justify-between items-center">
                     <div className="text-sm text-gray-300">
-                      Showing <span className="font-medium">1</span> to{" "}
-                      <span className="font-medium">{entries.length}</span> of{" "}
-                      <span className="font-medium">{selectedGiveaway.entries}</span> entries
+                      Showing <span className="font-medium">{entries.length > 0 ? indexOfFirstEntry + 1 : 0}</span> to{" "}
+                      <span className="font-medium">{Math.min(indexOfLastEntry, entries.length)}</span> of{" "}
+                      <span className="font-medium">{entries.length}</span> entries
                     </div>
                     <div className="flex space-x-1">
                       <Button
                         variant="outline"
                         size="sm"
                         className="bg-black text-gray-300 hover:bg-white hover:text-black"
-                        disabled
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                       >
                         Previous
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-gray-700 bg-[#F7984A] hover:bg-[#F7984A]/90 text-white"
-                      >
-                        1
-                      </Button>
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        // Show pages around current page
+                        let pageNum
+                        if (totalPages <= 5) {
+                          pageNum = i + 1
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i
+                        } else {
+                          pageNum = currentPage - 2 + i
+                        }
+                        return (
+                          <Button
+                            key={pageNum}
+                            variant="outline"
+                            size="sm"
+                            className={`border-gray-700 ${
+                              currentPage === pageNum
+                                ? "bg-[#F7984A] hover:bg-[#F7984A]/90 text-white"
+                                : "bg-black text-gray-300 hover:bg-white hover:text-black"
+                            }`}
+                            onClick={() => setCurrentPage(pageNum)}
+                          >
+                            {pageNum}
+                          </Button>
+                        )
+                      })}
                       <Button
                         variant="outline"
                         size="sm"
                         className="bg-black text-gray-300 hover:bg-white hover:text-black"
-                        disabled={entries.length < 10}
+                        disabled={currentPage === totalPages || totalPages === 0}
+                        onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                       >
                         Next
                       </Button>
