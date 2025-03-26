@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils"
 
 export const Logo = () => {
   return (
+       <Link href="/" >
     <div className="flex items-center gap-2">
       <div className="relative w-10 h-10 flex items-center justify-center">
         {/* SVG Logo */}
@@ -62,6 +63,7 @@ export const Logo = () => {
       </div>
       <span className="font-bold text-xl tracking-tight">BlockchainBay</span>
     </div>
+      </Link>
   )
 }
 
@@ -166,14 +168,7 @@ export const Navbar = () => {
             ))}
 
             <div className="pt-4 space-y-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search projects..."
-                  className="w-full pl-10 pr-4 py-3 rounded-lg bg-gray-800/70 border border-gray-700/50 text-sm focus:outline-none"
-                />
-              </div>
+              
               <Link href="/admin/giveaways" >
               <Button
                 className="w-full bg-[#F7984A] hover:bg-[#F7984A]/90 text-white py-6"

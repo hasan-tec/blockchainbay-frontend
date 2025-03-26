@@ -201,23 +201,27 @@ export default function NewsPageClient({
                 </button>
                 {categoryFilterOpen && (
                   <div className="space-y-3 pt-2">
-                    {categoryFilters.map((category) => (
-                      <label key={category.id} className="flex items-center space-x-3 text-sm">
-                         <Checkbox
-                          checked={selectedCategories.includes(category.id)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedCategories([...selectedCategories, category.id])
-                            } else {
-                              setSelectedCategories(selectedCategories.filter((id) => id !== category.id))
-                            }
-                          }}
-                          className="border-white data-[state=checked]:bg-[#F7984A] data-[state=checked]:border-[#F7984A]"
-                        />
-                        <span className="flex-1">{category.label}</span>
-                        <span className="text-gray-500">{category.count}</span>
-                      </label>
-                    ))}
+                   
+                  {categoryFilters.map((category) => (
+                    <label key={category.id} className="flex items-center space-x-3 text-sm">
+                      <Checkbox
+                        checked={selectedCategories.includes(category.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedCategories([...selectedCategories, category.id])
+                          } else {
+                            setSelectedCategories(selectedCategories.filter((id) => id !== category.id))
+                          }
+                        }}
+                        className="border-white data-[state=checked]:bg-[#F7984A] data-[state=checked]:border-[#F7984A]"
+                      />
+                      {/* Add special case for DeFi capitalization */}
+                      <span className="flex-1">
+                        {category.id.toLowerCase() === "defi" ? "DeFi" : category.label}
+                      </span>
+                      <span className="text-gray-500">{category.count}</span>
+                    </label>
+                  ))}
                   </div>
                 )}
               </div>

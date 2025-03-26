@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Gift, ArrowRight, Clock, Calendar, Users, ChevronRight, Check } from "lucide-react"
+import { Gift, ArrowRight, Clock, Calendar, Users, ChevronRight, Check, Archive } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -24,6 +24,7 @@ export default function GiveawaysPage() {
   // Pagination states
   const [activeCurrentPage, setActiveCurrentPage] = useState(1)
   const [upcomingCurrentPage, setUpcomingCurrentPage] = useState(1)
+  const [endedCurrentPage, setEndedCurrentPage] = useState(1) // Added for ended giveaways
   const itemsPerPage = 6 // Number of giveaways per page
 
   // Fetch giveaway data when component mounts
@@ -73,6 +74,7 @@ export default function GiveawaysPage() {
   // Filter giveaways
   const activeGiveaways = giveaways.filter((giveaway) => giveaway.status === "active")
   const upcomingGiveaways = giveaways.filter((giveaway) => giveaway.status === "upcoming")
+  const endedGiveaways = giveaways.filter((giveaway) => giveaway.status === "ended") // Added this line
 
   // Get the featured giveaway (first active one)
   const featuredGiveaway = activeGiveaways.length > 0 ? activeGiveaways[0] : null
@@ -92,8 +94,17 @@ export default function GiveawaysPage() {
   const currentUpcomingGiveaways = upcomingGiveaways.slice(indexOfFirstUpcomingItem, indexOfLastUpcomingItem)
   const totalUpcomingPages = Math.ceil(upcomingGiveaways.length / itemsPerPage)
 
+  // Pagination logic for ended giveaways
+  const indexOfLastEndedItem = endedCurrentPage * itemsPerPage
+  const indexOfFirstEndedItem = indexOfLastEndedItem - itemsPerPage
+  const currentEndedGiveaways = endedGiveaways.slice(indexOfFirstEndedItem, indexOfLastEndedItem)
+  const totalEndedPages = Math.ceil(endedGiveaways.length / itemsPerPage)
+
   // Add this state to track which giveaway's calendar button was clicked
   const [calendarClicked, setCalendarClicked] = useState<number | null>(null)
+
+  // Add state to track if the ended giveaway section is expanded
+  const [showEndedGiveaways, setShowEndedGiveaways] = useState(false)
 
   return (
     <div className="min-h-screen text-white relative">
@@ -489,6 +500,148 @@ export default function GiveawaysPage() {
                   )}
                 </section>
               )}
+
+              {/* Ended Giveaways */}
+              {endedGiveaways.length > 0 && (
+                <section id="ended" className="mb-16">
+                  <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-8">
+                    <div>
+                      <div className="inline-flex items-center px-3 py-1 rounded-full bg-gray-800/70 text-gray-300 text-sm font-medium mb-4">
+                        <span className="w-2 h-2 rounded-full bg-gray-500 mr-2"></span>
+                        Past giveaways
+                      </div>
+                      <h2 className="text-4xl font-bold mb-2 tracking-tight text-white">Ended Giveaways</h2>
+                      <p className="text-gray-300 max-w-2xl">
+                        These giveaways have already ended. Check out our previous prizes and winners!
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      className="text-[#F7984A] hover:text-[#F7984A]/80 mt-4 md:mt-0 group"
+                      onClick={() => setShowEndedGiveaways(!showEndedGiveaways)}
+                    >
+                      <span>{showEndedGiveaways ? "Hide ended giveaways" : "Show ended giveaways"}</span>
+                      <ChevronRight className={`ml-1 h-4 w-4 transition-transform ${showEndedGiveaways ? "rotate-90" : ""}`} />
+                    </Button>
+                  </div>
+
+                  {showEndedGiveaways && (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {currentEndedGiveaways.map((giveaway) =>(
+                          <Link key={giveaway.id} href={`/giveaways/${giveaway.slug}`}>
+                            <Card className="bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl overflow-hidden hover:border-gray-700/60 transition-all duration-300 group h-full flex flex-col relative z-20">
+                              <div className="relative aspect-video w-full overflow-hidden">
+                                <Image
+                                  src={giveaway.image || "/placeholder.svg"}
+                                  alt={giveaway.title}
+                                  width={600}
+                                  height={300}
+                                  className="object-cover w-full h-full filter grayscale opacity-80"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                                <div className="absolute top-4 left-4">
+                                  <Badge className="bg-gray-500 hover:bg-gray-600 text-white">ENDED</Badge>
+                                </div>
+                                <div className="absolute bottom-4 left-4 right-4">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-sm bg-black/50 px-2 py-1 rounded-full flex items-center text-white">
+                                      <Calendar className="h-3 w-3 mr-1" />
+                                      Ended: {giveaway.endDate}
+                                    </span>
+                                    <span className="text-sm bg-black/50 px-2 py-1 rounded-full flex items-center text-white">
+                                      <Users className="h-3 w-3 mr-1" />
+                                      {giveaway.entries} entries
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="p-6 flex-1 flex flex-col">
+                                <h3 className="font-bold text-xl mb-3 group-hover:text-[#F7984A] transition-colors line-clamp-2 text-white">
+                                  {giveaway.title}
+                                </h3>
+                                <div className="max-w-full break-words flex-1">
+                                  <p className="text-gray-300 text-sm mb-4 line-clamp-3">{giveaway.description}</p>
+                                </div>
+                                <div className="flex items-center justify-between mt-auto">
+                                  <span className="text-sm text-gray-300">Prize: ${giveaway.value}</span>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-gray-400 hover:text-gray-300 hover:bg-gray-800 p-0 h-auto"
+                                  >
+                                    View results <ArrowRight className="ml-1 h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </Card>
+                          </Link>
+                        ))}
+                      </div>
+
+                      {/* Pagination for Ended Giveaways */}
+                      {totalEndedPages > 1 && (
+                        <div className="flex justify-center mt-8">
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8 border-gray-700 bg-black text-gray-300 hover:text-white hover:bg-gray-800 disabled:opacity-50"
+                              onClick={() => setEndedCurrentPage((prev) => Math.max(prev - 1, 1))}
+                              disabled={endedCurrentPage === 1}
+                            >
+                              <ChevronRight className="h-4 w-4 rotate-180" />
+                            </Button>
+
+                            {Array.from({ length: totalEndedPages }, (_, i) => i + 1).map((page) => (
+                              <Button
+                                key={page}
+                                variant={endedCurrentPage === page ? "default" : "outline"}
+                                className={cn(
+                                  "h-8 w-8 p-0",
+                                  endedCurrentPage === page
+                                    ? "bg-[#F7984A] hover:bg-[#F7984A]/90 text-white"
+                                    : "border-gray-700 bg-black text-gray-300 hover:text-white hover:bg-gray-800",
+                                )}
+                                onClick={() => setEndedCurrentPage(page)}
+                              >
+                                {page}
+                              </Button>
+                            ))}
+
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8 border-gray-700 bg-black text-gray-300 hover:text-white hover:bg-gray-800 disabled:opacity-50"
+                              onClick={() => setEndedCurrentPage((prev) => Math.min(prev + 1, totalEndedPages))}
+                              disabled={endedCurrentPage === totalEndedPages}
+                            >
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {!showEndedGiveaways && endedGiveaways.length > 0 && (
+                    <div className="bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl p-8 text-center">
+                      <Archive className="h-12 w-12 mx-auto mb-4 text-gray-500" />
+                      <h3 className="text-xl font-bold mb-2 text-white">Past Giveaways Available</h3>
+                      <p className="text-gray-300 mb-6 max-w-lg mx-auto">
+                        We have {endedGiveaways.length} previous giveaways in our archives. View past prizes and winners!
+                      </p>
+                      <Button 
+                        className="bg-[#F7984A] hover:bg-[#F7984A]/90 text-white"
+                        onClick={() => setShowEndedGiveaways(true)}
+                      >
+                        <span>View Past Giveaways</span>
+                        <Archive className="ml-2 h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </section>
+              )}
             </>
           )}
 
@@ -570,4 +723,3 @@ export default function GiveawaysPage() {
     </div>
   )
 }
-

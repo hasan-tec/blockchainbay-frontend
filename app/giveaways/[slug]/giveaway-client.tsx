@@ -168,6 +168,7 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
 
   // Determine if the giveaway is active based on status
   const isActive = giveaway.status === "active"
+  const isEnded = giveaway.status === "ended" // Added this line to check for ended status
 
   return (
     <div className="min-h-screen text-white relative">
@@ -214,10 +215,12 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
                   <Badge
                     className={cn(
                       "mb-4 text-white",
-                      isActive ? "bg-green-500 hover:bg-green-600" : "bg-yellow-500 hover:bg-yellow-600",
+                      isActive ? "bg-green-500 hover:bg-green-600" : 
+                      isEnded ? "bg-gray-500 hover:bg-gray-600" : 
+                      "bg-yellow-500 hover:bg-yellow-600",
                     )}
                   >
-                    {isActive ? "ACTIVE GIVEAWAY" : "COMING SOON"}
+                    {isActive ? "ACTIVE GIVEAWAY" : isEnded ? "ENDED" : "COMING SOON"}
                   </Badge>
                   <h1 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight text-white">{giveaway.title}</h1>
                   <div className="max-w-full break-words">
@@ -226,16 +229,21 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
                   <div className="grid grid-cols-3 gap-4 mb-6">
                     <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 text-center">
                       <Clock className="h-5 w-5 mx-auto mb-2 text-[#F7984A]" />
-                      <span className="text-sm text-gray-300">{giveaway.daysLeft} days left</span>
+                      <span className="text-sm text-gray-300">
+                        {isEnded ? "Giveaway Ended" : `${giveaway.daysLeft} days left`}
+                      </span>
                     </div>
                     <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 text-center">
                       <Calendar className="h-5 w-5 mx-auto mb-2 text-[#F7984A]" />
-                      <span className="text-sm text-gray-300">Ends {giveaway.endDate}</span>
+                      <span className="text-sm text-gray-300">
+                        {isEnded ? `Ended ${giveaway.endDate}` : `Ends ${giveaway.endDate}`}
+                      </span>
                     </div>
                     <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 text-center">
                       <Users className="h-5 w-5 mx-auto mb-2 text-[#F7984A]" />
                       <span className="text-sm text-gray-300">
-                        {isActive ? `${giveaway.entries.toLocaleString()} entries` : "Not yet open"}
+                        {isActive ? `${giveaway.entries.toLocaleString()} entries` : 
+                         isEnded ? `${giveaway.entries.toLocaleString()} entries` : "Not yet open"}
                       </span>
                     </div>
                   </div>
@@ -244,11 +252,19 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
                       <span>Enter Now</span>
                       <ArrowRight className="ml-2 h-5 w-5" />
                     </Button>
+                  ) : isEnded ? (
+                    <Button
+                      variant="outline"
+                      disabled
+                      className="border-white/20 bg-gray-800 text-gray-400 px-8 py-6 text-lg rounded-md shadow-lg shadow-black/20 transition-all duration-300"
+                    >
+                      <span>Giveaway Ended</span>
+                    </Button>
                   ) : (
                     <Button
                       variant="outline"
                       onClick={() => window.open(generateGoogleCalendarLink(), "_blank")}
-                      className="border-white/20 bg-black hover:bg-white hover:text-black text-white px-8 py-6 text-lg rounded-md shadow-lg shadow-black/20 transition-all duration-300"
+                      className="border-white/20 bg-black hover:bg-white hover:text-black text-white px-8 py-6 text-lg rounded-md shadow-lgshadow-black/20 transition-all duration-300"
                     >
                       <span>Set Reminder</span>
                       <Calendar className="ml-2 h-5 w-5" />
@@ -262,7 +278,11 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
                       alt={giveaway.title}
                       width={600}
                       height={400}
-                      className={cn("w-full h-auto object-cover rounded-xl", !isActive && "filter grayscale")}
+                      className={cn(
+                        "w-full h-auto object-cover rounded-xl", 
+                        !isActive && !isEnded && "filter grayscale",
+                        isEnded && "filter grayscale opacity-70"
+                      )}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
                     <div className="absolute bottom-4 left-4 right-4">
@@ -270,10 +290,12 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
                         <Badge
                           className={cn(
                             "text-white",
-                            isActive ? "bg-green-500 hover:bg-green-600" : "bg-yellow-500 hover:bg-yellow-600",
+                            isActive ? "bg-green-500 hover:bg-green-600" : 
+                            isEnded ? "bg-gray-500 hover:bg-gray-600" : 
+                            "bg-yellow-500 hover:bg-yellow-600",
                           )}
                         >
-                          {isActive ? "ACTIVE" : "COMING SOON"}
+                          {isActive ? "ACTIVE" : isEnded ? "ENDED" : "COMING SOON"}
                         </Badge>
                         <span className="text-sm bg-black/50 px-3 py-1 rounded-full text-white">
                           Value: ${giveaway.value}
@@ -303,6 +325,14 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
                   >
                     Rules & Eligibility
                   </TabsTrigger>
+                  {isEnded && (
+                    <TabsTrigger
+                      value="winners"
+                      className="data-[state=active]:bg-[#F7984A] data-[state=active]:text-white text-gray-300"
+                    >
+                      Winners
+                    </TabsTrigger>
+                  )}
                 </TabsList>
                 <TabsContent value="prizes" className="mt-6">
                   <Card className="bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl p-6">
@@ -367,9 +397,18 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
                 <TabsContent value="winners" className="mt-6">
                   <Card className="bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl p-6">
                     <h2 className="text-2xl font-bold mb-6 pb-2 border-b border-gray-800/50 text-white">
-                      Past Winners
+                      Winners
                     </h2>
-                    {isActive ? (
+                    {isEnded ? (
+                      <div className="text-center py-8">
+                        <Check className="h-12 w-12 mx-auto mb-4 text-green-500" />
+                        <h3 className="text-xl font-medium mb-2 text-white">Giveaway Complete</h3>
+                        <p className="text-gray-300 max-w-md mx-auto">
+                          This giveaway has ended. Winners will be announced and notified shortly.
+                        </p>
+                        {/* You can add actual winners here when available */}
+                      </div>
+                    ) : isActive ? (
                       <div className="text-center py-8">
                         <Clock className="h-12 w-12 mx-auto mb-4 text-gray-500" />
                         <h3 className="text-xl font-medium mb-2 text-white">Winner Not Yet Selected</h3>
@@ -555,6 +594,18 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
                       </Button>
                     </form>
                   )
+                ) : isEnded ? (
+                  <div className="text-center py-6">
+                    <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-500" />
+                    <p className="text-gray-300 mb-4">This giveaway has ended.</p>
+                    <p className="text-gray-300 mb-6">Ended on {giveaway.endDate}</p>
+                    <Button
+                      className="w-full border-white/20 bg-gray-800/70 hover:bg-gray-700/70 text-white py-3 px-4 rounded-lg transition-colors duration-300"
+                      disabled
+                    >
+                      Giveaway Ended
+                    </Button>
+                  </div>
                 ) : (
                   <div className="text-center py-6">
                     <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-500" />
@@ -570,15 +621,17 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
                 )}
 
                 {/* Entry Stats */}
-                {isActive && (
+                {(isActive || isEnded) && (
                   <div className="mt-6 pt-6 border-t border-gray-800/50">
                     <div className="flex items-center justify-between text-sm text-gray-300">
                       <span>Total Entries</span>
                       <span className="font-bold text-white">{giveaway.entries.toLocaleString()}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm text-gray-300 mt-2">
-                      <span>Time Remaining</span>
-                      <span className="font-bold text-white">{giveaway.daysLeft} days</span>
+                      <span>{isEnded ? "Giveaway Duration" : "Time Remaining"}</span>
+                      <span className="font-bold text-white">
+                        {isEnded ? "Completed" : `${giveaway.daysLeft} days`}
+                      </span>
                     </div>
                   </div>
                 )}
@@ -589,16 +642,18 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
           {/* Related Giveaways */}
           {relatedGiveaways.length > 0 &&
             (() => {
-              const activeOrUpcomingGiveaways = relatedGiveaways.filter((giveaway) => giveaway.status !== "ended")
+              // Include both active, upcoming, AND ENDED giveaways in the related section
+              // This is the key change to ensure ended giveaways still appear in listings
+              const filteredGiveaways = relatedGiveaways
 
               // Only show section if there are active or upcoming giveaways
-              if (activeOrUpcomingGiveaways.length === 0) return null
+              if (filteredGiveaways.length === 0) return null
 
               // Pagination logic
               const indexOfLastItem = currentPage * itemsPerPage
               const indexOfFirstItem = indexOfLastItem - itemsPerPage
-              const currentItems = activeOrUpcomingGiveaways.slice(indexOfFirstItem, indexOfLastItem)
-              const totalPages = Math.ceil(activeOrUpcomingGiveaways.length / itemsPerPage)
+              const currentItems = filteredGiveaways.slice(indexOfFirstItem, indexOfLastItem)
+              const totalPages = Math.ceil(filteredGiveaways.length / itemsPerPage)
 
               return (
                 <section className="mt-16">
@@ -615,7 +670,8 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
                               height={300}
                               className={cn(
                                 "object-cover w-full h-full group-hover:scale-105 transition-transform duration-500",
-                                relatedGiveaway.status !== "active" && "filter grayscale",
+                                relatedGiveaway.status === "ended" ? "filter grayscale opacity-80" :
+                                relatedGiveaway.status !== "active" && "filter grayscale"
                               )}
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
@@ -625,17 +681,25 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
                                   "text-white",
                                   relatedGiveaway.status === "active"
                                     ? "bg-green-500 hover:bg-green-600"
-                                    : "bg-yellow-500 hover:bg-yellow-600",
+                                    : relatedGiveaway.status === "ended"
+                                    ? "bg-gray-500 hover:bg-gray-600"
+                                    : "bg-yellow-500 hover:bg-yellow-600"
                                 )}
                               >
-                                {relatedGiveaway.status === "active" ? "ACTIVE" : "COMING SOON"}
+                                {relatedGiveaway.status === "active" 
+                                  ? "ACTIVE" 
+                                  : relatedGiveaway.status === "ended"
+                                  ? "ENDED"
+                                  : "COMING SOON"}
                               </Badge>
                             </div>
                             <div className="absolute bottom-4 left-4 right-4">
                               <div className="flex items-center justify-between">
                                 <span className="text-sm bg-black/50 px-2 py-1 rounded-full flex items-center text-white">
                                   <Clock className="h-3 w-3 mr-1" />
-                                  {relatedGiveaway.daysLeft} days left
+                                  {relatedGiveaway.status === "ended" 
+                                    ? "Ended" 
+                                    : `${relatedGiveaway.daysLeft} days left`}
                                 </span>
                               </div>
                             </div>
@@ -716,4 +780,3 @@ export default function GiveawayClient({ giveaway, relatedGiveaways = [], error 
     </div>
   )
 }
-

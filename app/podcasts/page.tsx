@@ -37,7 +37,7 @@ const getCategoryFilters = (podcasts: Podcast[]) => {
 
   return Object.entries(categories).map(([id, count]) => ({
     id,
-    label: id.charAt(0).toUpperCase() + id.slice(1), // Capitalize first letter
+    label: id === "depin" ? "DePIN" : id.charAt(0).toUpperCase() + id.slice(1), // Special case for DePIN
     count,
   }))
 }
@@ -206,7 +206,7 @@ export default function PodcastsPage() {
                   // Ensure correct category display
                   const displayCategory = podcast.description.toLowerCase().includes('depin') 
                     ? "DePIN" 
-                    : podcast.category;
+                    : podcast.category; 
                     
                   return (
                     <Link key={podcast.id} href={`/podcasts/${podcast.id}`}>
