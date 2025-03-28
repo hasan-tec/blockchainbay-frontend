@@ -4,7 +4,6 @@ try {
 } catch (e) {
   // ignore error
 }
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
@@ -14,6 +13,15 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
+    domains: ['localhost', '127.0.0.1'],
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '1337',
+        pathname: '/uploads/**',
+      },
+    ],
     unoptimized: true,
   },
   experimental: {
@@ -22,14 +30,11 @@ const nextConfig = {
     parallelServerCompiles: true,
   },
 }
-
 mergeConfig(nextConfig, userConfig)
-
 function mergeConfig(nextConfig, userConfig) {
   if (!userConfig) {
     return
   }
-
   for (const key in userConfig) {
     if (
       typeof nextConfig[key] === 'object' &&
@@ -44,8 +49,4 @@ function mergeConfig(nextConfig, userConfig) {
     }
   }
 }
-
 export default nextConfig
-
-
-

@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { useCart } from "../contexts/CartContext"
 
 export const Logo = () => {
   return (
@@ -70,8 +71,14 @@ export const Logo = () => {
 export const Navbar = () => {
   const [scrolled, setScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  // Add cart context
+  const { getItemsCount } = useCart()
 
   useEffect(() => {
+    // Mark as mounted so we can use cart functions safely
+    setMounted(true)
+
     const handleScroll = () => {
       setScrolled(window.scrollY > 20)
     }
@@ -87,6 +94,9 @@ export const Navbar = () => {
     { name: "Store", href: "/store", icon: <ShoppingCart className="h-4 w-4 mr-1" /> },
     { name: "Giveaways", href: "/giveaways", icon: <Gift className="h-4 w-4 mr-1" /> },
   ]
+
+  // Get cart count safely
+  const cartCount = mounted ? getItemsCount() : 0
 
   return (
     <>
@@ -117,18 +127,19 @@ export const Navbar = () => {
             </div>
 
             <div className="hidden lg:flex items-center gap-5">
-              
-
-              <button
+              <Link
+                href="/cart"
                 aria-label="Cart"
                 className="relative w-8 h-8 rounded-full flex items-center justify-center text-gray-300 hover:text-white transition-colors"
               >
                 <ShoppingCart className="h-5 w-5" />
-                <span className="absolute top-0 right-0 w-4 h-4 rounded-full bg-[#F7984A] text-[10px] flex items-center justify-center">
-                  3
-                </span>
+                {cartCount > 0 && (
+                  <span className="absolute top-0 right-0 w-4 h-4 rounded-full bg-[#F7984A] text-[10px] flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
                 <span className="absolute inset-0 rounded-full bg-gray-800 -z-10 opacity-0 hover:opacity-100 transition-opacity"></span>
-              </button>
+              </Link>
               <Link href="/admin/giveaways" >
               <Button className="bg-[#F7984A] hover:bg-[#F7984A]/90 text-white rounded-full px-5 shadow-lg shadow-[#F7984A]/20 transition-all duration-300 hover:shadow-[#F7984A]/30 hover:translate-y-[-2px]">
                 Sign In
@@ -168,7 +179,14 @@ export const Navbar = () => {
             ))}
 
             <div className="pt-4 space-y-4">
-              
+              <Link href="/cart" onClick={() => setMobileMenuOpen(false)}>
+                <Button
+                  className="w-full bg-gray-800 hover:bg-gray-700 text-white py-6 flex items-center justify-center"
+                >
+                  <ShoppingCart className="mr-2 h-5 w-5" />
+                  View Cart {cartCount > 0 && `(${cartCount})`}
+                </Button>
+              </Link>
               <Link href="/admin/giveaways" >
               <Button
                 className="w-full bg-[#F7984A] hover:bg-[#F7984A]/90 text-white py-6"
