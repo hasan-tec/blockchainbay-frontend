@@ -6,7 +6,7 @@ import { Footer } from '../../../components/NewsletterFooter';
 import Loading from './loading';
 import { notFound } from 'next/navigation';
 
-export const revalidate = 3600; // Revalidate the data at most once per hour
+export const revalidate = 10; // Revalidate the data at most once per hour
 
 // Interface for your raw product data coming from API
 interface RawProduct {
