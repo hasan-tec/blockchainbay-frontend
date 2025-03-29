@@ -1,8 +1,8 @@
 import { Suspense } from 'react';
-import { getProductBySlug, getProducts, ProductType , RichTextBlock  } from '../../../lib/storeapi';
+import { getProductBySlug, getProducts, ProductType, RichTextBlock } from '../../../lib/storeapi';
 import ProductDetailClient from './client';
 import Navbar from '../../../components/Navbar';
-import {Footer} from '../../../components/NewsletterFooter';
+import { Footer } from '../../../components/NewsletterFooter';
 import Loading from './loading';
 import { notFound } from 'next/navigation';
 
@@ -51,7 +51,6 @@ export async function generateStaticParams() {
   }
 }
 
-// Function to ensure description formatting is preserved
 // Function to ensure description formatting is preserved
 function formatDescription(description: string | object): string | RichTextBlock[] {
   // If description is already an object (rich text blocks), return it as is
@@ -167,6 +166,26 @@ function transformProductIfNeeded(product: any): ProductType {
     }));
   };
   
+  // Handle specifications in rich text format
+  let specificationsRichText = null;
+  if (product.specifications) {
+    if (typeof product.specifications === 'string') {
+      try {
+        specificationsRichText = JSON.parse(product.specifications);
+      } catch (e) {
+        // If it can't be parsed as JSON, create a simple rich text paragraph
+        specificationsRichText = [
+          {
+            type: "paragraph",
+            children: [{ type: "text", text: product.specifications }]
+          }
+        ];
+      }
+    } else if (Array.isArray(product.specifications)) {
+      specificationsRichText = product.specifications;
+    }
+  }
+  
   // Otherwise, transform flat structure to nested structure
   return {
     id: String(product.id),
@@ -189,6 +208,7 @@ function transformProductIfNeeded(product: any): ProductType {
       materials: product.materials || '',
       batteryLife: product.batteryLife || '',
       warranty: product.warranty || '',
+      specifications: specificationsRichText,
       mainImage: {
         data: {
           attributes: {
@@ -222,9 +242,6 @@ function transformProductIfNeeded(product: any): ProductType {
       features: { 
         data: processFeatures(product.features) 
       },
-      specifications: { 
-        data: processSpecifications(product.specifications) 
-      },
       compatibilities: { 
         data: processNamedItems(product.compatibilities) 
       },
@@ -237,40 +254,59 @@ function transformProductIfNeeded(product: any): ProductType {
 
 export default async function ProductDetailPage({ params }: { params: { slug: string } }) {
   try {
-    const rawProduct = await getProductBySlug(params.slug);
+    // Use the slug from params
+    const slug = params.slug;
+    console.log(`Processing slug: ${slug}`);
+    
+    // Get the product
+    const rawProduct = await getProductBySlug(slug);
     
     if (!rawProduct) {
+      console.log(`No product found for slug: ${slug}`);
       return notFound();
     }
+      // Log more details to help troubleshoot
+      console.log(`Product found with ID: ${rawProduct.id}, name: ${rawProduct.attributes?.name || rawProduct.name}`);
+      console.log(`Specifications available: ${rawProduct.attributes?.specifications ? 'Yes' : 'No'}`);
+      console.log(`Reviews available: ${rawProduct.attributes?.Review ? 'Yes' : 'No'}`);
+      if (rawProduct.attributes?.Review) {
+        console.log(`Number of reviews: ${rawProduct.attributes.Review.length}`);
+      }
     
     // Transform the product if needed
     const product = transformProductIfNeeded(rawProduct);
     
-    // Get the category slug, handling both data structures
-    const categorySlug = 
-      product.attributes.category?.data?.attributes?.slug || 
-      (rawProduct.category?.slug) || 
-      'uncategorized';
+    // Get the category slug
+    let categorySlug = 'category';
+    if (product.attributes.category?.data?.attributes?.slug) {
+      categorySlug = product.attributes.category.data.attributes.slug;
+    } else if (rawProduct.category?.slug) {
+      categorySlug = rawProduct.category.slug;
+    }
     
-    // Get related products (same category)
-    const relatedProductsRaw = await getProducts({
-      filters: {
-        category: {
-          slug: {
-            $eq: categorySlug,
+    // Get related products
+    let relatedProducts: ProductType[] = [];
+    try {
+      const relatedProductsRaw = await getProducts({
+        filters: {
+          category: {
+            slug: {
+              $eq: categorySlug,
+            },
+          },
+          id: {
+            $ne: product.id,
           },
         },
-        id: {
-          $ne: product.id, // Exclude current product
+        pagination: {
+          limit: 4,
         },
-      },
-      pagination: {
-        limit: 4,
-      },
-    });
-    
-    // Transform related products if needed
-    const relatedProducts = relatedProductsRaw.map(transformProductIfNeeded);
+      });
+      
+      relatedProducts = relatedProductsRaw.map(transformProductIfNeeded);
+    } catch (error) {
+      console.error('Error fetching related products:', error);
+    }
     
     return (
       <>
@@ -278,7 +314,6 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
         <Suspense fallback={<Loading />}>
           <ProductDetailClient product={product} relatedProducts={relatedProducts} />
         </Suspense>
-       
       </>
     );
   } catch (error) {

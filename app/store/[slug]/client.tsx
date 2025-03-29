@@ -1,25 +1,21 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { type ProductType, getStrapiMediaUrl } from "../../../lib/storeapi"
+import { type ProductType, getStrapiMediaUrl, RichTextBlock, RichTextChild, getProductReviews } from "../../../lib/storeapi"
 import { useCart } from "../../../contexts/CartContext"
 import {
   ShoppingCart,
   ChevronRight,
   Minus,
   Plus,
-  Heart,
-  Share2,
   Check,
   Star,
   Truck,
   Shield,
   RefreshCw,
-  Info,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -29,6 +25,7 @@ import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/use-toast"
 import { Footer } from "@/components/NewsletterFooter"
 import Navbar from "@/components/Navbar"
+import SimpleToast from '@/components/SimpleToast'
 
 type ProductDetailClientProps = {
   product: ProductType
@@ -42,7 +39,57 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
   const [selectedImage, setSelectedImage] = useState(0)
   const [scrolled, setScrolled] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(true)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [toastVisible, setToastVisible] = useState(false)
+  const [toastProduct, setToastProduct] = useState<any>(null)
+  const [toastQuantity, setToastQuantity] = useState(0)
+  const [reviews, setReviews] = useState<any[]>([])
+
+  // Use a single, reliable useEffect for fetching reviews
+  useEffect(() => {
+    const fetchReviewsBySlug = async () => {
+      if (!product?.attributes?.slug) return;
+      
+      try {
+        // Use the populate=* approach which we know works from your curl command
+        const response = await fetch(`http://localhost:1337/api/products?populate=*`);
+        const data = await response.json();
+        
+        // Find the target product by slug
+        const targetProduct = data.data.find((p: any) => 
+          p.slug === product.attributes.slug || 
+          (p.attributes && p.attributes.slug === product.attributes.slug)
+        );
+        
+        if (!targetProduct) {
+          console.log("Product not found in complete response");
+          setReviews([]);
+          return;
+        }
+        
+        // Check where the review data might be located
+        if (targetProduct.Review && Array.isArray(targetProduct.Review)) {
+          console.log(`Found ${targetProduct.Review.length} reviews in direct product object`);
+          setReviews(targetProduct.Review);
+        } 
+        else if (targetProduct.attributes && targetProduct.attributes.Review && 
+                 Array.isArray(targetProduct.attributes.Review)) {
+          console.log(`Found ${targetProduct.attributes.Review.length} reviews in attributes`);
+          setReviews(targetProduct.attributes.Review);
+        }
+        else {
+          console.log("No reviews found for this product");
+          setReviews([]);
+        }
+      } catch (error) {
+        console.error("Error fetching product data:", error);
+        setReviews([]);
+      }
+    };
+    
+    fetchReviewsBySlug();
+  }, [product]);
+
+  
 
   const productData = product.attributes
 
@@ -53,35 +100,11 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
 
   // Extract product details
   const features = productData.features?.data || []
-  const specifications = productData.specifications?.data || []
+  const specifications = Array.isArray(productData.specifications) ? 
+    productData.specifications : 
+    (productData.specifications?.data || [])
   const compatibility = productData.compatibilities?.data || []
   const connectivity = productData.connectivities?.data || []
-
-  // Reviews are mocked for now - would come from API in a real implementation
-  const reviews = [
-    {
-      id: 1,
-      productId: product.id,
-      author: "Alex Thompson",
-      rating: 5,
-      date: "2023-11-15",
-      title: "Great product",
-      content:
-        "I've been using this for a month now and it's excellent. The quality is top-notch and it works exactly as advertised.",
-      verified: true,
-    },
-    {
-      id: 2,
-      productId: product.id,
-      author: "Sarah Chen",
-      rating: 4,
-      date: "2023-10-22",
-      title: "Good but could be better",
-      content:
-        "Overall happy with my purchase. The product is well-made but I had some minor issues with setup. Customer service was helpful though.",
-      verified: true,
-    },
-  ]
 
   useEffect(() => {
     const handleScroll = () => {
@@ -109,79 +132,43 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
     }
   }
 
-  // Fixed handleAddToCart function with useCallback
   const handleAddToCart = useCallback(() => {
-    // Check if product has the expected structure for the cart
     try {
-      if (!product || !product.id || !productData) {
-        console.error("Invalid product data:", product)
-        toast({
-          title: "Error",
-          description: "Could not add product to cart. Invalid product data.",
-          duration: 3000,
-        })
-        return
-      }
-
-      // Log what we're adding to cart
-      console.log("Adding to cart:", {
-        productId: product.id,
-        name: productData.name,
-        quantity: quantity,
-      })
+      if (!product || !product.id || !productData) return
 
       // Call addToCart function
       addToCart(product, quantity)
-
-      toast({
-        title: "Added to cart",
-        description: `${quantity} x ${productData.name} added to your cart.`,
-        duration: 3000,
-      })
+      
+      // Set toast data
+      setToastProduct(product)
+      setToastQuantity(quantity)
+      setToastVisible(true)
     } catch (error) {
       console.error("Error adding to cart:", error)
-      toast({
-        title: "Error",
-        description: "An error occurred while adding to cart.",
-        duration: 3000,
-      })
     }
-  }, [product, productData, quantity, addToCart, toast])
+  }, [product, productData, quantity, addToCart])
 
-  // Fixed function with proper type annotations and useCallback
   const handleRelatedProductAddToCart = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>, relatedProduct: ProductType) => {
       if (!e || !relatedProduct) return
 
-      // Both of these are important to stop event propagation
       e.preventDefault()
       e.stopPropagation()
 
-      // Check if product is valid
-      if (!relatedProduct || !relatedProduct.id || !relatedProduct.attributes) {
-        console.error("Invalid related product data")
-        return
-      }
+      if (!relatedProduct || !relatedProduct.id || !relatedProduct.attributes) return
 
       try {
-        // Call addToCart function
         addToCart(relatedProduct, 1)
-
-        toast({
-          title: "Added to cart",
-          description: `${relatedProduct.attributes.name} added to your cart.`,
-          duration: 3000,
-        })
+        
+        // Set toast data
+        setToastProduct(relatedProduct)
+        setToastQuantity(1)
+        setToastVisible(true)
       } catch (error) {
         console.error("Error adding related product to cart:", error)
-        toast({
-          title: "Error",
-          description: "An error occurred while adding to cart.",
-          duration: 3000,
-        })
       }
     },
-    [addToCart, toast],
+    [addToCart]
   )
 
   // Helper function to get plain text content from rich text format
@@ -191,10 +178,116 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
     return richText
       .map((block) => {
         if (!block.children) return ""
-        return block.children.map((child: any) => child.text || "").join(" ")
+        return block.children.map((child: RichTextChild) => child.text || "").join(" ")
       })
       .join(" ")
   }
+
+  // Helper function to render product description content
+  const renderDescription = (description: string | RichTextBlock[] | undefined) => {
+    if (!description) return null;
+    
+    if (typeof description === "string") {
+      // Handle string description format
+      return description
+        .split("\n")
+        .map((paragraph: string, index: number) => {
+          // Check if this is a section header (ends with :)
+          if (paragraph.trim().endsWith(":")) {
+            return (
+              <h4 key={index} className="font-bold text-lg mt-4 mb-2 text-white">
+                {paragraph.trim()}
+              </h4>
+            )
+          }
+          // Check if line contains a checkmark
+          else if (paragraph.includes("✅")) {
+            return (
+              <div key={index} className="flex items-start gap-2 ml-4 my-1">
+                <span className="text-green-500 flex-shrink-0">✅</span>
+                <span className="text-gray-300">{paragraph.replace("✅", "").trim()}</span>
+              </div>
+            )
+          }
+          // Regular paragraph
+          else if (paragraph.trim()) {
+            return (
+              <p key={index} className="text-gray-300 leading-relaxed mb-2">
+                {paragraph.trim()}
+              </p>
+            )
+          }
+          // Empty line - add some spacing
+          return <div key={index} className="h-2"></div>
+        });
+    }
+    
+    // Handle rich text blocks format
+    if (Array.isArray(description)) {
+      return description.map((block, blockIndex) => {
+        if (block.type === "paragraph") {
+          // Check if paragraph has checkmark emoji
+          const text = block.children?.map((child: RichTextChild) => child.text || "").join("") || ""
+          if (text.includes("✅")) {
+            return (
+              <div key={blockIndex} className="flex items-start gap-2 ml-4 my-1">
+                <span className="text-green-500 flex-shrink-0">✅</span>
+                <span className="text-gray-300">{text.replace("✅", "").trim()}</span>
+              </div>
+            )
+          }
+          return (
+            <p key={blockIndex} className="text-gray-300 leading-relaxed mb-2">
+              {block.children?.map((child: RichTextChild, childIndex: number) => (
+                <span key={childIndex} className={child.bold === true ? "font-bold" : ""}>
+                  {child.text || ""}
+                </span>
+              ))}
+            </p>
+          )
+        } else if (block.type === "heading") {
+          return (
+            <h4 key={blockIndex} className="font-bold text-lg mt-4 mb-2 text-white">
+              {block.children?.map((child: RichTextChild) => child.text || "").join("")}
+            </h4>
+          )
+        } else if (block.type === "list") {
+          return (
+            <ul key={blockIndex} className="list-disc pl-5 mb-4 text-gray-300">
+              {block.children?.map((item: any, itemIndex: number) => (
+                <li key={itemIndex}>{item.children?.map((child: any) => child.text || "").join("")}</li>
+              ))}
+            </ul>
+          )
+        }
+        return null
+      });
+    }
+    
+    return null;
+  }
+
+  // Helper function to determine if specifications is rich text format
+  const isRichTextSpecifications = (specs: any): specs is RichTextBlock[] => {
+    return Array.isArray(specs) && 
+          specs.length > 0 && 
+          typeof specs[0] === 'object' && 
+          'type' in specs[0] && 
+          'children' in specs[0];
+  };
+
+  // Helper function to determine if specifications is relation format
+  const isRelationSpecifications = (specs: any): specs is { data: Array<{ id: string; attributes: { key: string; value: string } }> } => {
+    return specs && 
+          typeof specs === 'object' && 
+          'data' in specs && 
+          Array.isArray(specs.data);
+  };
+
+  // Calculate average rating from reviews
+  const averageRating = Array.isArray(reviews) && reviews.length > 0 
+    ? reviews.reduce((acc, review) => acc + (Number(review.Rating) || 0), 0) / reviews.length 
+    : (productData.rating || 0);
 
   return (
     <div className={cn("min-h-screen bg-[#07071C] text-white", isDarkMode ? "dark" : "")}>
@@ -210,9 +303,7 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
         <div className="absolute inset-0 bg-[url('/placeholder.svg?height=100&width=100')] bg-repeat opacity-[0.015]"></div>
       </div>
 
-    
-        <Navbar />
-   
+      <Navbar />
 
       {/* Main Content */}
       <main className="pt-32 pb-20 relative z-20">
@@ -247,13 +338,11 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                 <Image
                   src={allImages[selectedImage] || "/placeholder.svg"}
                   alt={productData.name}
-                  layout="fill"
-                  objectFit="contain"
-                  className="object-contain w-full h-full"
+                  fill
+                  className="object-contain"
                   priority
                   unoptimized={true}
                   onError={(e) => {
-                    console.error("Image failed to load:", allImages[selectedImage])
                     // @ts-ignore - TypeScript doesn't recognize currentTarget.src
                     e.currentTarget.src = "/placeholder.png"
                   }}
@@ -285,12 +374,10 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                       <Image
                         src={image || "/placeholder.svg"}
                         alt={`${productData.name} - Image ${index + 1}`}
-                        layout="fill"
-                        objectFit="cover"
-                        className="object-cover w-full h-full"
+                        fill
+                        className="object-cover"
                         unoptimized={true}
                         onError={(e) => {
-                          console.error("Thumbnail failed to load:", image)
                           // @ts-ignore
                           e.currentTarget.src = "/placeholder.png"
                         }}
@@ -320,13 +407,13 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                     {Array.from({ length: 5 }).map((_, i) => (
                       <Star
                         key={i}
-                        className={`w-5 h-5 ${i < Math.floor(productData.rating) ? "text-yellow-400" : "text-gray-600"}`}
-                        fill={i < Math.floor(productData.rating) ? "currentColor" : "none"}
+                        className={`w-5 h-5 ${i < Math.floor(averageRating) ? "text-yellow-400" : "text-gray-600"}`}
+                        fill={i < Math.floor(averageRating) ? "currentColor" : "none"}
                       />
                     ))}
                   </div>
                   <span className="text-sm text-gray-400">
-                    {productData.rating} ({productData.reviewCount} reviews)
+                    {averageRating.toFixed(1)} ({Array.isArray(reviews) ? reviews.length : 0} reviews)
                   </span>
                 </div>
               </div>
@@ -350,82 +437,7 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
 
                 <div>
                   <h3 className="text-xl font-bold mb-4">Product Description</h3>
-                  {typeof productData.description === "string"
-                    ? // Handle string description format
-                      productData.description
-                        .split("\n")
-                        .map((paragraph: string, index: number) => {
-                          // Check if this is a section header (ends with :)
-                          if (paragraph.trim().endsWith(":")) {
-                            return (
-                              <h4 key={index} className="font-bold text-lg mt-4 mb-2 text-white">
-                                {paragraph.trim()}
-                              </h4>
-                            )
-                          }
-
-                          // Check if line contains a checkmark
-                          else if (paragraph.includes("✅")) {
-                            return (
-                              <div key={index} className="flex items-start gap-2 ml-4 my-1">
-                                <span className="text-green-500 flex-shrink-0">✅</span>
-                                <span className="text-gray-300">{paragraph.replace("✅", "").trim()}</span>
-                              </div>
-                            )
-                          }
-
-                          // Regular paragraph
-                          else if (paragraph.trim()) {
-                            return (
-                              <p key={index} className="text-gray-300 leading-relaxed mb-2">
-                                {paragraph.trim()}
-                              </p>
-                            )
-                          }
-
-                          // Empty line - add some spacing
-                          return <div key={index} className="h-2"></div>
-                        })
-                    : // Handle rich text blocks format
-                      Array.isArray(productData.description) &&
-                      productData.description.map((block, blockIndex) => {
-                        if (block.type === "paragraph") {
-                          // Check if paragraph has checkmark emoji
-                          const text = block.children?.map((child) => child.text || "").join("") || ""
-                          if (text.includes("✅")) {
-                            return (
-                              <div key={blockIndex} className="flex items-start gap-2 ml-4 my-1">
-                                <span className="text-green-500 flex-shrink-0">✅</span>
-                                <span className="text-gray-300">{text.replace("✅", "").trim()}</span>
-                              </div>
-                            )
-                          }
-                          return (
-                            <p key={blockIndex} className="text-gray-300 leading-relaxed mb-2">
-                              {block.children?.map((child, childIndex) => (
-                                <span key={childIndex} className={child.bold === true ? "font-bold" : ""}>
-                                  {child.text || ""}
-                                </span>
-                              ))}
-                            </p>
-                          )
-                        } else if (block.type === "heading") {
-                          return (
-                            <h4 key={blockIndex} className="font-bold text-lg mt-4 mb-2 text-white">
-                              {block.children?.map((child) => child.text || "").join("")}
-                            </h4>
-                          )
-                        } else if (block.type === "list") {
-                          return (
-                            <ul key={blockIndex} className="list-disc pl-5 mb-4 text-gray-300">
-                              {block.children?.map((item, itemIndex) => (
-                                <li key={itemIndex}>{item.children?.map((child) => child.text || "").join("")}</li>
-                              ))}
-                            </ul>
-                          )
-                        }
-                        return null
-                      })}
+                  {renderDescription(productData.description)}
                 </div>
 
                 {/* Tags */}
@@ -451,19 +463,19 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                     <Button
                       variant="outline"
                       size="icon"
-                      className="rounded-l-md rounded-r-none bg-[#111130] hover:bg-[#1A1A40]  border-r-0"
+                      className="rounded-l-md rounded-r-none bg-[#111130] hover:bg-[#1A1A40] border-r-0"
                       onClick={decrementQuantity}
                       disabled={quantity <= 1 || !productData.inStock}
                     >
                       <Minus className="h-4 w-4" />
                     </Button>
-                    <div className="h-10 px-4 flex items-center justify-center border-y bg-[#111130] hover:bg-[#1A1A40]  border-gray-700 bg-gray-800/30 w-12">
+                    <div className="h-10 px-4 flex items-center justify-center border-y bg-[#111130] hover:bg-[#1A1A40] border-gray-700 bg-gray-800/30 w-12">
                       {quantity}
                     </div>
                     <Button
                       variant="outline"
                       size="icon"
-                      className="rounded-r-md rounded-l-none border-l-0 bg-[#111130] hover:bg-[#1A1A40] " 
+                      className="rounded-r-md rounded-l-none border-l-0 bg-[#111130] hover:bg-[#1A1A40]" 
                       onClick={incrementQuantity}
                       disabled={quantity >= 10 || !productData.inStock}
                     >
@@ -479,8 +491,6 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                     <ShoppingCart className="mr-2 h-5 w-5" />
                     {productData.inStock ? "Add to Cart" : "Out of Stock"}
                   </Button>
-
-                
                 </div>
               </div>
 
@@ -513,14 +523,8 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
 
           {/* Product Tabs */}
           <div className="mb-16">
-            <Tabs defaultValue="details" className="w-full">
+            <Tabs defaultValue="specs" className="w-full">
               <TabsList className="bg-[#0D0B26]/80 border-2 border-gray-800/80 rounded-lg p-1 w-full flex flex-wrap">
-                <TabsTrigger
-                  value="details"
-                  className="flex-1 data-[state=active]:bg-[#F7984A] data-[state=active]:text-white"
-                >
-                  Details
-                </TabsTrigger>
                 <TabsTrigger
                   value="specs"
                   className="flex-1 data-[state=active]:bg-[#F7984A] data-[state=active]:text-white"
@@ -531,105 +535,13 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                   value="reviews"
                   className="flex-1 data-[state=active]:bg-[#F7984A] data-[state=active]:text-white"
                 >
-                  Reviews ({reviews.length})
+                  Reviews ({Array.isArray(reviews) ? reviews.length : 0})
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="details" className="mt-6 bg-[#0D0B26]/80 border-2 border-gray-800/80 rounded-xl p-6">
+              <TabsContent value="specs" className="mt-6 bg-[#0D0B26]/80 border-2 border-gray-800/80 rounded-xl p-6">
                 <div className="space-y-6">
-                  <div>
-                    <h3 className="text-xl font-bold mb-4">Product Description</h3>
-                    {typeof productData.description === "string"
-                      ? // Handle legacy string description format
-                        productData.description
-                          .split("\n")
-                          .map((paragraph: string, index: number) => {
-                            // Check if this is a section header (ends with :)
-                            if (paragraph.trim().endsWith(":")) {
-                              return (
-                                <h4 key={index} className="font-bold text-lg mt-4 mb-2 text-white">
-                                  {paragraph.trim()}
-                                </h4>
-                              )
-                            }
-
-                            // Check if line contains a checkmark
-                            else if (paragraph.includes("✅")) {
-                              return (
-                                <div key={index} className="flex items-start gap-2 ml-4 my-1">
-                                  <span className="text-green-500 flex-shrink-0">✅</span>
-                                  <span className="text-gray-300">{paragraph.replace("✅", "").trim()}</span>
-                                </div>
-                              )
-                            }
-
-                            // Regular paragraph
-                            else if (paragraph.trim()) {
-                              return (
-                                <p key={index} className="text-gray-300 leading-relaxed mb-2">
-                                  {paragraph.trim()}
-                                </p>
-                              )
-                            }
-
-                            // Empty line - add some spacing
-                            return <div key={index} className="h-2"></div>
-                          })
-                      : // Handle rich text blocks format
-                        Array.isArray(productData.description) &&
-                        productData.description.map((block, blockIndex) => {
-                          if (block.type === "paragraph") {
-                            // Check if paragraph has checkmark emoji
-                            const text = block.children?.map((child) => child.text || "").join("") || ""
-                            if (text.includes("✅")) {
-                              return (
-                                <div key={blockIndex} className="flex items-start gap-2 ml-4 my-1">
-                                  <span className="text-green-500 flex-shrink-0">✅</span>
-                                  <span className="text-gray-300">{text.replace("✅", "").trim()}</span>
-                                </div>
-                              )
-                            }
-                            return (
-                              <p key={blockIndex} className="text-gray-300 leading-relaxed mb-2">
-                                {block.children?.map((child, childIndex) => (
-                                  <span key={childIndex} className={child.bold === true ? "font-bold" : ""}>
-                                    {child.text || ""}
-                                  </span>
-                                ))}
-                              </p>
-                            )
-                          } else if (block.type === "heading") {
-                            return (
-                              <h4 key={blockIndex} className="font-bold text-lg mt-4 mb-2 text-white">
-                                {block.children?.map((child) => child.text || "").join("")}
-                              </h4>
-                            )
-                          } else if (block.type === "list") {
-                            return (
-                              <ul key={blockIndex} className="list-disc pl-5 mb-4 text-gray-300">
-                                {block.children?.map((item, itemIndex) => (
-                                  <li key={itemIndex}>{item.children?.map((child) => child.text || "").join("")}</li>
-                                ))}
-                              </ul>
-                            )
-                          }
-                          return null
-                        })}
-                  </div>
-                  {features.length > 0 && (
-                    <div>
-                      <h3 className="text-xl font-bold mb-4">Key Features</h3>
-                      <ul className="space-y-2">
-                        {features.map((feature) => (
-                          <li key={feature.id} className="flex items-start gap-2">
-                            <Check className="h-5 w-5 text-[#F7984A] mt-0.5 shrink-0" />
-                            <span className="text-gray-300">{feature.attributes.text}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
+                  {/* Product Details section */}
                   <div>
                     <h3 className="text-xl font-bold mb-4">Product Details</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -666,6 +578,22 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                     </div>
                   </div>
 
+                  {/* Features section */}
+                  {features.length > 0 && (
+                    <div>
+                      <h3 className="text-xl font-bold mb-4">Key Features</h3>
+                      <ul className="space-y-2">
+                        {features.map((feature) => (
+                          <li key={feature.id} className="flex items-start gap-2">
+                            <Check className="h-5 w-5 text-[#F7984A] mt-0.5 shrink-0" />
+                            <span className="text-gray-300">{feature.attributes.text}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Compatibility section */}
                   {compatibility.length > 0 && (
                     <div>
                       <h3 className="text-xl font-bold mb-4">Compatibility</h3>
@@ -679,6 +607,7 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                     </div>
                   )}
 
+                  {/* Connectivity section */}
                   {connectivity.length > 0 && (
                     <div>
                       <h3 className="text-xl font-bold mb-4">Connectivity</h3>
@@ -691,31 +620,91 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                       </div>
                     </div>
                   )}
-                </div>
-              </TabsContent>
 
-              <TabsContent value="specs" className="mt-6 bg-[#0D0B26]/80 border-2 border-gray-800/80 rounded-xl p-6">
-                {specifications.length > 0 ? (
-                  <div className="space-y-6">
-                    <h3 className="text-xl font-bold mb-4">Technical Specifications</h3>
-                    <div className="space-y-2">
-                      {specifications.map((spec) => (
-                        <div key={spec.id} className="flex py-2 border-b border-gray-800/50 last:border-0">
-                          <span className="text-gray-400 w-1/3">{spec.attributes?.key || "Unknown"}</span>
-                          <span className="text-white w-2/3">{spec.attributes?.value || ""}</span>
+                  {/* Technical Specifications section */}
+                  <h3 className="text-xl font-bold mb-4">Technical Specifications</h3>
+
+                  {productData.specifications ? (
+                    <>
+                      {isRichTextSpecifications(productData.specifications) ? (
+                        <div className="space-y-4">
+                          {productData.specifications.map((block, blockIndex) => {
+                            if (block.type === "paragraph") {
+                              const text = block.children
+                                ?.map((child: RichTextChild) => child.text || "")
+                                .join("") || "";
+                              
+                              // Special handling for multi-line specifications
+                              if (text.includes("\n")) {
+                                const lines = text.split("\n").filter(line => line.trim() && !line.includes("Drag"));
+                                return (
+                                  <div key={`spec-block-${blockIndex}`} className="space-y-2">
+                                    {lines.map((line, lineIndex) => {
+                                      const keyValueMatch = line.match(/^([^:]+):\s*(.+)$/);
+                                      
+                                      if (keyValueMatch) {
+                                        const [_, key, value] = keyValueMatch;
+                                        return (
+                                          <div key={`spec-line-${blockIndex}-${lineIndex}`} className="flex py-2 border-b border-gray-800/50 last:border-0">
+                                            <span className="text-gray-400 w-1/3">{key.trim()}</span>
+                                            <span className="text-white w-2/3">{value.trim()}</span>
+                                          </div>
+                                        );
+                                      }
+                                      
+                                      // Regular line
+                                      return (
+                                        <p key={`spec-line-${blockIndex}-${lineIndex}`} className="text-gray-300 py-1">
+                                          {line}
+                                        </p>
+                                      );
+                                    })}
+                                  </div>
+                                );
+                              }
+                              
+                              // Single line paragraph - show only if not empty
+                              if (text.trim()) {
+                                return (
+                                  <p key={`spec-${blockIndex}`} className="text-gray-300 py-2 leading-relaxed">
+                                    {block.children?.map((child: RichTextChild, childIndex: number) => (
+                                      <span key={`spec-child-${blockIndex}-${childIndex}`} className={child.bold === true ? "font-bold" : ""}>
+                                        {child.text || ""}
+                                      </span>
+                                    ))}
+                                  </p>
+                                );
+                              }
+                            }
+                            
+                            return null;
+                          })}
                         </div>
-                      ))}
+                      ) : isRelationSpecifications(productData.specifications) ? (
+                        <div className="space-y-2">
+                          {productData.specifications.data.map((spec) => (
+                            <div key={spec.id} className="flex py-2 border-b border-gray-800/50 last:border-0">
+                              <span className="text-gray-400 w-1/3">{spec.attributes?.key || "Unknown"}</span>
+                              <span className="text-white w-2/3">{spec.attributes?.value || ""}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-4">
+                          <p className="text-gray-400">
+                            Specifications format not recognized.
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-gray-400">
+                      Additional specification details not available for this product.
+                      </p>
                     </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Info className="h-12 w-12 text-gray-500 mx-auto mb-4" />
-                    <h3 className="text-xl font-medium mb-2">No specifications available</h3>
-                    <p className="text-gray-400">
-                      Detailed specifications for this product are not available at this time.
-                    </p>
-                  </div>
-                )}
+                  )}
+                </div>
               </TabsContent>
 
               <TabsContent value="reviews" className="mt-6 bg-[#0D0B26]/80 border-2 border-gray-800/80 rounded-xl p-6">
@@ -723,23 +712,25 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                   <div className="flex flex-col md:flex-row gap-8">
                     <div className="md:w-1/3 space-y-4">
                       <div className="text-center">
-                        <div className="text-5xl font-bold">{productData.rating}</div>
+                        <div className="text-5xl font-bold">{averageRating.toFixed(1)}</div>
                         <div className="flex justify-center my-2">
                           {Array.from({ length: 5 }).map((_, i) => (
                             <Star
                               key={i}
-                              className={`w-5 h-5 ${i < Math.floor(productData.rating) ? "text-yellow-400" : "text-gray-600"}`}
-                              fill={i < Math.floor(productData.rating) ? "currentColor" : "none"}
+                              className={`w-5 h-5 ${i < Math.floor(averageRating) ? "text-yellow-400" : "text-gray-600"}`}
+                              fill={i < Math.floor(averageRating) ? "currentColor" : "none"}
                             />
                           ))}
                         </div>
-                        <div className="text-sm text-gray-400">Based on {productData.reviewCount} reviews</div>
+                        <div className="text-sm text-gray-400">
+                          Based on {Array.isArray(reviews) ? reviews.length : 0} reviews
+                        </div>
                       </div>
 
                       <div className="space-y-2">
                         {[5, 4, 3, 2, 1].map((star) => {
-                          const count = reviews.filter((r) => r.rating === star).length
-                          const percentage = reviews.length > 0 ? (count / reviews.length) * 100 : 0
+                          const count = Array.isArray(reviews) ? reviews.filter((r) => r.Rating === star).length : 0;
+                          const percentage = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
                           return (
                             <div key={star} className="flex items-center gap-2">
                               <div className="flex items-center gap-1 w-12">
@@ -754,7 +745,7 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                               </div>
                               <div className="w-12 text-right text-sm text-gray-400">{count}</div>
                             </div>
-                          )
+                          );
                         })}
                       </div>
 
@@ -763,34 +754,34 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
 
                     <div className="md:w-2/3">
                       <h3 className="text-xl font-bold mb-4">Customer Reviews</h3>
-                      {reviews.length > 0 ? (
+                      {Array.isArray(reviews) && reviews.length > 0 ? (
                         <div className="space-y-6">
-                          {reviews.map((review) => (
-                            <div key={review.id} className="border-b border-gray-800/50 last:border-0 pb-6 last:pb-0">
+                          {reviews.map((review, index) => (
+                            <div key={index} className="border-b border-gray-800/50 last:border-0 pb-6 last:pb-0">
                               <div className="flex justify-between items-start mb-2">
                                 <div>
-                                  <h4 className="font-bold">{review.title}</h4>
+                                  <h4 className="font-bold">{review.Title}</h4>
                                   <div className="flex items-center gap-2 mt-1">
                                     <div className="flex">
                                       {Array.from({ length: 5 }).map((_, i) => (
                                         <Star
                                           key={i}
-                                          className={`w-4 h-4 ${i < review.rating ? "text-yellow-400" : "text-gray-600"}`}
-                                          fill={i < review.rating ? "currentColor" : "none"}
+                                          className={`w-4 h-4 ${i < review.Rating ? "text-yellow-400" : "text-gray-600"}`}
+                                          fill={i < review.Rating ? "currentColor" : "none"}
                                         />
                                       ))}
                                     </div>
-                                    {review.verified && (
+                                    {review.Verified && (
                                       <Badge className="bg-green-500/20 text-green-400 hover:bg-green-500/30 border-none text-xs">
                                         Verified Purchase
                                       </Badge>
                                     )}
                                   </div>
                                 </div>
-                                <div className="text-sm text-gray-400">{review.date}</div>
+                                <div className="text-sm text-gray-400">{new Date(review.Date).toLocaleDateString()}</div>
                               </div>
-                              <div className="text-sm text-gray-300 mb-2">{review.author}</div>
-                              <p className="text-gray-300">{review.content}</p>
+                              <div className="text-sm text-gray-300 mb-2">{review.Author}</div>
+                              <p className="text-gray-300">{review.Content}</p>
                             </div>
                           ))}
                         </div>
@@ -818,19 +809,13 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                         <Image
                           src={
                             getStrapiMediaUrl(relatedProduct.attributes.mainImage.data.attributes.url) ||
-                            "/placeholder.svg" ||
                             "/placeholder.svg"
                           }
                           alt={relatedProduct.attributes.name}
-                          layout="fill"
-                          objectFit="cover"
-                          className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
+                          fill
+                          className="object-cover group-hover:scale-105 transition-transform duration-500"
                           unoptimized={true}
                           onError={(e) => {
-                            console.error(
-                              "Related product image failed to load:",
-                              relatedProduct.attributes.mainImage.data.attributes.url,
-                            )
                             // @ts-ignore
                             e.currentTarget.src = "/placeholder.png"
                           }}
@@ -911,7 +896,15 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
       <div className="relative z-20">
         <Footer />
       </div>
+      
+      {/* Toast notification */}
+      {toastVisible && toastProduct && (
+        <SimpleToast 
+          product={toastProduct} 
+          quantity={toastQuantity} 
+          onClose={() => setToastVisible(false)}
+        />
+      )}
     </div>
   )
 }
-

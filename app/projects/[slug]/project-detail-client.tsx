@@ -16,6 +16,7 @@ import YouTubeEmbed from "@/components/YouTubeEmbed"
 import DuneData from "@/components/DuneData"
 import { ChevronDown } from "lucide-react"
 import MoreLinksModal from "@/components/MoreLinksModal" // Path to the new component
+import ProjectFeedSection from "@/components/ProjectFeedSection";
 
 
 // Updated Logo interfaces to match API response
@@ -850,8 +851,7 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
                       alt="Related project"
                       width={40}
                       height={40}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform
- duration-300"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transformduration-300"
                     />
                   </div>
                   <div>
@@ -868,34 +868,8 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
               </div>
             </div>
           </div>
-          {/* Newsletter with animation and hover effects */}
-          <div
-            className={`mt-16 p-8 bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl hover:border-gray-700/70 transition-all duration-500 hover:shadow-lg relative overflow-hidden group transition-all duration-700 ease-out delay-500 ${isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
-          >
-            {/* Background gradient effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-[#F7984A]/5 via-transparent to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-
-            <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
-              <div className="md:w-3/5">
-                <h3 className="text-xl font-bold flex items-center gap-2 mb-3">
-                  <Mail className="h-5 w-5 text-[#F7984A] group-hover:scale-110 transition-transform duration-300" />{" "}
-                  CryptoHub Newsletter
-                </h3>
-                <p className="text-gray-300">
-                  Stay updated with the latest developments about {project.title} and other crypto projects.
-                </p>
-              </div>
-              <div className="md:w-2/5 w-full flex flex-col sm:flex-row gap-2">
-                <Input
-                  placeholder="Enter email address..."
-                  className="flex-grow bg-[#07071C] border-gray-800/50 focus:border-[#F7984A]/50 focus:ring-[#F7984A]/20 placeholder:text-gray-500 transition-all duration-300"
-                />
-                <Button className="bg-[#F7984A] hover:bg-[#F7984A]/90 text-white shrink-0 shadow-md hover:shadow-lg hover:shadow-[#F7984A]/20 transition-all duration-300 hover:-translate-y-0.5">
-                  Subscribe
-                </Button>
-              </div>
-            </div>
-          </div>
+         
+          
         </div>
       </main>
       {/* Footer */}

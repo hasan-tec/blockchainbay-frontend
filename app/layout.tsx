@@ -4,11 +4,9 @@ import { AuthProvider } from '@/contexts/AuthContext'
 import { CartProvider } from '@/contexts/CartContext'
 import { Toaster } from "@/components/ui/toaster";
 
-
 export const metadata: Metadata = {
   title: 'BlockChainBay',
   description: 'Crypto Directory Hub',
-  
 }
 
 export default function RootLayout({
@@ -19,12 +17,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-      <AuthProvider>
-      <CartProvider>
-          {children}
-          <Toaster />
-        </CartProvider>
-       </AuthProvider>
+        <AuthProvider>
+          <CartProvider>
+            {children}
+            <Toaster /> {/* Remove the className prop */}
+          </CartProvider>
+        </AuthProvider>
       </body>
     </html>
   )

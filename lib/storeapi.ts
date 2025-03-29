@@ -12,6 +12,18 @@ const apiClient = axios.create({
   }
 });
 
+// Add this type definition at the top of storeapi.ts
+// Add this type definition at the top of storeapi.ts
+export type ReviewType = {
+  id: number;
+  Author: string;
+  Rating: number;
+  Date: string;
+  Title: string;
+  Content: string;
+  Verified: boolean;
+};
+
 // Add at the top of storeapi.ts
 export type RichTextChild = {
   type: string;
@@ -27,12 +39,12 @@ export type RichTextBlock = {
   children: Array<RichTextChild>;
 };
 
-
 export type ProductType = {
   id: string;
   attributes: {
     name: string;
     slug: string;
+    Review?: ReviewType[];
     description: string | RichTextBlock[]; // Use RichTextBlock[] for rich text
     price: number;
     originalPrice?: number;
@@ -49,6 +61,15 @@ export type ProductType = {
     materials?: string;
     batteryLife?: string;
     warranty?: string;
+    specifications?: RichTextBlock[] | {
+      data: Array<{
+        id: string;
+        attributes: {
+          key: string;
+          value: string;
+        }
+      }>;
+    };
     mainImage: {
       data: {
         attributes: {
@@ -114,15 +135,6 @@ export type ProductType = {
         id: string;
         attributes: {
           text: string;
-        }
-      }>;
-    };
-    specifications?: {
-      data: Array<{
-        id: string;
-        attributes: {
-          key: string;
-          value: string;
         }
       }>;
     };
@@ -233,45 +245,83 @@ export async function getFeaturedProducts() {
 
 export async function getProductBySlug(slug: string) {
   try {
+    console.log(`Fetching product with slug: ${slug}`);
+    
     const response = await apiClient.get('/api/products', {
       params: {
         filters: {
           slug: {
-            $eq: slug,
-          },
+            $eq: slug
+          }
         },
-        populate: {
-          mainImage: {
-            populate: '*',
-          },
-          additionalImages: {
-            populate: '*',
-          },
-          category: {
-            populate: '*',
-          },
-          tags: {
-            populate: '*',
-          },
-          features: {
-            populate: '*',
-          },
-          specifications: {
-            populate: '*',
-          },
-          compatibilities: {
-            populate: '*',
-          },
-          connectivities: {
-            populate: '*',
-          },
-        },
+        populate: '*'
       }
     });
-    return response.data.data[0];
-  } catch (error) {
+    
+    if (!response.data || !response.data.data || response.data.data.length === 0) {
+      console.log(`No product found with slug: ${slug}`);
+      return null;
+    }
+    
+    // The API is returning the product directly, not in attributes 
+    const product = response.data.data[0];
+    
+    // Log to debug
+    console.log(`Product found with ID: ${product.id}, name: ${product.attributes?.name || product.name}`);
+    console.log(`Specifications available: ${product.attributes?.specifications ? 'Yes' : 'No'}`);
+    
+    return product;
+  } catch (error: any) {
     console.error(`Error fetching product with slug ${slug}:`, error);
+    if (error.response) {
+      console.error('Response status:', error.response.status);
+    }
     return null;
+  }
+}
+
+
+/**
+ * Fetches reviews for a specific product using Strapi v5 API syntax
+ * @param productId The ID of the product to fetch reviews for
+ * @returns An array of review objects or an empty array if none found
+ */
+export async function getProductReviews(productId: string) {
+  try {
+    // Simplify by fetching all products with full population
+    const response = await apiClient.get('/api/products', {
+      params: {
+        populate: '*'
+      }
+    });
+    
+    if (!response.data || !response.data.data || !Array.isArray(response.data.data)) {
+      return [];
+    }
+    
+    // Find the product by ID
+    const targetProduct = response.data.data.find((p: any) => 
+      p.id === productId || 
+      (p.attributes && p.attributes.id === productId)
+    );
+    
+    if (!targetProduct) {
+      return [];
+    }
+    
+    // Check where the reviews might be located
+    if (targetProduct.Review && Array.isArray(targetProduct.Review)) {
+      return targetProduct.Review;
+    } 
+    else if (targetProduct.attributes && targetProduct.attributes.Review && 
+             Array.isArray(targetProduct.attributes.Review)) {
+      return targetProduct.attributes.Review;
+    }
+    
+    return [];
+  } catch (error) {
+    console.error(`Error fetching reviews:`, error);
+    return [];
   }
 }
 
@@ -342,7 +392,6 @@ export async function getTags() {
 
 // Helper function to get the full image URL
 // Updated getStrapiMediaUrl function for Strapi 5 compatibility
-
 export function getStrapiMediaUrl(url: string): string {
     if (!url) return '/placeholder.png';
     
@@ -362,9 +411,6 @@ export function getStrapiMediaUrl(url: string): string {
     }
   }
 
-
-  // Add type definition for processProductImage parameter
-
 // First, define a type for raw product image from Strapi 5
 type StrapiRawImage = {
     url?: string;
@@ -377,30 +423,30 @@ type StrapiRawImage = {
     };
   } | null;
   
-  // Now update the function with proper typing
-  export function processProductImage(product: { mainImage?: StrapiRawImage | { data: { attributes: { url: string; formats?: any } } } }) {
-    // Check if mainImage exists and handle accordingly
-    if (product.mainImage && !('data' in product.mainImage)) {
-      // Convert to the expected structure
-      return {
-        data: {
-          attributes: {
-            url: product.mainImage?.url || `/uploads/${product.mainImage?.documentId}.png`,
-            formats: product.mainImage?.formats || {}
-          }
+// Now update the function with proper typing
+export function processProductImage(product: { mainImage?: StrapiRawImage | { data: { attributes: { url: string; formats?: any } } } }) {
+  // Check if mainImage exists and handle accordingly
+  if (product.mainImage && !('data' in product.mainImage)) {
+    // Convert to the expected structure
+    return {
+      data: {
+        attributes: {
+          url: product.mainImage?.url || `/uploads/${product.mainImage?.documentId}.png`,
+          formats: product.mainImage?.formats || {}
         }
-      };
-    } else if (product.mainImage === null) {
-      // Return a placeholder if no image
-      return {
-        data: {
-          attributes: {
-            url: '/placeholder.png'
-          }
+      }
+    };
+  } else if (product.mainImage === null) {
+    // Return a placeholder if no image
+    return {
+      data: {
+        attributes: {
+          url: '/placeholder.png'
         }
-      };
-    }
-    
-    // If it already has the expected structure, return as is
-    return product.mainImage;
+      }
+    };
   }
+  
+  // If it already has the expected structure, return as is
+  return product.mainImage;
+}
