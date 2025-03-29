@@ -51,7 +51,7 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
       
       try {
         // Use the populate=* approach which we know works from your curl command
-        const response = await fetch(`http://localhost:1337/api/products?populate=*`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:1337'}/api/products?populate=*`);
         const data = await response.json();
         
         // Find the target product by slug
