@@ -92,7 +92,7 @@ export const Navbar = () => {
     { name: "News", href: "/news", icon: <Newspaper className="h-4 w-4 mr-1" /> },
     { name: "Podcasts", href: "/podcasts", icon: <Headphones className="h-4 w-4 mr-1" /> },
     { name: "Store", href: "/store", icon: <ShoppingCart className="h-4 w-4 mr-1" /> },
-    { name: "Giveaways", href: "/giveaways", icon: <Gift className="h-4 w-4 mr-1" /> },
+   
   ]
 
   // Get cart count safely

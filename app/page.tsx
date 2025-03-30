@@ -10,7 +10,7 @@ import { ProjectsSection } from "@/components/StatsProjectsSection"
 import NewsSection from "@/components/NewsSection"
 import PodcastSection from "@/components/PodcastSection"
 import StoreSection from "@/components/StoreSection"
-import GiveawaySection from "@/components/GiveawaySection"
+
 import { NewsletterSection, Footer } from "@/components/NewsletterFooter"
 
 export default function LandingPage() {
@@ -38,10 +38,9 @@ export default function LandingPage() {
       <StoreSection />
 
       {/* Giveaway Section */}
-      <GiveawaySection />
+   
 
-      {/* Newsletter Section */}
-      <NewsletterSection />
+  
 
       {/* Footer */}
       <Footer />

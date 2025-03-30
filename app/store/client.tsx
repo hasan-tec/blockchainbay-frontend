@@ -534,7 +534,7 @@ export default function StoreClient({ products, categories, tags }: StoreClientP
                                   <svg
                                     key={i}
                                     className={`w-4 h-4 ${
-                                      i < Math.floor(product.attributes.rating || 0)
+                                      i < Math.floor(product.attributes.rating || 5)
                                         ? "text-yellow-400"
                                         : "text-gray-600"
                                     }`}
@@ -545,7 +545,7 @@ export default function StoreClient({ products, categories, tags }: StoreClientP
                                   </svg>
                                 ))}
                               </div>
-                              <span className="text-xs text-gray-400">({product.attributes.reviewCount || 0})</span>
+                              <span className="text-xs text-gray-400">({product.attributes.reviewCount || 5})</span>
                             </div>
                             <div className="mt-auto flex items-center justify-between">
                               <div>

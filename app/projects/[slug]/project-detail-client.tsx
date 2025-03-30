@@ -18,7 +18,6 @@ import { ChevronDown } from "lucide-react"
 import MoreLinksModal from "@/components/MoreLinksModal" // Path to the new component
 import ProjectFeedSection from "@/components/ProjectFeedSection";
 
-
 // Updated Logo interfaces to match API response
 interface LogoFormat {
   name: string
@@ -132,6 +131,48 @@ interface DetailedDescriptionBlock {
   }[]
 }
 
+// Define a type for related projects coming from Strapi API
+// Updated RelatedProject interface based on the actual API response
+interface RelatedProject {
+  id: number;
+  documentId: string;
+  title: string;
+  Slug: string;
+  ShortDescription: string;
+  DetailedDescription?: any[];
+  CurrentStatus?: string;
+  Category: string;
+  SubCategory?: string | null;
+  TokenType?: string;
+  Website?: string;
+  Symbol?: string;
+  ChainType?: string;
+  LaunchDate?: string | null;
+  VideoURL?: string;
+  Twitter?: string | null;
+  Telegram?: string | null;
+  Discord?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  publishedAt?: string;
+  Logo?: Logo;
+  // Add any other properties you see in your API response
+}
+
+// Interface for news articles
+interface NewsArticle {
+  id: string;
+  title: string;
+  summary: string;
+  image: string;
+  categories: string[];
+  date: string;
+  readTime: string;
+  source: string;
+  featured: boolean;
+  link: string;
+}
+
 export default function ProjectDetailClient({ project }: { project: CryptoProject }) {
   // State for scroll detection and dark mode
   const [isMoreLinksOpen, setIsMoreLinksOpen] = useState(false)
@@ -141,6 +182,10 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
   const [isLoaded, setIsLoaded] = useState(false)
   const [activeTab, setActiveTab] = useState("about")
   const [hoverSocial, setHoverSocial] = useState<string | null>(null)
+  const [newsArticles, setNewsArticles] = useState<NewsArticle[]>([])
+  const [relatedProjects, setRelatedProjects] = useState<RelatedProject[]>([])
+  const [isLoadingNews, setIsLoadingNews] = useState(true)
+  const [isLoadingRelated, setIsLoadingRelated] = useState(true)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -158,6 +203,110 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
       clearTimeout(timer)
     }
   }, [])
+
+  // Fetch news articles related to the project
+  useEffect(() => {
+    const fetchNews = async () => {
+      try {
+        setIsLoadingNews(true)
+        const response = await fetch('/api/news')
+        const data = await response.json()
+        
+        // Filter news that might be related to the project based on keywords
+        const keywords = [
+          project.title.toLowerCase(),
+          project.Symbol?.toLowerCase() || '',
+          project.Category.toLowerCase(),
+          project.SubCategory?.toLowerCase() || '',
+          project.ChainType.toLowerCase()
+        ].filter(Boolean)
+
+        const filteredNews = data.filter((article: NewsArticle) => {
+          const articleText = (article.title + ' ' + article.summary).toLowerCase()
+          return keywords.some(keyword => articleText.includes(keyword))
+        })
+
+        // If no matches, just take some recent articles
+        const relevantNews = filteredNews.length > 0 ? filteredNews : data.slice(0, 4)
+        setNewsArticles(relevantNews.slice(0, 4)) // Limit to 4 for the 2x2 grid
+      } catch (error) {
+        console.error('Error fetching news:', error)
+        setNewsArticles([]) // Empty array on error
+      } finally {
+        setIsLoadingNews(false)
+      }
+    }
+
+    fetchNews()
+  }, [project])
+
+  // Fetch related projects
+  useEffect(() => {
+    const fetchRelatedProjects = async () => {
+      try {
+        setIsLoadingRelated(true)
+        // Use environment variable for API URL
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:1337'
+        
+        // First fetch projects with same Category
+        const categoryQuery = encodeURIComponent(project.Category)
+        const filterString = `filters[Category][$eq]=${categoryQuery}&filters[id][$ne]=${project.id}`
+        const url = `${backendUrl}/api/crypto-projects?${filterString}&populate=*`
+        
+        console.log('Fetching related projects by category:', url)
+        
+        const response = await fetch(url)
+        if (!response.ok) {
+          throw new Error(`API response error with status: ${response.status}`)
+        }
+        
+        const data = await response.json()
+        console.log('Related projects API response:', data)
+        
+        // If no category matches, try getting any projects
+        if (!data.data || data.data.length === 0) {
+          console.log('No related projects with matching category found, trying any projects')
+          
+          const anyProjectsUrl = `${backendUrl}/api/crypto-projects?filters[id][$ne]=${project.id}&populate=*&pagination[limit]=4`
+          console.log('Fetching any projects:', anyProjectsUrl)
+          
+          const anyResponse = await fetch(anyProjectsUrl)
+          if (!anyResponse.ok) {
+            throw new Error(`API response error with status: ${anyResponse.status}`)
+          }
+          
+          const anyData = await anyResponse.json()
+          console.log('Any projects API response:', anyData)
+          
+          if (anyData.data && anyData.data.length > 0) {
+            console.log(`Setting ${anyData.data.length} related projects from any query`)
+            setRelatedProjects(anyData.data)
+          } else {
+            console.log('No related projects found at all')
+            setRelatedProjects([])
+          }
+        } else {
+          console.log(`Setting ${data.data.length} related projects from category query`)
+          setRelatedProjects(data.data)
+        }
+      } catch (error) {
+        console.error('Error fetching related projects:', error)
+        // For debugging
+        console.log('Project being used:', project)
+        setRelatedProjects([]) // Empty array on error
+      } finally {
+        setIsLoadingRelated(false)
+      }
+    }
+
+    // Make sure we have a project with a Category before trying to fetch
+    if (project && project.Category) {
+      fetchRelatedProjects()
+    } else {
+      console.log('Cannot fetch related projects: project or Category missing')
+      setIsLoadingRelated(false)
+    }
+  }, [project])
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode)
@@ -235,7 +384,6 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
   
     return links;
   }
-  
 
   // Process detailed description blocks into sections
   const extractFAQs = (description: DetailedDescriptionBlock[] | undefined) => {
@@ -322,6 +470,21 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
   }
 
   const { faqs: faqSections, regularContent } = extractContent(project?.DetailedDescription)
+
+// Updated function to get related project logo
+const getRelatedProjectLogo = (relatedProject: RelatedProject) => {
+  if (relatedProject.Logo && relatedProject.Logo.url) {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:1337";
+    // If the URL starts with "/", append the backend URL
+    const logoUrl = relatedProject.Logo.url.startsWith("/") 
+      ? `${backendUrl}${relatedProject.Logo.url}` 
+      : relatedProject.Logo.url;
+
+    return logoUrl;
+  }
+  return "/placeholder.svg";
+};
+  
 
   // Updated function to get project logo with proper URL handling
   const getProjectLogo = () => {
@@ -633,7 +796,7 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
                                   </span>
                                 )}
                               </Link>
-                              {/* Amazon Icon - new design */}
+                              {/* Amazon Icon */}
                             <Link
                               href="https://music.amazon.com/podcasts"
                               target="_blank"
@@ -647,7 +810,7 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
                                 className="h-4 w-4 group-hover:scale-110 transition-transform duration-300"
                                 fill="currentColor"
                               >
-                                <path d="M36,5H14c-4.971,0-9,4.029-9,9v22c0,4.971,4.029,9,9,9h22c4.971,0,9-4.029,9-9V14C45,9.029,40.971,5,36,5z M38.19,21.254	c0.65-0.279,1.42-0.317,2.07-0.121c0.27,0.084,0.51,0.196,0.74,0.335v1.23c-0.72-0.494-1.55-0.634-2.19-0.289	c-0.68,0.373-1.08,1.155-1.06,1.975c-0.01,0.904,0.29,1.742,0.92,2.133c0.56,0.382,1.44,0.382,2.33,0.242v1.025	c-0.35,0.112-0.72,0.177-1.1,0.214c-0.63,0.047-1.33-0.047-1.95-0.382c-0.63-0.326-1.09-0.894-1.35-1.463	c-0.25-0.587-0.34-1.183-0.35-1.752C36.22,23.191,36.87,21.831,38.19,21.254z M34,18.01c0.552,0,1,0.448,1,1s-0.448,1-1,1	s-1-0.448-1-1S33.448,18.01,34,18.01z M34.75,21.01v7h-1.5v-7H34.75z M27,26.175c0.64,0.261,1.42,0.532,2.03,0.59	c0.61,0.068,1.28-0.01,1.67-0.223c0.19-0.116,0.23-0.278,0.23-0.458s-0.036-0.282-0.123-0.417c-0.159-0.246-0.597-0.432-1.287-0.597	c-0.34-0.097-0.71-0.194-1.12-0.416c-0.41-0.184-1.243-0.852-1.081-1.991c0.087-0.609,0.718-1.205,1.601-1.483	c1.029-0.325,2.15-0.164,3.08,0.281V22.7c-0.83-0.426-1.82-0.641-2.66-0.361c-0.25,0.077-0.58,0.251-0.58,0.564	c0,0.751,0.87,0.893,1.2,1c0.34,0.106,0.71,0.203,1.11,0.406c0.4,0.194,1.202,0.678,1.202,1.783c0,1.058-0.522,1.447-0.952,1.621	c-0.89,0.387-1.68,0.319-2.45,0.213c-0.65-0.116-1.28-0.31-1.87-0.677C27,27.249,27,26.175,27,26.175z M20.25,21.012l1.5-0.002	l0.003,2.42c0.014,0.79,0.012,1.651,0.003,2.383c-0.035,0.391,0.402,0.847,0.976,0.917c0.306,0.034,0.534,0.009,0.886-0.14	c0.208-0.082,0.42-0.152,0.632-0.225V21.01l1.5,0.001v6.818h-1.5v-0.236c-0.041,0.022-0.08,0.046-0.12,0.067	c-0.381,0.228-0.992,0.386-1.514,0.343c-0.542-0.035-1.088-0.225-1.533-0.586c-0.442-0.356-0.776-0.915-0.819-1.529	c-0.027-0.88-0.02-1.634-0.011-2.457L20.25,21.012z M9.25,21.01h1.5v0.688c0.37-0.134,0.737-0.274,1.109-0.401	c0.535-0.19,1.206-0.152,1.733,0.141c0.218,0.117,0.409,0.282,0.577,0.469c0.562-0.208,1.123-0.417,1.689-0.611	c0.535-0.19,1.206-0.152,1.733,0.141c0.532,0.286,0.946,0.809,1.093,1.418c0.039,0.152,0.056,0.306,0.065,0.461l0.004,0.317	l0.006,0.625l-0.006,1.25l-0.003,2.5h-1.5l-0.006-4.844c-0.042-0.425-0.519-0.797-1.019-0.661c-0.51,0.135-1.024,0.255-1.537,0.379	c0.034,0.143,0.052,0.287,0.061,0.433l0.004,0.317l0.006,0.625l-0.006,1.25l-0.003,2.5h-1.5l-0.006-4.844	c-0.042-0.426-0.519-0.797-1.019-0.661c-0.489,0.13-0.983,0.245-1.475,0.364v5.14h-1.5C9.25,28.006,9.25,21.01,9.25,21.01z M38.768,33.932c-2.214,1.57-4.688,2.605-7.285,3.277c-2.595,0.663-5.297,0.914-7.986,0.729c-2.688-0.18-5.313-0.836-7.787-1.794	c-2.466-0.99-4.797-2.263-6.857-3.931c-0.107-0.087-0.124-0.245-0.037-0.352c0.077-0.095,0.209-0.119,0.313-0.063l0.014,0.008	c2.249,1.217,4.653,2.149,7.067,2.889c2.433,0.692,4.909,1.187,7.4,1.288c2.485,0.087,4.997-0.107,7.449-0.617	c2.442-0.504,4.905-1.236,7.17-2.279l0.039-0.018c0.251-0.115,0.547-0.006,0.663,0.245C39.035,33.537,38.961,33.796,38.768,33.932z M39.882,36.892c-0.278,0.21-0.556,0.14-0.417-0.21c0.417-1.12,1.32-3.501,0.903-4.061c-0.486-0.63-2.987-0.28-4.098-0.14	c-0.347,0-0.347-0.28-0.069-0.49c0.972-0.7,2.292-0.98,3.404-0.98c1.111,0,2.084,0.21,2.292,0.56	C42.243,31.99,41.757,35.281,39.882,36.892z" />
+                                <path d="M36,5H14c-4.971,0-9,4.029-9,9v22c0,4.971,4.029,9,9,9h22c4.971,0,9-4.029,9-9V14C45,9.029,40.971,5,36,5z M38.768,33.932c-2.214,1.57-4.688,2.605-7.285,3.277c-2.595,0.663-5.297,0.914-7.986,0.729c-2.688-0.18-5.313-0.836-7.787-1.794	c-2.466-0.99-4.797-2.263-6.857-3.931c-0.107-0.087-0.124-0.245-0.037-0.352c0.077-0.095,0.209-0.119,0.313-0.063l0.014,0.008	c2.249,1.217,4.653,2.149,7.067,2.889c2.433,0.692,4.909,1.187,7.4,1.288c2.485,0.087,4.997-0.107,7.449-0.617	c2.442-0.504,4.905-1.236,7.17-2.279l0.039-0.018c0.251-0.115,0.547-0.006,0.663,0.245C39.035,33.537,38.961,33.796,38.768,33.932z M39.882,36.892c-0.278,0.21-0.556,0.14-0.417-0.21c0.417-1.12,1.32-3.501,0.903-4.061c-0.486-0.63-2.987-0.28-4.098-0.14	c-0.347,0-0.347-0.28-0.069-0.49c0.972-0.7,2.292-0.98,3.404-0.98c1.111,0,2.084,0.21,2.292,0.56	C42.243,31.99,41.757,35.281,39.882,36.892z" />
                               </svg>
                               {hoverSocial === "amazon" && (
                                 <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs bg-[#0D0B26] border border-gray-800/50 px-2 py-1 rounded whitespace-nowrap">
@@ -767,109 +930,253 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
               </Tabs>
             </div>
           </div>
-          {/* Project Updates and Related Projects with animation */}
-          <div
-            className={`mt-20 grid grid-cols-1 lg:grid-cols-3 gap-8 transition-all duration-700 ease-out delay-400 ${isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
-          >
-            {/* Project Updates */}
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold flex items-center gap-2 relative">
-                  <span className="text-yellow-400">📣</span> Project updates
-                  <span className="absolute -bottom-1 left-0 w-1/3 h-0.5 bg-yellow-400/50"></span>
-                </h3>
-                <Button variant="link" className="text-[#F7984A] hover:text-[#F7984A]/80 p-0 group">
-                  View more
-                  <ArrowUpRight className="ml-1 h-4 w-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300" />
-                </Button>
-              </div>
-              <div className="space-y-4">
-                <div className="flex gap-4 p-4 bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl hover:border-gray-700/70 hover:bg-[#0D0B26] transition-all duration-300 hover:shadow-lg group">
-                  <div className="w-12 h-12 shrink-0 rounded-lg overflow-hidden bg-gradient-to-br from-yellow-400/20 to-orange-500/20 group-hover:from-yellow-400/30 group-hover:to-orange-500/30 transition-all duration-300">
-                    <Image
-                      src="/placeholder.svg?height=60&width=60"
-                      alt="Project update"
-                      width={48}
-                      height={48}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <div>
-                    <h4 className="font-medium leading-tight group-hover:text-[#F7984A]/90 transition-colors duration-300">
-                      {project.title} Latest Updates Coming Soon
-                    </h4>
-                    <p className="text-sm text-gray-400 mt-1">Stay tuned</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            {/* News Mentions */}
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold flex items-center gap-2 relative">
-                  <span className="text-yellow-400">📰</span> News mentions
-                  <span className="absolute -bottom-1 left-0 w-1/3 h-0.5 bg-yellow-400/50"></span>
-                </h3>
-                <Button variant="link" className="text-[#F7984A] hover:text-[#F7984A]/80 p-0 group">
-                  View more
-                  <ArrowUpRight className="ml-1 h-4 w-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300" />
-                </Button>
-              </div>
-              <div className="space-y-4">
-                <div className="flex gap-4 p-4 bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl hover:border-gray-700/70 hover:bg-[#0D0B26] transition-all duration-300 hover:shadow-lg group">
-                  <div className="w-12 h-12 shrink-0 rounded-lg overflow-hidden bg-gradient-to-br from-blue-400/20 to-purple-500/20 group-hover:from-blue-400/30 group-hover:to-purple-500/30 transition-all duration-300">
-                    <Image
-                      src="/placeholder.svg?height=60&width=60"
-                      alt="News mention"
-                      width={48}
-                      height={48}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <div>
-                    <h4 className="font-medium leading-tight group-hover:text-[#F7984A]/90 transition-colors duration-300">
-                      {project.title} News and Media Coverage
-                    </h4>
-                    <p className="text-sm text-gray-400 mt-1">Coming soon</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            {/* Related Projects */}
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold flex items-center gap-2 relative">
-                  <span className="text-yellow-400">☀️</span> Related projects
-                  <span className="absolute -bottom-1 left-0 w-1/3 h-0.5 bg-yellow-400/50"></span>
-                </h3>
-              </div>
-              <div className="space-y-4">
-                <div className="flex gap-4 p-4 bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl hover:border-gray-700/70 hover:bg-[#0D0B26] transition-all duration-300 hover:shadow-lg group">
-                  <div className="w-10 h-10 shrink-0 rounded-full overflow-hidden bg-gradient-to-br from-green-400/20 to-teal-500/20 group-hover:from-green-400/30 group-hover:to-teal-500/30 transition-all duration-300">
-                    <Image
-                      src="/placeholder.svg?height=40&width=40"
-                      alt="Related project"
-                      width={40}
-                      height={40}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transformduration-300"
-                    />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-medium group-hover:text-[#F7984A]/90 transition-colors duration-300">
-                        Similar Projects
-                      </h4>
-                    </div>
-                    <p className="text-xs text-gray-400 mt-1 line-clamp-2">
-                      Discover more projects in the {project.Category} category
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-         
           
+          {/* News Mentions and Related Projects */}
+<div className={`mt-20 transition-all duration-700 ease-out delay-400 ${isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}>
+  {/* News sections - Desktop: 2-column grid, Mobile: 1-column stack */}
+  <div className="block md:grid md:grid-cols-2 md:gap-x-8 md:gap-y-6">
+    {/* NEWS HEADERS - On mobile, both appear as separate rows */}
+    <div className="flex items-center justify-between mb-6">
+      <h3 className="text-xl font-bold flex items-center gap-2 relative">
+        <span className="text-yellow-400">📰</span> News mentions
+        <span className="absolute -bottom-1 left-0 w-1/3 h-0.5 bg-yellow-400/50"></span>
+      </h3>
+      <Button 
+        variant="link" 
+        className="text-[#F7984A] hover:text-[#F7984A]/80 p-0 group"
+        onClick={() => window.open('https://news.blockchainbay.xyz', '_blank')}
+      >
+        <span className="hidden md:inline">View more</span>
+        <ArrowUpRight className="ml-1 h-4 w-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300" />
+      </Button>
+    </div>
+    
+    {/* More Coverage Header - Only shown on desktop */}
+    <div className="hidden md:flex md:items-center md:justify-between mb-6">
+      <h3 className="text-xl font-bold flex items-center gap-2 relative">
+        <span className="text-yellow-400">🔍</span> More coverage
+        <span className="absolute -bottom-1 left-0 w-1/3 h-0.5 bg-yellow-400/50"></span>
+      </h3>
+    </div>
+    
+    {/* NEWS CONTENT - All news articles stacked on mobile, split into columns on desktop */}
+    <div className="space-y-4 md:space-y-4 mb-6 md:mb-0">
+      {isLoadingNews ? (
+        <div className="flex items-center justify-center h-32">
+          <div className="w-8 h-8 border-4 border-t-[#F7984A] border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+        </div>
+      ) : newsArticles.length > 0 ? (
+        <>
+          {newsArticles.slice(0, 2).map((article) => (
+            <div key={article.id} className="flex gap-4 p-4 bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl hover:border-gray-700/70 hover:bg-[#0D0B26] transition-all duration-300 hover:shadow-lg group">
+              <div className="w-20 h-20 shrink-0 rounded-lg overflow-hidden bg-gradient-to-br from-blue-400/20 to-purple-500/20 group-hover:from-blue-400/30 group-hover:to-purple-500/30 transition-all duration-300">
+                <Image
+                  src={article.image || "/placeholder.svg?height=80&width=80"}
+                  alt={article.title}
+                  width={80}
+                  height={80}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs text-gray-400">{article.source}</span>
+                  <span className="text-xs text-gray-500">•</span>
+                  <span className="text-xs text-gray-400">{article.date}</span>
+                </div>
+                <a 
+                  href={article.link} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="block"
+                >
+                  <h4 className="font-medium leading-tight group-hover:text-[#F7984A]/90 transition-colors duration-300 line-clamp-2">
+                    {article.title}
+                  </h4>
+                </a>
+                <p className="text-xs text-gray-400 mt-1 line-clamp-1">{article.summary}</p>
+              </div>
+            </div>
+          ))}
+        </>
+      ) : (
+        <div className="flex gap-4 p-4 bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl">
+          <div className="text-gray-400">No news articles found about {project.title} yet.</div>
+        </div>
+      )}
+    </div>
+    
+    {/* Desktop-only "More coverage" section */}
+    <div className="hidden md:block space-y-4">
+      {isLoadingNews ? (
+        <div className="flex items-center justify-center h-32">
+          <div className="w-8 h-8 border-4 border-t-[#F7984A] border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+        </div>
+      ) : newsArticles.length > 2 ? (
+        <div className="space-y-4">
+          {newsArticles.slice(2, 4).map((article) => (
+            <div key={article.id} className="flex gap-4 p-4 bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl hover:border-gray-700/70 hover:bg-[#0D0B26] transition-all duration-300 hover:shadow-lg group">
+              <div className="w-20 h-20 shrink-0 rounded-lg overflow-hidden bg-gradient-to-br from-green-400/20 to-teal-500/20 group-hover:from-green-400/30 group-hover:to-teal-500/30 transition-all duration-300">
+                <Image
+                  src={article.image || "/placeholder.svg?height=80&width=80"}
+                  alt={article.title}
+                  width={80}
+                  height={80}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs text-gray-400">{article.source}</span>
+                  <span className="text-xs text-gray-500">•</span>
+                  <span className="text-xs text-gray-400">{article.date}</span>
+                </div>
+                <a 
+                  href={article.link} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="block"
+                >
+                  <h4 className="font-medium leading-tight group-hover:text-[#F7984A]/90 transition-colors duration-300 line-clamp-2">
+                    {article.title}
+                  </h4>
+                </a>
+                <p className="text-xs text-gray-400 mt-1 line-clamp-1">{article.summary}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="flex gap-4 p-4 bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl">
+          <div className="text-gray-400">No additional coverage available.</div>
+        </div>
+      )}
+    </div>
+    
+    {/* Mobile-only "More coverage" section - shows all articles in one column */}
+    <div className="block md:hidden mt-6">
+      {newsArticles.length > 2 && (
+        <>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-bold flex items-center gap-2 relative">
+              <span className="text-yellow-400">🔍</span> More coverage
+              <span className="absolute -bottom-1 left-0 w-1/3 h-0.5 bg-yellow-400/50"></span>
+            </h3>
+          </div>
+          <div className="space-y-4">
+            {newsArticles.slice(2, 4).map((article) => (
+              <div key={article.id} className="flex gap-4 p-4 bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl hover:border-gray-700/70 hover:bg-[#0D0B26] transition-all duration-300 hover:shadow-lg group">
+                <div className="w-20 h-20 shrink-0 rounded-lg overflow-hidden bg-gradient-to-br from-green-400/20 to-teal-500/20 group-hover:from-green-400/30 group-hover:to-teal-500/30 transition-all duration-300">
+                  <Image
+                    src={article.image || "/placeholder.svg?height=80&width=80"}
+                    alt={article.title}
+                    width={80}
+                    height={80}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs text-gray-400">{article.source}</span>
+                    <span className="text-xs text-gray-500">•</span>
+                    <span className="text-xs text-gray-400">{article.date}</span>
+                  </div>
+                  <a 
+                    href={article.link} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="block"
+                  >
+                    <h4 className="font-medium leading-tight group-hover:text-[#F7984A]/90 transition-colors duration-300 line-clamp-2">
+                      {article.title}
+                    </h4>
+                  </a>
+                  <p className="text-xs text-gray-400 mt-1 line-clamp-1">{article.summary}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  </div>
+
+  {/* Related Projects */}
+  <div className="space-y-6 mt-16">
+    <div className="flex items-center justify-between">
+      <h3 className="text-xl font-bold flex items-center gap-2 relative">
+        <span className="text-yellow-400">☀️</span> Related projects
+        <span className="absolute -bottom-1 left-0 w-1/3 h-0.5 bg-yellow-400/50"></span>
+      </h3>
+      <Button 
+        variant="link" 
+        className="text-[#F7984A] hover:text-[#F7984A]/80 p-0 group"
+        onClick={() => window.open('/projects', '_self')}
+      >
+        <span className="hidden md:inline">View all projects</span>
+        <ArrowUpRight className="ml-1 h-4 w-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300" />
+      </Button>
+    </div>
+    
+    {isLoadingRelated ? (
+      <div className="flex items-center justify-center py-8">
+        <div className="w-8 h-8 border-4 border-t-[#F7984A] border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+      </div>
+    ) : relatedProjects.length > 0 ? (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {relatedProjects.map((relatedProject) => (
+          <Link 
+            key={relatedProject.id} 
+            href={`/projects/${relatedProject.Slug}`} 
+            className="block"
+          >
+            <div className="flex gap-4 p-4 bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl hover:border-gray-700/70 hover:bg-[#0D0B26] transition-all duration-300 hover:shadow-lg group h-full">
+              <div className="w-12 h-12 shrink-0 rounded-full overflow-hidden bg-gradient-to-br from-green-400/20 to-blue-500/20 group-hover:from-green-400/30 group-hover:to-blue-500/30 transition-all duration-300 flex items-center justify-center">
+                {relatedProject.Logo ? (
+                  <Image
+                    src={getRelatedProjectLogo(relatedProject)}
+                    alt={relatedProject.title}
+                    width={48}
+                    height={48}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-tr from-[#F7984A]/30 to-[#F7984A]/10 flex items-center justify-center text-[#F7984A] font-bold text-xl">
+                    {relatedProject.title.substring(0, 2)}
+                  </div>
+                )}
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <h4 className="font-medium group-hover:text-[#F7984A]/90 transition-colors duration-300 line-clamp-1">
+                    {relatedProject.title}
+                  </h4>
+                  {relatedProject.Symbol && (
+                    <span className="text-sm text-[#F7984A]">{relatedProject.Symbol}</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge className="text-xs bg-[#0D0B26] text-blue-400 border border-blue-500/20 px-1.5 py-0">
+                    {relatedProject.Category}
+                  </Badge>
+                  {relatedProject.SubCategory && (
+                    <Badge className="text-xs bg-[#0D0B26] text-purple-400 border border-purple-500/20 px-1.5 py-0">
+                      {relatedProject.SubCategory}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+    ) : (
+      <div className="p-6 bg-[#0D0B26]/40 border border-gray-800/50 rounded-xl text-center">
+        <p className="text-gray-400">No related projects found.</p>
+      </div>
+    )}
+  </div>
+</div>
         </div>
       </main>
       {/* Footer */}
@@ -877,4 +1184,3 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
     </div>
   )
 }
-
