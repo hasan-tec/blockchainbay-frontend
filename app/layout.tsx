@@ -5,8 +5,8 @@ import { CartProvider } from '@/contexts/CartContext'
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: 'BlockChainBay',
-  description: 'Blockchain Bay Directory Hub',
+  title: 'BlockchainBay',
+  description: 'Where Knowledge Meets Opportunity, Join the Crypto Revolution.',
 }
 
 export default function RootLayout({
