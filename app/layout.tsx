@@ -6,7 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
   title: 'BlockChainBay',
-  description: 'Crypto Directory Hub',
+  description: 'Blockchain Bay Directory Hub',
 }
 
 export default function RootLayout({
