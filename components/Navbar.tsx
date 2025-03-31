@@ -63,9 +63,10 @@ export const Logo = () => {
             </g>
           </svg>
         </div>
-        <span className="font-bold text-xl tracking-tight hidden sm:inline-block">BlockchainBay</span>
+        {/* Add explicit text-white class to both spans */}
+        <span className="font-bold text-xl tracking-tight hidden sm:inline-block text-white">BlockchainBay</span>
         {/* Always show logo text for mobile, but allow it to be a bit smaller */}
-        <span className="font-bold text-lg tracking-tight sm:hidden">BlockchainBay</span>
+        <span className="font-bold text-lg tracking-tight sm:hidden text-white">BlockchainBay</span>
       </div>
     </Link>
   )
