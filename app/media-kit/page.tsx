@@ -441,23 +441,7 @@ export default function MediaKitPage() {
               our brand guidelines when using these assets.
             </p>
             <div className="flex flex-wrap gap-4">
-              <Button
-                className="bg-[#F7984A] hover:bg-[#F7984A]/90 text-white px-6 py-6 rounded-lg shadow-lg shadow-[#F7984A]/20 transition-all duration-300 hover:shadow-[#F7984A]/30 hover:-translate-y-1"
-                onClick={handleDownloadAll}
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
-                    Downloading...
-                  </>
-                ) : (
-                  <>
-                    Download All Assets (ZIP)
-                    <Download className="ml-2 h-4 w-4" />
-                  </>
-                )}
-              </Button>
+              
               <Button
                 variant="outline"
                 className="border-white/20 hover:bg-white/10 px-6 py-6 rounded-lg transition-all duration-300 hover:-translate-y-1"
@@ -499,28 +483,26 @@ export default function MediaKitPage() {
             </div>
           )}
 
-          {/* Tabs */}
+         {/* Tabs */}
           <Tabs defaultValue="wallpapers" className="mb-16" onValueChange={setActiveTab}>
             <div className="max-w-4xl mx-auto mb-8">
-              <TabsList className="w-full grid grid-cols-2 bg-gray-800/50 border border-gray-700/50 rounded-lg p-1.5">
+              <TabsList className="w-full grid grid-cols-2 bg-[#121220] rounded-lg">
                 <TabsTrigger
                   value="wallpapers"
                   className={cn(
-                    "data-[state=active]:bg-[#F7984A] data-[state=active]:text-white",
-                    "transition-all duration-300 py-3 rounded-md",
+                    "transition-colors py-3 font-medium",
+                    "data-[state=active]:text-[#F7984A] data-[state=inactive]:text-white"
                   )}
                 >
-                  <ImageIcon className="h-4 w-4 mr-2" />
                   Wallpapers
                 </TabsTrigger>
                 <TabsTrigger
                   value="logos"
                   className={cn(
-                    "data-[state=active]:bg-[#F7984A] data-[state=active]:text-white",
-                    "transition-all duration-300 py-3 rounded-md",
+                    "transition-colors py-3 font-medium",
+                    "data-[state=active]:text-[#F7984A] data-[state=inactive]:text-gray-400"
                   )}
                 >
-                  <ImageIcon className="h-4 w-4 mr-2" />
                   Logos
                 </TabsTrigger>
               </TabsList>
@@ -693,31 +675,7 @@ export default function MediaKitPage() {
                 )}
               </div>
               {/* Download All Section */}
-              <div className="mt-12 p-6 bg-gradient-to-r from-[#0D0B26]/80 to-[#0D0B26]/60 border border-gray-800/50 rounded-xl">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                  <div>
-                    <h3 className="text-xl font-bold mb-2">Download All Wallpapers</h3>
-                    <p className="text-gray-300">Get all wallpapers in a single ZIP file</p>
-                  </div>
-                  <Button
-                    className="bg-[#F7984A] hover:bg-[#F7984A]/90 text-white px-6 py-6 rounded-lg shadow-lg shadow-[#F7984A]/20 transition-all duration-300 hover:shadow-[#F7984A]/30 hover:-translate-y-1"
-                    onClick={() => handleDownloadCategory("wallpapers")}
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
-                        Downloading...
-                      </>
-                    ) : (
-                      <>
-                        <Download className="mr-2 h-4 w-4" />
-                        Download All Wallpapers
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
+              
             </TabsContent>
 
             {/* Logos Tab */}
@@ -991,29 +949,7 @@ export default function MediaKitPage() {
                 )}
               </div>
 
-              {/* Download All Section */}
-              <div className="p-6 bg-gradient-to-r from-[#0D0B26]/80 to-[#0D0B26]/60 border border-gray-800/50 rounded-xl">
-                <h3 className="text-xl font-bold mb-6">Download All Logo Assets</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <Button
-                    className="bg-[#F7984A] hover:bg-[#F7984A]/90 text-white py-6 transition-all duration-300 hover:shadow-lg hover:shadow-[#F7984A]/20 hover:-translate-y-1"
-                    onClick={() => handleDownloadCategory("logos")}
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
-                        Downloading...
-                      </>
-                    ) : (
-                      <>
-                        <Download className="mr-2 h-4 w-4" />
-                        All Logo Files (ZIP)
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
+              
             </TabsContent>
           </Tabs>
 
@@ -1119,10 +1055,13 @@ export default function MediaKitPage() {
                   contact our brand team. We're here to help ensure our brand is represented consistently.
                 </p>
                 <div className="flex flex-wrap gap-4">
+                  <Link 
+                  href="/contact">
                   <Button variant="outline" className="border-white/20 hover:bg-white/10 transition-all duration-300">
                     Contact Brand Team
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
+                  </Link>
                   <Button variant="outline" className="border-white/20 hover:bg-white/10 transition-all duration-300">
                     Download Brand Guidelines
                     <Download className="ml-2 h-4 w-4" />

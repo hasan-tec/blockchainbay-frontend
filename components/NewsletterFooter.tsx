@@ -49,6 +49,7 @@ export const Footer = ({ className }: { className?: string }) => {
         { name: "News", href: "/news" },
         { name: "Podcasts", href: "/podcasts" },
         { name: "Store", href: "/store" },
+        { name: "Media Kit", href: "/media-kit" },
       ],
     },
     {
