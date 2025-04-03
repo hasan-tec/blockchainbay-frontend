@@ -622,10 +622,9 @@ export default function PodcastDetailPage() {
             setShowShareOptions(false);
           }}
         >
-          <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M8 12a1 1 0 0 1 1 1v3a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-3a1 1 0 1 1 0-2h3a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H10a3 3 0 0 1-3-3v-3a1 1 0 0 1 1-1z"/>
-            <path d="M12 0a1 1 0 0 1 1 1v4a1 1 0 1 1-2 0V1a1 1 0 0 1 1-1zM7 9a1 1 0 0 1 0-2h3a3 3 0 0 1 3 3v3a1 1 0 1 1-2 0v-3a1 1 0 0 0-1-1H7z"/>
-          </svg>
+           <span className="w-6 h-6 flex items-center justify-center bg-gray-800 rounded-full">
+            🔗
+          </span>
           <span>Copy Link</span>
         </button>
       </div>
