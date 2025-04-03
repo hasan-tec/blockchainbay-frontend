@@ -158,9 +158,15 @@ export const ProjectsSection = () => {
     <section className="py-20 bg-[#07071C]">
       <div className="container mx-auto px-4 md:px-6">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-8">
+          
           <div>
-            <h2 className="text-4xl font-bold tracking-tight">Latest Verified Projects</h2>
-            <p className="text-gray-400 mt-2">Learn more about our verification process</p>
+          
+            <div className="inline-flex items-center px-3 py-1 rounded-full bg-gray-800/70 text-gray-300 text-sm font-medium mb-4">
+              <span className="w-2 h-2 rounded-full bg-[#F7984A] mr-2"></span>
+              Trusted Projects & Companies
+            </div>
+            <h2 className="text-4xl font-bold tracking-tight">Crypto Directory</h2>
+            <p className="text-gray-400 mt-2">Discover trusted projects and companies shaping the cryptocurrency landscape.</p>
           </div>
           <Link
             href="/projects"

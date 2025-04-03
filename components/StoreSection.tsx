@@ -318,7 +318,7 @@ const StoreSection = () => {
           <div>
             <div className="inline-flex items-center px-3 py-1 rounded-full bg-gray-800/70 text-gray-300 text-sm font-medium mb-4">
               <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
-              Crypto merchandise
+              Store
             </div>
             <h2 className="text-4xl font-bold mb-2 tracking-tight">Featured Products</h2>
             <p className="text-gray-400 max-w-2xl">

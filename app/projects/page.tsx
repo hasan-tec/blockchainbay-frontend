@@ -372,12 +372,12 @@ export default function CryptoDirectoryPage() {
       <main className="pt-32 pb-20 relative z-10">
         <div className="container mx-auto px-4 md:px-6">
           {/* Header */}
-          <div className="max-w-4xl mx-auto text-center mb-16">
-            <h1 className="text-5xl md:text-6xl font-extrabold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/70">
-              Crypto Projects
-            </h1>
-            <p className="text-xl text-gray-300">Discover and explore the latest verified crypto projects</p>
-          </div>
+<div className="max-w-4xl mx-auto text-center mb-16 px-4 md:px-6">
+  <h1 className="text-5xl md:text-6xl font-extrabold mb-6 text-white pb-3">
+    Crypto Directory
+  </h1>
+  <p className="text-xl text-gray-300">Discover and explore trusted crypto projects and companies in one comprehensive directory.</p>
+</div>
 
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Filters Sidebar */}
@@ -387,7 +387,7 @@ export default function CryptoDirectoryPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Search projects..."
+                  placeholder="Search Directory..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 bg-gray-800/70 border border-gray-700/50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#F7984A]/50 focus:border-[#F7984A]/50 transition-all"
@@ -546,12 +546,8 @@ export default function CryptoDirectoryPage() {
             {/* Projects Grid */}
             <div className="flex-1">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold">Verified Projects</h2>
-                <p className="text-gray-400 text-sm">
-                  <Link href="#" className="text-[#F7984A] hover:underline">
-                    Learn more about our verification process
-                  </Link>
-                </p>
+                <h2 className="text-2xl font-bold">Directory</h2>
+                
               </div>
 
               {loading ? (

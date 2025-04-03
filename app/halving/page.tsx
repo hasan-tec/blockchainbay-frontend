@@ -142,11 +142,11 @@ export default function CryptoHalvingCountdownPage() {
                 <span className="w-2 h-2 rounded-full bg-[#F7984A] mr-2 animate-pulse"></span>
                 BlockchainBay
               </div>
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold mb-4 sm:mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/70 tracking-tight leading-tight">
-                Crypto Halving
+              <h1 className="text-4xl  pb-3 sm:text-5xl md:text-6xl lg:text-7xl font-extrabold mb-4 sm:mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/70 tracking-tight leading-tight">
+                Crypto Halvings
               </h1>
               <p className="text-lg sm:text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto">
-                Track the official countdown to the next Bitcoin halving event
+                Track the upcoming halving and forking event
               </p>
             </div>
           </div>
@@ -163,7 +163,7 @@ export default function CryptoHalvingCountdownPage() {
                   </div>
                   <div>
                     <h2 className="text-2xl sm:text-3xl font-bold text-white">Crypto Halving Countdown</h2>
-                    <p className="text-base text-gray-300">Live tracking of the next Bitcoin halving</p>
+                    <p className="text-base text-gray-300">Live tracking of the next halving and Forking events</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 mt-2 sm:mt-0">

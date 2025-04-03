@@ -44,13 +44,10 @@ const HeroSection = () => {
           <div className="absolute top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-[300px] sm:w-[450px] md:w-[600px] h-[300px] sm:h-[450px] md:h-[600px] rounded-full bg-blue-500/10 blur-[60px] sm:blur-[90px] md:blur-[120px] mix-blend-screen"></div>
 
           <div className="relative">
-            <div className="inline-flex items-center px-2 sm:px-3 py-1 rounded-full bg-white/10 border border-white/20 text-white text-xs sm:text-sm font-medium mb-4 sm:mb-6 backdrop-blur-sm">
-              <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-[#F7984A] mr-1.5 sm:mr-2 animate-pulse"></span>
-              Discover the latest crypto projects
-            </div>
+            
 
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold mb-4 sm:mb-6 text-white leading-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/70">
-              Your <span className="text-[#F7984A]">crypto</span> directory hub
+              Your <span className="text-[#F7984A]">Crypto</span>  hub
             </h1>
 
             <p className="text-base sm:text-lg md:text-xl text-gray-300 mb-6 sm:mb-8 max-w-2xl mx-auto">
@@ -64,7 +61,7 @@ const HeroSection = () => {
                 asChild
               >
                 <Link href="/projects">
-                  <span className="z-10">Explore projects</span>
+                  <span className="z-10">Explore Directory</span>
                   <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
                 </Link>
               </Button>
@@ -74,7 +71,7 @@ const HeroSection = () => {
                 asChild
               >
                 <Link href="/podcasts">
-                  <span className="z-10">Listen to podcast</span>
+                  <span className="z-10">Listen to Podcast</span>
                 </Link>
               </Button>
             </div>

@@ -501,17 +501,18 @@ export default function PodcastDetailPage() {
                           <SkipBack className="h-5 w-5" />
                         </button>
 
-                        <button
-                          onClick={togglePlay}
-                          className="w-12 h-12 rounded-full bg-[#F7984A] flex items-center justify-center hover:bg-[#F7984A]/90 transition-colors"
-                          aria-label={isPlaying ? "Pause" : "Play"}
-                        >
-                          {isPlaying ? (
-                            <Pause className="h-6 w-6 text-white" />
-                          ) : (
-                            <Play className="h-6 w-6 text-white ml-1" />
-                          )}
-                        </button>
+                        {/* Centered Play Button */}
+<button
+  onClick={togglePlay}
+  className="w-12 h-12 rounded-full bg-[#F7984A] flex items-center justify-center hover:bg-[#F7984A]/90 transition-colors"
+  aria-label={isPlaying ? "Pause" : "Play"}
+>
+  {isPlaying ? (
+    <Pause className="h-6 w-6 text-white" />
+  ) : (
+    <Play className="h-6 w-6 text-white translate-x-0.5" />
+  )}
+</button>
 
                         <button
                           onClick={skipForward}
@@ -559,7 +560,8 @@ export default function PodcastDetailPage() {
                       <span className="hidden sm:inline">Download</span>
                     </Button>
 
-                    <div className="relative">
+                    {/* Share Button with Dropdown */}
+<div className="relative">
   <Button
     variant="outline"
     size="sm"
@@ -573,31 +575,59 @@ export default function PodcastDetailPage() {
   {showShareOptions && (
     <div className="absolute bottom-full mb-2 sm:right-0 left-0 sm:left-auto bg-[#0D0B26] border border-gray-800 rounded-lg shadow-xl p-3 z-[9999] w-48">
       <div className="space-y-2">
-        {[
-          { name: "Twitter", icon: "X" },
-          { name: "Facebook", icon: "F" },
-          { name: "LinkedIn", icon: "in" },
-          { name: "Copy Link", icon: "🔗" },
-        ].map((option) => (
-          <button
-            key={option.name}
-            className="flex items-center gap-2 w-full p-2 text-sm text-gray-300 hover:bg-gray-800/50 rounded-md transition-colors"
-            onClick={() => {
-              if (option.name === "Copy Link") {
-                navigator.clipboard.writeText(window.location.href)
-                alert("Link copied to clipboard!")
-              } else {
-                sharePodcast()
-              }
-              setShowShareOptions(false)
-            }}
-          >
-            <span className="w-6 h-6 flex items-center justify-center bg-gray-800 rounded-full">
-              {option.icon}
-            </span>
-            <span>{option.name}</span>
-          </button>
-        ))}
+        <button
+          className="flex items-center gap-2 w-full p-2 text-sm text-gray-300 hover:bg-gray-800/50 rounded-md transition-colors"
+          onClick={() => {
+            window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(podcast.title)}`, '_blank');
+            setShowShareOptions(false);
+          }}
+        >
+          <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z" />
+          </svg>
+          <span>Twitter</span>
+        </button>
+        
+        <button
+          className="flex items-center gap-2 w-full p-2 text-sm text-gray-300 hover:bg-gray-800/50 rounded-md transition-colors"
+          onClick={() => {
+            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`, '_blank');
+            setShowShareOptions(false);
+          }}
+        >
+          <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+          </svg>
+          <span>Facebook</span>
+        </button>
+        
+        <button
+          className="flex items-center gap-2 w-full p-2 text-sm text-gray-300 hover:bg-gray-800/50 rounded-md transition-colors"
+          onClick={() => {
+            window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}`, '_blank');
+            setShowShareOptions(false);
+          }}
+        >
+          <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+          </svg>
+          <span>LinkedIn</span>
+        </button>
+        
+        <button
+          className="flex items-center gap-2 w-full p-2 text-sm text-gray-300 hover:bg-gray-800/50 rounded-md transition-colors"
+          onClick={() => {
+            navigator.clipboard.writeText(window.location.href);
+            alert("Link copied to clipboard!");
+            setShowShareOptions(false);
+          }}
+        >
+          <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 12a1 1 0 0 1 1 1v3a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-3a1 1 0 1 1 0-2h3a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H10a3 3 0 0 1-3-3v-3a1 1 0 0 1 1-1z"/>
+            <path d="M12 0a1 1 0 0 1 1 1v4a1 1 0 1 1-2 0V1a1 1 0 0 1 1-1zM7 9a1 1 0 0 1 0-2h3a3 3 0 0 1 3 3v3a1 1 0 1 1-2 0v-3a1 1 0 0 0-1-1H7z"/>
+          </svg>
+          <span>Copy Link</span>
+        </button>
       </div>
     </div>
   )}
