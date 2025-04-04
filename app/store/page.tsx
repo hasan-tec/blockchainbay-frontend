@@ -129,7 +129,7 @@ export default async function StorePage() {
   // Transform flat products to expected structure
   const products = (rawProducts || []).map((product: RawProduct): TransformedProductType => {
     // Extract the correct URL from Strapi 5 format
-    let imageUrl = '/placeholder.png';
+    let imageUrl = '/placeholder.jpg';
     
     if (product.mainImage) {
       // Handle Strapi 5 different image formats

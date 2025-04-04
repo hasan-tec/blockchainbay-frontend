@@ -344,7 +344,7 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                   unoptimized={true}
                   onError={(e) => {
                     // @ts-ignore - TypeScript doesn't recognize currentTarget.src
-                    e.currentTarget.src = "/placeholder.png"
+                    e.currentTarget.src = "/placeholder.jpg"
                   }}
                 />
                 {productData.sale && (
@@ -379,7 +379,7 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                         unoptimized={true}
                         onError={(e) => {
                           // @ts-ignore
-                          e.currentTarget.src = "/placeholder.png"
+                          e.currentTarget.src = "/placeholder.jpg"
                         }}
                       />
                     </button>
@@ -817,7 +817,7 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                           unoptimized={true}
                           onError={(e) => {
                             // @ts-ignore
-                            e.currentTarget.src = "/placeholder.png"
+                            e.currentTarget.src = "/placeholder.jpg"
                           }}
                         />
                         {relatedProduct.attributes.sale && (

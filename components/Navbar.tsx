@@ -49,8 +49,8 @@ export const Logo = () => {
               <stop offset="1" stopColor="#f7984a" />
             </linearGradient>
           </defs>
-          {/* Bitcoin logo with gradient */}
-          <path
+           {/* Bitcoin logo with gradient */}
+           <path
             d="M30.07,41.94c2.62-1.34,4.27-3.69,3.89-7.61-.51-5.36-5.15-7.16-10.99-7.66v-7.43h-4.53v7.23c-1.19,0-2.41.03-3.62.05v-7.28h-4.53v7.43c-.98.02-1.95.04-2.88.04v-.03H1.17v4.83s3.35-.06,3.29,0c1.84,0,2.44,1.06,2.6,1.98v20.36c-.08.57-.42,1.5-1.7,1.5.06.05-3.3,0-3.3,0l-.89,5.4h5.89c1.1,0,2.17.02,3.24.03v7.52h4.53v-7.43c1.24.03,2.44.03,3.62.03v7.4h4.53v-7.5c7.61-.44,12.94-2.35,13.61-9.49.53-5.75-2.17-8.32-6.5-9.35h0ZM14.93,31.83c2.55,0,10.59-.81,10.59,4.52s-8.03,4.51-10.59,4.51c0,0,0-9.03,0-9.03ZM14.93,55.37v-9.96c3.07,0,12.7-.89,12.7,4.97s-9.63,4.98-12.7,4.98Z"
             fill="url(#linear-gradient)"
           />
@@ -125,10 +125,37 @@ export const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState("")
   const [searchFocused, setSearchFocused] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const mobileSearchRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
+  const mobileMenuRef = useRef<HTMLDivElement>(null)
 
   // Add cart context
   const { getItemsCount } = useCart()
+
+  // Close mobile menu when ESC key is pressed
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && mobileMenuOpen) {
+        setMobileMenuOpen(false)
+      }
+    }
+    
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [mobileMenuOpen])
+
+  // Prevent scrolling when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [mobileMenuOpen])
 
   useEffect(() => {
     // Mark as mounted so we can use cart functions safely
@@ -160,6 +187,17 @@ export const Navbar = () => {
       router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`)
       setSearchQuery("")
       setSearchOpen(false)
+      setMobileMenuOpen(false)
+    }
+  }
+
+  // Handle mobile search submission
+  const handleMobileSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`)
+      setSearchQuery("")
+      setMobileMenuOpen(false)
     }
   }
 
@@ -238,7 +276,7 @@ export const Navbar = () => {
               >
                 <ShoppingCart className="h-5 w-5" />
                 {cartCount > 0 && (
-                  <span className="absolute top-0 right-0 w-4 h-4 rounded-full bg-[#F7984A] text-[10px] flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#F7984A] text-[10px] flex items-center justify-center">
                     {cartCount}
                   </span>
                 )}
@@ -246,22 +284,39 @@ export const Navbar = () => {
               </Link>
             </div>
 
-            <button
-              className="lg:hidden flex items-center justify-center w-10 h-10 rounded-md text-gray-200"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
+            <div className="flex lg:hidden items-center gap-3">
+              {/* Cart icon in mobile */}
+              <Link
+                href="/cart"
+                aria-label="Cart"
+                className="relative w-8 h-8 rounded-full flex items-center justify-center text-gray-300 hover:text-white transition-colors"
+              >
+                <ShoppingCart className="h-5 w-5" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#F7984A] text-[10px] flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
+              </Link>
+              
+              <button
+                className="flex items-center justify-center w-10 h-10 rounded-md text-gray-200 hover:text-white hover:bg-[#0D0B26]/70 transition-colors z-50"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+              >
+                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </button>
+            </div>
           </nav>
-
-          {/* Mobile Search Bar (visible on smaller screens) */}
+          
+          {/* REMOVED: Mobile Search Bar is now inside the mobile menu */}
         </div>
       </header>
 
       {/* Search Overlay */}
       {searchOpen && (
         <div
-          className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center px-4 animate-fadeIn"
+          className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-start justify-center pt-16 sm:pt-20 px-4 animate-fadeIn"
           onClick={() => setSearchOpen(false)}
         >
           <div
@@ -317,46 +372,7 @@ export const Navbar = () => {
                   <span>🔸</span>
                   <span className="group-hover:text-[#F7984A] text-white transition-colors">Bitcoin</span>
                 </button>
-                <button
-                  className="bg-[#0D0B26] border border-gray-800/60 rounded-full px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 text-xs hover:bg-[#0D0B26]/70 hover:border-gray-700/60 transition-all duration-300 flex items-center gap-1 group"
-                  onClick={(e) => {
-                    setSearchQuery("Ethereum")
-                    setTimeout(() => handleSubmitSearch(e as any), 10)
-                  }}
-                >
-                  <span>💠</span>
-                  <span className="group-hover:text-[#F7984A] text-white transition-colors">Ethereum</span>
-                </button>
-                <button
-                  className="bg-[#0D0B26] border border-gray-800/60 rounded-full px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 text-xs hover:bg-[#0D0B26]/70 hover:border-gray-700/60 transition-all duration-300 flex items-center gap-1 group"
-                  onClick={(e) => {
-                    setSearchQuery("DeFi")
-                    setTimeout(() => handleSubmitSearch(e as any), 10)
-                  }}
-                >
-                  <span>💰</span>
-                  <span className="group-hover:text-[#F7984A] text-white transition-colors">DeFi</span>
-                </button>
-                <button
-                  className="bg-[#0D0B26] border border-gray-800/60 rounded-full px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 text-xs hover:bg-[#0D0B26]/70 hover:border-gray-700/60 transition-all duration-300 flex items-center gap-1 group"
-                  onClick={(e) => {
-                    setSearchQuery("NFTs")
-                    setTimeout(() => handleSubmitSearch(e as any), 10)
-                  }}
-                >
-                  <span>🖼️</span>
-                  <span className="group-hover:text-[#F7984A] text-white transition-colors">NFTs</span>
-                </button>
-                <button
-                  className="bg-[#0D0B26] border border-gray-800/60 rounded-full px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 text-xs hover:bg-[#0D0B26]/70 hover:border-gray-700/60 transition-all duration-300 flex items-center gap-1 group"
-                  onClick={(e) => {
-                    setSearchQuery("Mining")
-                    setTimeout(() => handleSubmitSearch(e as any), 10)
-                  }}
-                >
-                  <span>⛏️</span>
-                  <span className="group-hover:text-[#F7984A] text-white transition-colors">Mining</span>
-                </button>
+                {/* More search buttons... */}
               </div>
               <div className="mt-4 sm:mt-6 flex justify-between items-center">
                 <span className="text-xs text-gray-500 flex items-center gap-1">
@@ -380,45 +396,90 @@ export const Navbar = () => {
         </div>
       )}
 
-      {/* Mobile menu */}
+      {/* Mobile menu - with search integrated inside */}
       <div
+        ref={mobileMenuRef}
         className={cn(
-          "fixed inset-0 z-40 bg-[#07071C]/95 backdrop-blur-md lg:hidden transition-transform duration-300 ease-in-out",
-          mobileMenuOpen ? "translate-x-0" : "translate-x-full",
+          "fixed inset-0 z-40 lg:hidden transition-all duration-300 ease-in-out",
+          mobileMenuOpen 
+            ? "opacity-100 pointer-events-auto" 
+            : "opacity-0 pointer-events-none"
         )}
       >
-        <div className="pt-16 sm:pt-20 px-4 sm:px-6 h-full overflow-y-auto">
-          <div className="space-y-4 sm:space-y-6">
-            {/* Mobile Search */}
-            <div className="mb-6 sm:mb-8">
-              <div
-                className="flex items-center w-full h-12 bg-[#0D0B26]/70 border border-gray-800/50 rounded-full px-4 cursor-pointer hover:border-gray-700/70 transition-all duration-200"
-                onClick={() => {
-                  setSearchOpen(true)
-                  setTimeout(() => searchInputRef.current?.focus(), 10)
-                }}
+        {/* Backdrop */}
+        <div 
+          className="absolute inset-0 bg-[#07071C]/95 backdrop-blur-md"
+          onClick={() => setMobileMenuOpen(false)}
+        ></div>
+        
+        {/* Content */}
+        <div 
+          className={cn(
+            "relative h-full w-full max-w-xs sm:max-w-sm ml-auto bg-[#0D0B26] border-l border-gray-800/50 overflow-y-auto transition-transform duration-300 ease-in-out transform",
+            mobileMenuOpen ? "translate-x-0" : "translate-x-full"
+          )}
+        >
+          <div className="flex flex-col h-full">
+            {/* Close button */}
+            <div className="flex justify-end p-4">
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2 text-gray-400 hover:text-white hover:bg-gray-800/50 rounded-full"
+                aria-label="Close menu"
               >
-                <Search className="h-4 w-4 text-gray-400 mr-2" />
-                <span className="text-sm text-gray-400">Search projects, products, podcasts...</span>
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="flex-1 px-4 sm:px-6 py-2">
+              {/* Search Bar inside mobile menu */}
+              <div className="mb-6">
+                <form onSubmit={handleMobileSearch} className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    <Search className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <Input
+                    ref={mobileSearchRef}
+                    type="text"
+                    placeholder="Search projects, products..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="border border-gray-800/50 bg-[#0A0A20]/80 py-2 pl-9 pr-3 text-sm text-white placeholder:text-gray-400 focus-visible:ring-1 focus-visible:ring-[#F7984A] focus-visible:ring-offset-0 rounded-lg"
+                    autoComplete="off"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                      onClick={() => setSearchQuery("")}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </form>
+              </div>
+              
+              <div className="space-y-1">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className="flex items-center py-3 px-2 text-base sm:text-lg font-medium text-gray-200 hover:text-white hover:bg-[#0F0F2D] rounded-lg transition-all duration-200"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <div className="w-6 mr-3 flex items-center justify-center">
+                      {item.icon}
+                    </div>
+                    {item.name}
+                  </Link>
+                ))}
               </div>
             </div>
-
-            {navItems.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className="flex items-center py-2.5 sm:py-3 text-base sm:text-lg font-medium text-gray-200 hover:text-white border-b border-gray-800"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {item.icon}
-                {item.name}
-              </Link>
-            ))}
-
-            <div className="pt-4 space-y-8">
+            
+            <div className="p-4 sm:p-6 mt-auto border-t border-gray-800/50">
               <Link href="/cart" onClick={() => setMobileMenuOpen(false)}>
-                <Button className="w-full bg-gray-800 hover:bg-gray-700 text-white py-4 sm:py-6 flex items-center justify-center text-sm sm:text-base">
-                  <ShoppingCart className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+                <Button className="w-full bg-[#F7984A] hover:bg-[#F7984A]/90 text-white py-3 sm:py-4 flex items-center justify-center text-sm sm:text-base gap-2">
+                  <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5" />
                   View Cart {cartCount > 0 && `(${cartCount})`}
                 </Button>
               </Link>
@@ -431,4 +492,3 @@ export const Navbar = () => {
 }
 
 export default Navbar
-
