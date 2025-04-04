@@ -174,21 +174,22 @@ export const Navbar = () => {
             </div>
 
             <div className="hidden lg:flex items-center gap-5">
-              {/* Search Trigger Button */}
-              <button
+              {/* Extended Search Bar */}
+              <div 
+                className="flex items-center w-64 h-10 bg-[#0D0B26]/70 border border-gray-800/50 rounded-full px-3 cursor-pointer hover:border-gray-700/70 transition-all duration-200"
                 onClick={() => {
                   setSearchOpen(true)
                   setTimeout(() => searchInputRef.current?.focus(), 10)
                 }}
-                className="relative w-8 h-8 rounded-full flex items-center justify-center text-gray-300 hover:text-white transition-colors group"
-                aria-label="Search"
               >
-                <Search className="h-5 w-5" />
-                <span className="absolute inset-0 rounded-full bg-gray-800 -z-10 opacity-0 group-hover:opacity-100 transition-opacity"></span>
-                <span className="sr-only lg:not-sr-only lg:absolute lg:top-10 lg:right-0 lg:text-xs lg:bg-gray-800 lg:px-2 lg:py-1 lg:rounded lg:opacity-0 lg:group-hover:opacity-100 lg:whitespace-nowrap lg:pointer-events-none">
-                  Ctrl+K
-                </span>
-              </button>
+                <Search className="h-4 w-4 text-gray-400 mr-2" />
+                <span className="text-gray-400 text-sm">Search...</span>
+                <div className="ml-auto">
+                  <kbd className="hidden md:inline-flex h-5 items-center gap-1 rounded border border-gray-700 bg-gray-800/70 px-1.5 font-mono text-[10px] font-medium text-gray-400">
+                    Ctrl+K
+                  </kbd>
+                </div>
+              </div>
               
               <Link
                 href="/cart"
@@ -212,6 +213,20 @@ export const Navbar = () => {
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
           </nav>
+          
+          {/* Mobile Search Bar (visible on smaller screens) */}
+          <div className="lg:hidden flex items-center px-4 mt-2 mb-3">
+            <div 
+              className="flex items-center w-full h-10 bg-[#0D0B26]/70 border border-gray-800/50 rounded-full px-3 cursor-pointer hover:border-gray-700/70 transition-all duration-200"
+              onClick={() => {
+                setSearchOpen(true)
+                setTimeout(() => searchInputRef.current?.focus(), 10)
+              }}
+            >
+              <Search className="h-4 w-4 text-gray-400 mr-2" />
+              <span className="text-gray-400 text-sm">Search projects, products, podcasts...</span>
+            </div>
+          </div>
         </div>
       </header>
 
