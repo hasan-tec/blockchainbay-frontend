@@ -161,7 +161,7 @@ export default function AboutPage() {
               <div className="absolute inset-0 bg-[#0F0F2D]/50 rounded-2xl backdrop-blur-sm"></div>
               <div className="relative overflow-hidden rounded-2xl border border-white/10">
                 <Image
-                  src="/placeholder.svg?height=600&width=800&text=Chris"
+                  src="/chris.png"
                   alt="Chris from BlockchainBay"
                   width={800}
                   height={600}
@@ -206,7 +206,7 @@ export default function AboutPage() {
               <div className="mt-10 flex items-center">
                 <div className="relative">
                   <Image
-                    src="/placeholder.svg?height=60&width=60"
+                    src="/chris.png"
                     alt="Chris"
                     width={60}
                     height={60}
@@ -401,130 +401,135 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* Timeline - Keeping as requested but with visual enhancements */}
-        <section className="mb-32">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <div className="inline-block mb-3 px-3 py-1 bg-[#F7984A]/10 rounded-full">
-              <span className="text-sm font-medium text-[#F7984A]">Our Journey</span>
-            </div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-6 text-white">Milestones That Defined Our Path</h2>
-            <p className="text-gray-300 leading-relaxed">
-              From our humble beginnings to becoming a trusted voice in the crypto space, our journey has been defined
-              by passion, education, and community building.
-            </p>
+       {/* Timeline - Keeping as requested but with visual enhancements */}
+<section className="mb-32">
+  <div className="text-center max-w-3xl mx-auto mb-16">
+    <div className="inline-block mb-3 px-3 py-1 bg-[#F7984A]/10 rounded-full">
+      <span className="text-sm font-medium text-[#F7984A]">Our Journey</span>
+    </div>
+    <h2 className="text-3xl md:text-4xl font-bold mb-6 text-white">Milestones That Defined Our Path</h2>
+    <p className="text-gray-300 leading-relaxed">
+      From our humble beginnings to becoming a trusted voice in the crypto space, our journey has been defined
+      by passion, education, and community building.
+    </p>
+  </div>
+
+  <div className="relative">
+    {/* Timeline line */}
+    <div className="absolute left-4 sm:left-1/2 sm:transform sm:-translate-x-1/2 h-full w-1 bg-gradient-to-b from-[#F7984A]/70 via-blue-500/50 to-[#F7984A]/70"></div>
+
+    {/* Timeline items */}
+    <div className="space-y-24 relative">
+      {[
+        {
+          year: "2010",
+          quarter: "Q3",
+          title: "Founded YouTube Channel",
+          description:
+            "Started with a passion for educating people about cryptocurrency and blockchain technology.",
+          image: "/founded youtube.png",
+        },
+        {
+          year: "2021",
+          quarter: "Q1",
+          title: "First Crypto Video",
+          description:
+            "Published our YouTube video to share crypto knowledge and insights with a wider audience.",
+          image: "/first crypto video.png",
+        },
+        {
+          year: "2021",
+          quarter: "Q3",
+          title: "Community Growth",
+          description: "Established our Discord community for deeper engagement.",
+          image: "/discord server started.png",
+        },
+        {
+          year: "2022",
+          quarter: "Q2",
+          title: "Crypto Directory Launch",
+          description:
+            "Created a comprehensive directory of crypto projects to help users discover new opportunities.",
+          image: "/crypto directory launch.png",
+        },
+        {
+          year: "2022",
+          quarter: "Q4",
+          title: "Podcast Launch",
+          description:
+            "Started the BlockchainBay Podcast, interviewing founders and experts in the crypto space.",
+          image: "/podcast launch.png",
+        },
+        {
+          year: "2025",
+          quarter: "Q2",
+          title: "7,000+ Subscribers Milestone",
+          description:
+            "Celebrated reaching 7,000+ subscribers and expanded our content to cover emerging trends like DePINs.",
+          image: "/7000 subs launch.png",
+        },
+      ].map((item, index) => (
+        <div
+          key={index}
+          className={`flex items-center ${
+            isMounted && windowWidth !== null && windowWidth >= 640 && index % 2 === 0
+              ? "flex-row-reverse"
+              : "flex-row"
+          }`}
+        >
+          <div className="hidden sm:block sm:w-1/2"></div>
+          <div className="z-10 flex items-center justify-center w-10 h-10 sm:w-16 sm:h-16 rounded-full bg-[#0F0F2D] border-4 border-[#F7984A]/50 shadow-lg shadow-[#F7984A]/20 flex-shrink-0">
+            <span className="text-[#F7984A] font-bold">{index + 1}</span>
           </div>
+          <div
+            className={`w-full sm:w-1/2 pl-4 ${
+              isMounted && windowWidth !== null && windowWidth >= 640 && index % 2 === 0
+                ? "sm:text-right sm:pr-12 sm:pl-6"
+                : "sm:pl-12 sm:pr-6"
+            }`}
+          >
+            <div className="bg-gradient-to-b from-[#0F0F2D] to-[#0A0A20] p-6 rounded-2xl border border-white/10 hover:border-[#F7984A]/30 transition-all duration-500 hover:shadow-[0_0_25px_rgba(247,152,74,0.15)] group">
+              <div className="flex items-center mb-4 justify-between">
+                <div className="flex items-center">
+                  <span className="inline-block px-3 py-1 rounded-full bg-[#F7984A]/20 text-[#F7984A] text-sm font-medium">
+                    {item.year}
+                  </span>
+                  <span className="ml-2 text-gray-400 text-sm">{item.quarter}</span>
+                </div>
+                <div className="w-2 h-2 rounded-full bg-[#F7984A] group-hover:animate-pulse"></div>
+              </div>
 
-          <div className="relative">
-            {/* Timeline line */}
-            <div className="absolute left-4 sm:left-1/2 sm:transform sm:-translate-x-1/2 h-full w-1 bg-gradient-to-b from-[#F7984A]/70 via-blue-500/50 to-[#F7984A]/70"></div>
-
-            {/* Timeline items */}
-            <div className="space-y-24 relative">
-              {[
-                {
-                  year: "2010",
-                  quarter: "Q3",
-                  title: "Founded YouTube Channel",
-                  description:
-                    "Started with a passion for educating people about cryptocurrency and blockchain technology.",
-                  image: "/placeholder.svg?height=400&width=600",
-                },
-                {
-                  year: "2021",
-                  quarter: "Q1",
-                  title: "First Crypto Video",
-                  description:
-                    "Launched our YouTube video to share crypto knowledge and insights with a wider audience.",
-                  image: "/placeholder.svg?height=400&width=600",
-                },
-                {
-                  year: "2021",
-                  quarter: "Q3",
-                  title: "Community Growth",
-                  description: "Established our Discord community for deeper engagement.",
-                  image: "/placeholder.svg?height=400&width=600",
-                },
-                {
-                  year: "2022",
-                  quarter: "Q2",
-                  title: "Crypto Directory Launch",
-                  description:
-                    "Created a comprehensive directory of crypto projects to help users discover new opportunities.",
-                  image: "/placeholder.svg?height=400&width=600",
-                },
-                {
-                  year: "2022",
-                  quarter: "Q4",
-                  title: "Podcast Launch",
-                  description:
-                    "Started the BlockchainBay Podcast, interviewing founders and experts in the crypto space.",
-                  image: "/placeholder.svg?height=400&width=600",
-                },
-                {
-                  year: "2025",
-                  quarter: "Q2",
-                  title: "7,000+ Subscribers Milestone",
-                  description:
-                    "Celebrated reaching 7,000+ subscribers and expanded our content to cover emerging trends like DePINs.",
-                  image: "/placeholder.svg?height=400&width=600",
-                },
-              ].map((item, index) => (
-                <div
-                  key={index}
-                  className={`flex items-center ${
-                    isMounted && windowWidth !== null && windowWidth >= 640 && index % 2 === 0
-                      ? "flex-row-reverse"
-                      : "flex-row"
-                  }`}
-                >
-                  <div className="hidden sm:block sm:w-1/2"></div>
-                  <div className="z-10 flex items-center justify-center w-10 h-10 sm:w-16 sm:h-16 rounded-full bg-[#0F0F2D] border-4 border-[#F7984A]/50 shadow-lg shadow-[#F7984A]/20 flex-shrink-0">
-                    <span className="text-[#F7984A] font-bold">{index + 1}</span>
-                  </div>
-                  <div
-                    className={`w-full sm:w-1/2 pl-4 ${
-                      isMounted && windowWidth !== null && windowWidth >= 640 && index % 2 === 0
-                        ? "sm:text-right sm:pr-12 sm:pl-6"
-                        : "sm:pl-12 sm:pr-6"
-                    }`}
-                  >
-                    <div className="bg-gradient-to-b from-[#0F0F2D] to-[#0A0A20] p-6 rounded-2xl border border-white/10 hover:border-[#F7984A]/30 transition-all duration-500 hover:shadow-[0_0_25px_rgba(247,152,74,0.15)] group">
-                      <div className="flex items-center mb-4 justify-between">
-                        <div className="flex items-center">
-                          <span className="inline-block px-3 py-1 rounded-full bg-[#F7984A]/20 text-[#F7984A] text-sm font-medium">
-                            {item.year}
-                          </span>
-                          <span className="ml-2 text-gray-400 text-sm">{item.quarter}</span>
-                        </div>
-                        <div className="w-2 h-2 rounded-full bg-[#F7984A] group-hover:animate-pulse"></div>
-                      </div>
-
-                      <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
-                        <div className="sm:w-1/3">
-                          <div className="rounded-lg overflow-hidden border border-white/10">
-                            <Image
-                              src={item.image || "/placeholder.svg"}
-                              alt={item.title}
-                              width={600}
-                              height={400}
-                              className="w-full h-auto"
-                            />
-                          </div>
-                        </div>
-                        <div className="sm:w-2/3">
-                          <h3 className="text-xl font-bold mb-3 text-white group-hover:text-[#F7984A] transition-colors duration-300">
-                            {item.title}
-                          </h3>
-                          <p className="text-gray-300 leading-relaxed">{item.description}</p>
-                        </div>
-                      </div>
-                    </div>
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+                <div className="sm:w-1/3">
+                  <div className="rounded-lg overflow-hidden border border-white/10">
+                    <Image
+                      src={item.image || "/placeholder.jpg"}
+                      alt={item.title}
+                      width={600}
+                      height={400}
+                      className="w-full h-auto"
+                      onError={(e) => {
+                        // TypeScript fix - properly cast the event target
+                        const imgElement = e.currentTarget as HTMLImageElement;
+                        imgElement.src = "/placeholder.jpg";
+                      }}
+                    />
                   </div>
                 </div>
-              ))}
+                <div className="sm:w-2/3">
+                  <h3 className="text-xl font-bold mb-3 text-white group-hover:text-[#F7984A] transition-colors duration-300">
+                    {item.title}
+                  </h3>
+                  <p className="text-gray-300 leading-relaxed">{item.description}</p>
+                </div>
+              </div>
             </div>
           </div>
-        </section>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
 
         {/* Community Section */}
         <section className="mb-32 relative">
@@ -561,7 +566,7 @@ export default function AboutPage() {
                 <div className="absolute inset-0 bg-gradient-to-tr from-[#F7984A]/20 to-blue-500/20 rounded-2xl blur-[5px] transform scale-[1.02] opacity-70"></div>
                 <div className="relative overflow-hidden rounded-2xl border border-white/10">
                   <Image
-                    src="/placeholder.svg?height=600&width=800&text=Community"
+                    src="/Blockchain-Bay-symbol-BB-01.svg"
                     alt="BlockchainBay Community"
                     width={800}
                     height={600}

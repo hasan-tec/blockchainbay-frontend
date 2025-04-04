@@ -11,7 +11,7 @@ import NewsSection from "@/components/NewsSection"
 import PodcastSection from "@/components/PodcastSection"
 import StoreSection from "@/components/StoreSection"
 
-import { NewsletterSection, Footer } from "@/components/NewsletterFooter"
+import { Footer } from "@/components/NewsletterFooter"
 
 export default function LandingPage() {
   return (

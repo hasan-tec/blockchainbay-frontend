@@ -331,3 +331,7 @@ body {
 .animate-pulse-custom {
   animation: pulse 2s infinite ease-in-out;
 }
+/* In your CSS file */
+.search-input-white {
+  color: white !important;
+}
