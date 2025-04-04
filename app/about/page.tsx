@@ -422,47 +422,47 @@ export default function AboutPage() {
             <div className="space-y-24 relative">
               {[
                 {
-                  year: "2018",
-                  quarter: "Q2",
-                  title: "BlockchainBay Founded",
+                  year: "2010",
+                  quarter: "Q3",
+                  title: "Founded YouTube Channel",
                   description:
                     "Started with a passion for educating people about cryptocurrency and blockchain technology.",
                   image: "/placeholder.svg?height=400&width=600",
                 },
                 {
-                  year: "2019",
+                  year: "2021",
                   quarter: "Q1",
-                  title: "First YouTube Channel",
+                  title: "First Crypto Video",
                   description:
-                    "Launched our YouTube channel to share crypto knowledge and insights with a wider audience.",
-                  image: "/placeholder.svg?height=400&width=600",
-                },
-                {
-                  year: "2020",
-                  quarter: "Q3",
-                  title: "Community Growth",
-                  description: "Reached 1,000 subscribers and established our Discord community for deeper engagement.",
+                    "Launched our YouTube video to share crypto knowledge and insights with a wider audience.",
                   image: "/placeholder.svg?height=400&width=600",
                 },
                 {
                   year: "2021",
-                  quarter: "Q2",
-                  title: "Podcast Launch",
-                  description:
-                    "Started the BlockchainBay Podcast, interviewing founders and experts in the crypto space.",
+                  quarter: "Q3",
+                  title: "Community Growth",
+                  description: "Established our Discord community for deeper engagement.",
                   image: "/placeholder.svg?height=400&width=600",
                 },
                 {
                   year: "2022",
-                  quarter: "Q4",
+                  quarter: "Q2",
                   title: "Crypto Directory Launch",
                   description:
                     "Created a comprehensive directory of crypto projects to help users discover new opportunities.",
                   image: "/placeholder.svg?height=400&width=600",
                 },
                 {
-                  year: "2023",
-                  quarter: "Q3",
+                  year: "2022",
+                  quarter: "Q4",
+                  title: "Podcast Launch",
+                  description:
+                    "Started the BlockchainBay Podcast, interviewing founders and experts in the crypto space.",
+                  image: "/placeholder.svg?height=400&width=600",
+                },
+                {
+                  year: "2025",
+                  quarter: "Q2",
                   title: "7,000+ Subscribers Milestone",
                   description:
                     "Celebrated reaching 7,000+ subscribers and expanded our content to cover emerging trends like DePINs.",
@@ -479,7 +479,7 @@ export default function AboutPage() {
                 >
                   <div className="hidden sm:block sm:w-1/2"></div>
                   <div className="z-10 flex items-center justify-center w-10 h-10 sm:w-16 sm:h-16 rounded-full bg-[#0F0F2D] border-4 border-[#F7984A]/50 shadow-lg shadow-[#F7984A]/20 flex-shrink-0">
-                    <span className="text-[#F7984A] font-bold">{item.year.substring(2)}</span>
+                    <span className="text-[#F7984A] font-bold">{index + 1}</span>
                   </div>
                   <div
                     className={`w-full sm:w-1/2 pl-4 ${

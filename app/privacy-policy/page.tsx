@@ -5,8 +5,8 @@ import Navbar from "@/components/Navbar";
 import { Footer } from "@/components/NewsletterFooter";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | blockchainbay",
-  description: "blockchainbay's Privacy Policy - How we collect, use, and protect your data",
+  title: "Privacy Policy | BlockchainBay",
+  description: "BlockchainBay's Privacy Policy - How we collect, use, and protect your data",
 }
 
 export default function PrivacyPolicy() {
@@ -24,7 +24,7 @@ export default function PrivacyPolicy() {
     { id: "childrens-privacy", title: "Children's Privacy" },
     { id: "international-transfers", title: "International Transfers" },
     { id: "changes-to-policy", title: "Changes to This Policy" },
-    { id: "contact-us", title: "Contact Us" },
+   
   ];
 
   return (
@@ -59,7 +59,7 @@ export default function PrivacyPolicy() {
             </span>
           </h1>
           <p className="text-gray-400 max-w-2xl mx-auto">
-            This Privacy Policy explains how blockchainbay collects, uses, and protects your information when you use our platform.
+            This Privacy Policy explains how BlockchainBay collects, uses, and protects your information when you use our platform.
           </p>
           <div className="flex items-center justify-center mt-4 text-sm text-gray-500">
             <Clock className="w-4 h-4 mr-1" />
@@ -112,7 +112,7 @@ export default function PrivacyPolicy() {
                   </span>
                 </h2>
                 <p className="text-gray-300 leading-relaxed">
-                  At blockchainbay, we are committed to protecting your privacy and ensuring the security of your personal information. 
+                  At BlockchainBay, we are committed to protecting your privacy and ensuring the security of your personal information. 
                   This Privacy Policy outlines how we collect, use, disclose, and safeguard your data when you use our website, 
                   mobile applications, and services (collectively, the "Services").
                 </p>
@@ -250,7 +250,7 @@ export default function PrivacyPolicy() {
                 
                 <h3 className="text-xl font-semibold mt-6 mb-3 text-white">4.3 Business Transfers</h3>
                 <p className="text-gray-300 leading-relaxed">
-                  If blockchainbay is involved in a merger, acquisition, or sale of all or a portion of its assets, your information may be 
+                  If BlockchainBay is involved in a merger, acquisition, or sale of all or a portion of its assets, your information may be 
                   transferred as part of that transaction. We will notify you via email and/or a prominent notice on our website of any 
                   change in ownership or uses of your information.
                 </p>
@@ -479,70 +479,7 @@ export default function PrivacyPolicy() {
                 </div>
               </section>
 
-              {/* Contact Us */}
-              <section id="contact-us" className="mb-12 p-8 rounded-2xl bg-white/[0.02] backdrop-blur-sm border border-white/10">
-                <h2 className="text-2xl font-bold mb-4 flex items-center text-white">
-                  <span className="bg-gradient-to-r from-[#F7984A] via-[#F7984A] to-[#F7984A]/70 bg-clip-text text-transparent">
-                    11. Contact Us
-                    </span>
-                </h2>
-                
-                <p className="text-gray-300 leading-relaxed">
-                  If you have any questions or concerns about this Privacy Policy or our privacy practices, please contact us at:
-                </p>
-                
-                <div className="mt-6 space-y-4 text-gray-300">
-                  <div className="flex items-start">
-                    <div className="mr-3 w-10 h-10 rounded-full bg-[#F7984A]/10 flex items-center justify-center flex-shrink-0">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#F7984A]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="text-white font-medium">Email</h3>
-                      <p className="text-sm">privacy@blockchainbay.com</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start">
-                    <div className="mr-3 w-10 h-10 rounded-full bg-[#F7984A]/10 flex items-center justify-center flex-shrink-0">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#F7984A]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="text-white font-medium">Phone</h3>
-                      <p className="text-sm">+1 (555) 123-4567</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start">
-                    <div className="mr-3 w-10 h-10 rounded-full bg-[#F7984A]/10 flex items-center justify-center flex-shrink-0">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#F7984A]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="text-white font-medium">Address</h3>
-                      <p className="text-sm">123 Blockchain Avenue, Suite 500</p>
-                      <p className="text-sm">San Francisco, CA 94103</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="mt-8 pt-6 border-t border-white/5">
-                  <Link 
-                    href="/contact" 
-                    className="inline-flex items-center px-5 py-3 rounded-lg bg-[#F7984A] text-white font-medium hover:bg-[#F7984A]/90 transition-colors"
-                  >
-                    Contact Our Privacy Team
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                    </svg>
-                  </Link>
-                </div>
-              </section>
+             
             </div>
             
             {/* Back to top button - fixed position */}

@@ -47,12 +47,12 @@ const HeroSection = () => {
             
 
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold mb-4 sm:mb-6 text-white leading-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/70">
-              Your <span className="text-[#F7984A]">Crypto</span>  hub
+              Your <span className="text-[#F7984A]">Crypto</span>  Hub
             </h1>
 
             <p className="text-base sm:text-lg md:text-xl text-gray-300 mb-6 sm:mb-8 max-w-2xl mx-auto">
-              Stay updated with the newest crypto projects, tech news, and exclusive giveaways. Your one-stop
-              destination for everything crypto.
+            Stay updated with the newest crypto projects, news, podcasts, and our store. Your one-stop destination for everything 
+            crypto.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8 sm:mb-10 md:mb-12 justify-center">

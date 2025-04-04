@@ -231,7 +231,7 @@ export default function MediaKitPage() {
     if (path.startsWith("http")) {
       return path
     }
-    return `${process.env.NEXT_PUBLIC_STRAPI_API_URL}${path}`
+    return `${process.env.NEXT_PUBLIC_BACKEND_URL}${path}`
   }
 
   const formatFileSize = (bytes: number): string => {
@@ -441,7 +441,6 @@ export default function MediaKitPage() {
               our brand guidelines when using these assets.
             </p>
             <div className="flex flex-wrap gap-4">
-              
               <Button
                 variant="outline"
                 className="border-white/20 hover:bg-white/10 px-6 py-6 rounded-lg transition-all duration-300 hover:-translate-y-1"
@@ -463,11 +462,7 @@ export default function MediaKitPage() {
                 <p className="text-gray-300">
                   All assets provided in this media kit are subject to our brand guidelines. Please ensure you read and
                   follow these guidelines when using our assets in your materials. For any questions or special
-                  requests, please contact our brand team at{" "}
-                  <a href="mailto:brand@blockchainbay.com" className="text-[#F7984A] hover:underline">
-                    brand@blockchainbay.com
-                  </a>
-                  .
+                  requests, please contact our brand team
                 </p>
               </div>
             </div>
@@ -483,7 +478,7 @@ export default function MediaKitPage() {
             </div>
           )}
 
-         {/* Tabs */}
+          {/* Tabs */}
           <Tabs defaultValue="wallpapers" className="mb-16" onValueChange={setActiveTab}>
             <div className="max-w-4xl mx-auto mb-8">
               <TabsList className="w-full grid grid-cols-2 bg-[#121220] rounded-lg">
@@ -491,7 +486,7 @@ export default function MediaKitPage() {
                   value="wallpapers"
                   className={cn(
                     "transition-colors py-3 font-medium",
-                    "data-[state=active]:text-[#F7984A] data-[state=inactive]:text-white"
+                    "data-[state=active]:text-[#F7984A] data-[state=inactive]:text-white",
                   )}
                 >
                   Wallpapers
@@ -500,7 +495,7 @@ export default function MediaKitPage() {
                   value="logos"
                   className={cn(
                     "transition-colors py-3 font-medium",
-                    "data-[state=active]:text-[#F7984A] data-[state=inactive]:text-gray-400"
+                    "data-[state=active]:text-[#F7984A] data-[state=inactive]:text-gray-400",
                   )}
                 >
                   Logos
@@ -675,7 +670,6 @@ export default function MediaKitPage() {
                 )}
               </div>
               {/* Download All Section */}
-              
             </TabsContent>
 
             {/* Logos Tab */}
@@ -693,187 +687,72 @@ export default function MediaKitPage() {
               </div>
 
               {/* Logo Preview */}
+
+              {/* Logo Formats */}
+
               <div className="mb-12">
-                <h3 className="text-xl font-semibold mb-6 text-[#F7984A] ml-11">Logo Variations</h3>
+                <h3 className="text-xl font-semibold mb-6 text-[#F7984A] ml-11">Logo Gallery</h3>
                 {loading ? (
                   <div className="flex justify-center p-12">
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#F7984A]"></div>
                   </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {/* Primary Logo (Light Background) */}
-                    <div className="bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl p-8 flex items-center justify-center">
-                      <div className="w-full max-w-xs">
-                        <div className="text-center mb-4 text-sm text-gray-400">Primary Logo (Light Background)</div>
-                        {logos.find(
-                          (logo) => logo.variation === "primary" && (logo.format === "svg" || logo.format === "png"),
-                        ) ? (
-                          <Image
-                            src={getFileUrl(
-                              logos.find(
-                                (logo) =>
-                                  logo.variation === "primary" && (logo.format === "svg" || logo.format === "png"),
-                              )?.file?.url || "",
-                            )}
-                            alt="Blockchain Bay Logo"
-                            width={400}
-                            height={200}
-                            className="w-full h-auto"
-                          />
-                        ) : (
-                          <div className="p-4 border border-dashed border-gray-600 rounded-md text-center text-gray-400">
-                            No primary logo available
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* White Logo (Dark Background) */}
-                    <div className="bg-white rounded-xl p-8 flex items-center justify-center">
-                      <div className="w-full max-w-xs">
-                        <div className="text-center mb-4 text-sm text-gray-600">Primary Logo (Dark Background)</div>
-                        {logos.find(
-                          (logo) => logo.variation === "white" && (logo.format === "svg" || logo.format === "png"),
-                        ) ? (
-                          <Image
-                            src={getFileUrl(
-                              logos.find(
-                                (logo) =>
-                                  logo.variation === "white" && (logo.format === "svg" || logo.format === "png"),
-                              )?.file?.url || "",
-                            )}
-                            alt="Blockchain Bay Logo (Dark Background)"
-                            width={400}
-                            height={200}
-                            className="w-full h-auto"
-                          />
-                        ) : (
-                          <div className="p-4 border border-dashed border-gray-300 rounded-md text-center text-gray-600">
-                            No white logo available
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Logo Icon Only */}
-              <div className="mb-12">
-                <h3 className="text-xl font-semibold mb-6 text-[#F7984A] ml-11">Icon Only</h3>
-                {loading ? (
-                  <div className="flex justify-center p-12">
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#F7984A]"></div>
+                ) : !logos || logos.length === 0 ? (
+                  <div className="p-8 text-center bg-gray-800/30 rounded-lg border border-gray-700/50">
+                    <p className="text-gray-400">No logos available.</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    {/* Primary Icon */}
-                    <div className="bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl p-8 flex items-center justify-center">
-                      <div className="w-full max-w-xs">
-                        <div className="text-center mb-4 text-sm text-gray-400">Primary Icon</div>
-                        <div className="flex items-center justify-center">
-                          {logos.find((logo) => logo.variation === "icon" && logo.format === "svg") ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {logos
+                      .filter((logo) => logo.format === "svg" || logo.format === "png")
+                      .map((logo, index) => (
+                        <div
+                          key={`${logo.id}-${index}`}
+                          className="bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl p-6 flex flex-col items-center justify-center hover:border-[#F7984A]/30 transition-all duration-300 group"
+                        >
+                          <div className="w-full aspect-square flex items-center justify-center p-4 mb-4 bg-gradient-to-b from-transparent to-black/10 rounded-lg">
                             <Image
-                              src={getFileUrl(
-                                logos.find((logo) => logo.variation === "icon" && logo.format === "svg")?.file?.url ||
-                                  "",
-                              )}
-                              alt="Blockchain Bay Icon"
-                              width={96}
-                              height={96}
-                              className="w-24 h-24"
+                              src={getFileUrl(logo.file?.url || "")}
+                              alt={logo.name}
+                              width={200}
+                              height={200}
+                              className="w-auto h-auto max-h-[120px] object-contain group-hover:scale-105 transition-transform duration-300"
                             />
-                          ) : (
-                            <div className="relative w-24 h-24">
-                              <div className="absolute inset-0 bg-gradient-to-tr from-[#F7984A] to-[#F7984A]/80 rounded-lg blur-[2px]"></div>
-                              <div className="absolute inset-0.5 bg-[#F7984A] rounded-lg flex items-center justify-center">
-                                <svg
-                                  width="48"
-                                  height="48"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                >
-                                  <path d="M12 2L20 7V17L12 22L4 17V7L12 2Z" fill="white" />
-                                </svg>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Black Icon */}
-                    <div className="bg-white rounded-xl p-8 flex items-center justify-center">
-                      <div className="w-full max-w-xs">
-                        <div className="text-center mb-4 text-sm text-gray-600">Black Icon</div>
-                        <div className="flex items-center justify-center">
-                          {logos.find((logo) => logo.variation === "black" && logo.format === "svg") ? (
-                            <Image
-                              src={getFileUrl(
-                                logos.find((logo) => logo.variation === "black" && logo.format === "svg")?.file?.url ||
-                                  "",
+                          </div>
+                          <h4 className="font-medium text-sm text-center mb-2 group-hover:text-[#F7984A] transition-colors">
+                            {logo.name}
+                          </h4>
+                          <div className="flex items-center justify-center gap-2 mt-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0 text-gray-400 hover:text-[#F7984A] hover:bg-[#F7984A]/10"
+                              onClick={() => handleCopyLink(logo.file?.url || "")}
+                            >
+                              {copiedLink === getFileUrl(logo.file?.url || "") ? (
+                                <Check className="h-4 w-4" />
+                              ) : (
+                                <Copy className="h-4 w-4" />
                               )}
-                              alt="Blockchain Bay Black Icon"
-                              width={96}
-                              height={96}
-                              className="w-24 h-24"
-                            />
-                          ) : (
-                            <div className="relative w-24 h-24">
-                              <div className="absolute inset-0 bg-black rounded-lg blur-[1px]"></div>
-                              <div className="absolute inset-0.5 bg-black rounded-lg flex items-center justify-center">
-                                <svg
-                                  width="48"
-                                  height="48"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                >
-                                  <path d="M12 2L20 7V17L12 22L4 17V7L12 2Z" fill="white" />
-                                </svg>
-                              </div>
-                            </div>
-                          )}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0 text-gray-400 hover:text-[#F7984A] hover:bg-[#F7984A]/10"
+                              onClick={() => openPreview(getFileUrl(logo.file?.url || ""))}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0 text-gray-400 hover:text-[#F7984A] hover:bg-[#F7984A]/10"
+                              onClick={() => handleDownload(logo.file?.url || "", logo.file?.name || "logo")}
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-
-                    {/* White Icon */}
-                    <div className="bg-gray-900 rounded-xl p-8 flex items-center justify-center">
-                      <div className="w-full max-w-xs">
-                        <div className="text-center mb-4 text-sm text-gray-400">White Icon</div>
-                        <div className="flex items-center justify-center">
-                          {logos.find((logo) => logo.variation === "white" && logo.format === "svg") ? (
-                            <Image
-                              src={getFileUrl(
-                                logos.find((logo) => logo.variation === "white" && logo.format === "svg")?.file?.url ||
-                                  "",
-                              )}
-                              alt="Blockchain Bay White Icon"
-                              width={96}
-                              height={96}
-                              className="w-24 h-24"
-                            />
-                          ) : (
-                            <div className="relative w-24 h-24">
-                              <div className="absolute inset-0 bg-white rounded-lg blur-[1px]"></div>
-                              <div className="absolute inset-0.5 bg-white rounded-lg flex items-center justify-center">
-                                <svg
-                                  width="48"
-                                  height="48"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                >
-                                  <path d="M12 2L20 7V17L12 22L4 17V7L12 2Z" fill="#07071C" />
-                                </svg>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                      ))}
                   </div>
                 )}
               </div>
@@ -948,8 +827,6 @@ export default function MediaKitPage() {
                   </div>
                 )}
               </div>
-
-              
             </TabsContent>
           </Tabs>
 
@@ -1055,12 +932,11 @@ export default function MediaKitPage() {
                   contact our brand team. We're here to help ensure our brand is represented consistently.
                 </p>
                 <div className="flex flex-wrap gap-4">
-                  <Link 
-                  href="/contact">
-                  <Button variant="outline" className="border-white/20 hover:bg-white/10 transition-all duration-300">
-                    Contact Brand Team
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
+                  <Link href="/contact">
+                    <Button variant="outline" className="border-white/20 hover:bg-white/10 transition-all duration-300">
+                      Contact Brand Team
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
                   </Link>
                   <Button variant="outline" className="border-white/20 hover:bg-white/10 transition-all duration-300">
                     Download Brand Guidelines
@@ -1096,7 +972,7 @@ export default function MediaKitPage() {
       )}
 
       {/* Footer */}
-      <Footer className='relative z-20'/>
+      <Footer className="relative z-20" />
     </div>
   )
 }

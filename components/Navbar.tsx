@@ -147,11 +147,7 @@ export const Navbar = () => {
                 )}
                 <span className="absolute inset-0 rounded-full bg-gray-800 -z-10 opacity-0 hover:opacity-100 transition-opacity"></span>
               </Link>
-              <Link href="/admin/giveaways" >
-              <Button className="bg-[#F7984A] hover:bg-[#F7984A]/90 text-white rounded-full px-5 shadow-lg shadow-[#F7984A]/20 transition-all duration-300 hover:shadow-[#F7984A]/30 hover:translate-y-[-2px]">
-                Sign In
-              </Button>
-              </Link>
+              
             </div>
 
             <button
@@ -194,14 +190,7 @@ export const Navbar = () => {
                   View Cart {cartCount > 0 && `(${cartCount})`}
                 </Button>
               </Link>
-              <Link href="/admin/giveaways" >
-              <Button
-                className="w-full bg-[#F7984A] hover:bg-[#F7984A]/90 text-white py-6 mt-4"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Sign In
-              </Button>
-              </Link>
+             
             </div>
           </div>
         </div>

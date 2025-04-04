@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useCart } from "../../contexts/CartContext"
-import Navbar from "../../components/Navbar" 
+import Navbar from "../../components/Navbar"
 import { Footer } from "../../components/NewsletterFooter"
 import { Button } from "@/components/ui/button"
 import { Minus, Plus, ShoppingCart, ArrowRight, Trash2 } from "lucide-react"
@@ -105,8 +105,8 @@ export default function CartPage() {
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-8">
-              <div className="w-full">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="w-full lg:col-span-2">
                 <div className="bg-[#0A0B1A] border border-[#1E2140]/50 rounded-xl overflow-hidden">
                   <div className="px-6 py-4 border-b border-[#1E2140]/50">
                     <h2 className="font-bold">Cart Items ({items.length})</h2>
@@ -187,9 +187,9 @@ export default function CartPage() {
                 </div>
               </div>
 
-              <div className="w-full">
+              <div className="w-full lg:col-span-1">
                 {/* Cart summary */}
-                <div className="bg-[#0A0B1A] border border-[#1E2140]/50 rounded-xl p-6 lg:sticky lg:top-24">
+                <div className="bg-[#0A0B1A] border border-[#1E2140]/50 rounded-xl p-6 lg:sticky lg:top-32">
                   <h2 className="text-xl font-bold mb-4">Order Summary</h2>
                   <div className="space-y-2 mb-4 text-sm sm:text-base">
                     <div className="flex justify-between">
@@ -254,3 +254,4 @@ export default function CartPage() {
     </div>
   )
 }
+
