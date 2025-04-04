@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
+import { useRouter } from 'next/navigation'
 import Link from "next/link"
 import {
   Search,
@@ -14,6 +15,7 @@ import {
   Clock
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { useCart } from "../contexts/CartContext"
 
@@ -79,6 +81,12 @@ export const Navbar = () => {
   const [scrolled, setScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [searchFocused, setSearchFocused] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const router = useRouter()
+  
   // Add cart context
   const { getItemsCount } = useCart()
 
@@ -104,6 +112,38 @@ export const Navbar = () => {
 
   // Get cart count safely
   const cartCount = mounted ? getItemsCount() : 0
+  
+  // Handle search submission
+  const handleSubmitSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`)
+      setSearchQuery("")
+      setSearchOpen(false)
+    }
+  }
+  
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + K to open search
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault()
+        setSearchOpen(true)
+        setTimeout(() => {
+          searchInputRef.current?.focus()
+        }, 10)
+      }
+      
+      // Escape to close search
+      if (e.key === 'Escape' && searchOpen) {
+        setSearchOpen(false)
+      }
+    }
+    
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [searchOpen])
 
   return (
     <>
@@ -134,6 +174,22 @@ export const Navbar = () => {
             </div>
 
             <div className="hidden lg:flex items-center gap-5">
+              {/* Search Trigger Button */}
+              <button
+                onClick={() => {
+                  setSearchOpen(true)
+                  setTimeout(() => searchInputRef.current?.focus(), 10)
+                }}
+                className="relative w-8 h-8 rounded-full flex items-center justify-center text-gray-300 hover:text-white transition-colors group"
+                aria-label="Search"
+              >
+                <Search className="h-5 w-5" />
+                <span className="absolute inset-0 rounded-full bg-gray-800 -z-10 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                <span className="sr-only lg:not-sr-only lg:absolute lg:top-10 lg:right-0 lg:text-xs lg:bg-gray-800 lg:px-2 lg:py-1 lg:rounded lg:opacity-0 lg:group-hover:opacity-100 lg:whitespace-nowrap lg:pointer-events-none">
+                  Ctrl+K
+                </span>
+              </button>
+              
               <Link
                 href="/cart"
                 aria-label="Cart"
@@ -147,7 +203,6 @@ export const Navbar = () => {
                 )}
                 <span className="absolute inset-0 rounded-full bg-gray-800 -z-10 opacity-0 hover:opacity-100 transition-opacity"></span>
               </Link>
-              
             </div>
 
             <button
@@ -160,6 +215,133 @@ export const Navbar = () => {
         </div>
       </header>
 
+      {/* Search Overlay */}
+      {searchOpen && (
+        <div 
+          className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-start justify-center pt-20 px-4 animate-fadeIn"
+          onClick={() => setSearchOpen(false)}
+        >
+          <div 
+            className="w-full max-w-2xl bg-gradient-to-b from-[#0D0B26] to-[#07071C] border border-gray-800/80 rounded-xl shadow-2xl overflow-hidden animate-slideDown transition-all duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <form onSubmit={handleSubmitSearch} className="relative">
+              <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400">
+                <Search className={`h-5 w-5 transition-colors duration-300 ${searchFocused ? 'text-[#F7984A]' : 'text-gray-400'}`} />
+              </div>
+              <Input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Search projects, products, podcasts, news..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setSearchFocused(false)}
+                className="border-none bg-transparent py-6 pl-12 pr-12 text-lg placeholder:text-gray-500 focus-visible:ring-1 focus-visible:ring-[#F7984A] focus-visible:ring-offset-0"
+                autoComplete="off"
+              />
+              <div className="absolute right-5 top-1/2 -translate-y-1/2 flex items-center gap-3">
+                {searchQuery && (
+                  <button 
+                    type="button" 
+                    className="text-gray-400 hover:text-gray-300 transition-colors"
+                    onClick={() => setSearchQuery("")}
+                    aria-label="Clear search"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+                <kbd className="hidden md:flex h-5 items-center gap-1 rounded border border-gray-700 bg-gray-800 px-1.5 font-mono text-[10px] font-medium text-gray-400">
+                  ESC
+                </kbd>
+              </div>
+            </form>
+                          <div className="p-6 border-t border-gray-800/50 bg-black/20">
+              <p className="text-sm text-gray-400 mb-3">Popular Searches</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  className="bg-[#0D0B26] border border-gray-800/60 rounded-full px-4 py-2 text-sm hover:bg-[#0D0B26]/70 hover:border-gray-700/60 transition-all duration-300 flex items-center gap-1.5 group"
+                  onClick={(e) => {
+                    setSearchQuery("Bitcoin");
+                    setTimeout(() => handleSubmitSearch(e as any), 10);
+                  }}
+                >
+                  <span>🔸</span>
+                  <span className="group-hover:text-[#F7984A] transition-colors">Bitcoin</span>
+                </button>
+                <button
+                  className="bg-[#0D0B26] border border-gray-800/60 rounded-full px-4 py-2 text-sm hover:bg-[#0D0B26]/70 hover:border-gray-700/60 transition-all duration-300 flex items-center gap-1.5 group"
+                  onClick={(e) => {
+                    setSearchQuery("Ethereum");
+                    setTimeout(() => handleSubmitSearch(e as any), 10);
+                  }}
+                >
+                  <span>💠</span>
+                  <span className="group-hover:text-[#F7984A] transition-colors">Ethereum</span>
+                </button>
+                <button
+                  className="bg-[#0D0B26] border border-gray-800/60 rounded-full px-4 py-2 text-sm hover:bg-[#0D0B26]/70 hover:border-gray-700/60 transition-all duration-300 flex items-center gap-1.5 group"
+                  onClick={(e) => {
+                    setSearchQuery("DeFi");
+                    setTimeout(() => handleSubmitSearch(e as any), 10);
+                  }}
+                >
+                  <span>💰</span>
+                  <span className="group-hover:text-[#F7984A] transition-colors">DeFi</span>
+                </button>
+                <button
+                  className="bg-[#0D0B26] border border-gray-800/60 rounded-full px-4 py-2 text-sm hover:bg-[#0D0B26]/70 hover:border-gray-700/60 transition-all duration-300 flex items-center gap-1.5 group"
+                  onClick={(e) => {
+                    setSearchQuery("NFTs");
+                    setTimeout(() => handleSubmitSearch(e as any), 10);
+                  }}
+                >
+                  <span>🖼️</span>
+                  <span className="group-hover:text-[#F7984A] transition-colors">NFTs</span>
+                </button>
+                <button
+                  className="bg-[#0D0B26] border border-gray-800/60 rounded-full px-4 py-2 text-sm hover:bg-[#0D0B26]/70 hover:border-gray-700/60 transition-all duration-300 flex items-center gap-1.5 group"
+                  onClick={(e) => {
+                    setSearchQuery("Mining");
+                    setTimeout(() => handleSubmitSearch(e as any), 10);
+                  }}
+                >
+                  <span>⛏️</span>
+                  <span className="group-hover:text-[#F7984A] transition-colors">Mining</span>
+                </button>
+                <button
+                  className="bg-[#0D0B26] border border-gray-800/60 rounded-full px-4 py-2 text-sm hover:bg-[#0D0B26]/70 hover:border-gray-700/60 transition-all duration-300 flex items-center gap-1.5 group"
+                  onClick={(e) => {
+                    setSearchQuery("Hardware Wallet");
+                    setTimeout(() => handleSubmitSearch(e as any), 10);
+                  }}
+                >
+                  <span>🔒</span>
+                  <span className="group-hover:text-[#F7984A] transition-colors">Hardware Wallet</span>
+                </button>
+              </div>
+              <div className="mt-6 flex justify-between items-center">
+                <span className="text-xs text-gray-500 flex items-center gap-1">
+                  <kbd className="inline-flex h-5 items-center gap-1 rounded border border-gray-700 bg-gray-800 px-1.5 font-mono text-[10px] font-medium text-gray-400 md:hidden">
+                    ESC
+                  </kbd>
+                  <span className="md:hidden">to close</span>
+                  <span className="hidden md:inline">Press ESC to close</span>
+                </span>
+                <Button
+                  type="submit"
+                  onClick={handleSubmitSearch}
+                  className="bg-[#F7984A] hover:bg-[#F7984A]/90 text-white px-5 py-2 transition-all duration-200 shadow-lg shadow-[#F7984A]/20 hover:shadow-[#F7984A]/30 hover:translate-y-[-1px]"
+                  disabled={!searchQuery.trim()}
+                >
+                  Search
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mobile menu */}
       <div
         className={cn(
@@ -169,6 +351,18 @@ export const Navbar = () => {
       >
         <div className="pt-20 px-6 h-full overflow-y-auto">
           <div className="space-y-6">
+            {/* Mobile Search */}
+            <form onSubmit={handleSubmitSearch} className="relative mb-8">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="bg-gray-800/50 border-gray-700/50 pl-10 py-6"
+              />
+            </form>
+
             {navItems.map((item) => (
               <Link
                 key={item.name}
