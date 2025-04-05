@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
@@ -21,6 +20,30 @@ type StoreClientProps = {
   products: ProductType[]
   categories: CategoryType[]
   tags: any[]
+}
+
+// ProductImage component to handle image loading and errors
+function ProductImage({ product }: { product: ProductType }) {
+  const [hasError, setHasError] = useState(false)
+  const imageUrl = product.attributes.mainImage?.data?.attributes?.url
+  // If there's an error or no image URL, use '/placeholder.svg'; otherwise, check if it's already the placeholder or needs Strapi URL
+  const src = hasError || !imageUrl 
+    ? '/placeholder.svg' 
+    : imageUrl === '/placeholder.svg' 
+      ? imageUrl 
+      : getStrapiMediaUrl(imageUrl)
+
+  return (
+    <Image
+      src={src}
+      alt={product.attributes.name || "Product image"}
+      width={400}
+      height={400}
+      onError={() => setHasError(true)}
+      className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
+      priority
+    />
+  )
 }
 
 export default function StoreClient({ products, categories, tags }: StoreClientProps) {
@@ -44,14 +67,12 @@ export default function StoreClient({ products, categories, tags }: StoreClientP
   const [availabilityFilterOpen, setAvailabilityFilterOpen] = useState(true)
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [sortOption, setSortOption] = useState("featured")
-
   const [currentPage, setCurrentPage] = useState(1)
   const [productsPerPage] = useState(9)
 
   // Helper function to get plain text content from rich text format
   const getRichTextAsPlainText = (richText: RichTextBlock[]): string => {
     if (!richText || !Array.isArray(richText)) return ""
-
     return richText
       .map((block) => {
         if (!block.children) return ""
@@ -64,7 +85,6 @@ export default function StoreClient({ products, categories, tags }: StoreClientP
     const handleScroll = () => {
       setScrolled(window.scrollY > 20)
     }
-
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
@@ -76,7 +96,7 @@ export default function StoreClient({ products, categories, tags }: StoreClientP
 
   // Process categories for display - with null checking
   const categoryFilters = categories
-    .filter((category) => category && category.attributes) // Filter out any undefined or null categories
+    .filter((category) => category && category.attributes)
     .map((category) => ({
       id: category.attributes.slug || "",
       label: category.attributes.name || "",
@@ -87,7 +107,7 @@ export default function StoreClient({ products, categories, tags }: StoreClientP
 
   // Process tags for display - with null checking
   const tagFilters = tags
-    .filter((tag) => tag && tag.attributes) // Filter out any undefined or null tags
+    .filter((tag) => tag && tag.attributes)
     .map((tag) => ({
       id: tag.attributes.slug || "",
       label: tag.attributes.name || "",
@@ -108,11 +128,8 @@ export default function StoreClient({ products, categories, tags }: StoreClientP
   // Filter products based on selected filters
   const filteredProducts = products.filter((product) => {
     const productData = product.attributes
-
-    // Null check for product data
     if (!productData) return false
 
-    // Search filter
     const matchesSearch =
       productData.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (typeof productData.description === "string"
@@ -121,21 +138,16 @@ export default function StoreClient({ products, categories, tags }: StoreClientP
           ? getRichTextAsPlainText(productData.description).toLowerCase().includes(searchQuery.toLowerCase())
           : false)
 
-    // Category filter
     const matchesCategory =
       selectedCategories.length === 0 ||
       (productData.category?.data?.attributes?.slug &&
         selectedCategories.includes(productData.category.data.attributes.slug))
 
-    // Tag filter
     const matchesTags =
       selectedTags.length === 0 ||
       productData.tags?.data?.some((tag) => tag?.attributes?.slug && selectedTags.includes(tag.attributes.slug))
 
-    // Price filter
     const matchesPrice = productData.price >= priceRange[0] && productData.price <= priceRange[1]
-
-    // Availability filter
     const matchesAvailability = inStockOnly ? productData.inStock === true : true
 
     return matchesSearch && matchesCategory && matchesTags && matchesPrice && matchesAvailability
@@ -145,8 +157,6 @@ export default function StoreClient({ products, categories, tags }: StoreClientP
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     const aData = a.attributes
     const bData = b.attributes
-
-    // Null check for product data
     if (!aData || !bData) return 0
 
     switch (sortOption) {
@@ -194,10 +204,8 @@ export default function StoreClient({ products, categories, tags }: StoreClientP
     e.preventDefault()
     e.stopPropagation()
     addToCart(product, 1)
-    // Here you could add a toast notification
   }
 
-  // In your StoreClient component
   useEffect(() => {
     console.log("Products received in component:", products)
     console.log("Categories received in component:", categories)
@@ -206,26 +214,19 @@ export default function StoreClient({ products, categories, tags }: StoreClientP
 
   return (
     <div className={cn("min-h-screen bg-[#07071C] text-white", isDarkMode ? "dark" : "")}>
-      {/* Enhanced Background elements with more visible gradients and grid */}
+      {/* Background elements */}
       <div className="fixed inset-0 bg-[#07071C] overflow-hidden z-10">
-        {/* Main gradient orbs - more visible now */}
         <div className="absolute top-[5%] left-[10%] w-[40rem] h-[40rem] rounded-full bg-gradient-to-r from-[#F7984A]/30 to-transparent opacity-50 blur-[100px]"></div>
         <div className="absolute bottom-[10%] right-[10%] w-[35rem] h-[35rem] rounded-full bg-gradient-to-l from-[#F7984A]/30 to-transparent opacity-50 blur-[100px]"></div>
         <div className="absolute top-[40%] right-[15%] w-[30rem] h-[30rem] rounded-full bg-gradient-to-t from-blue-500/20 to-transparent opacity-40 blur-[100px]"></div>
-        {/* Grid overlay */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] opacity-70"></div>
-        {/* Keep the original texture overlay */}
         <div className="absolute inset-0 bg-[url('/placeholder.svg?height=100&width=100')] bg-repeat opacity-[0.015]"></div>
       </div>
 
-      
-        <Navbar />
-   
+      <Navbar />
 
-      {/* Main Content */}
       <main className="pt-32 pb-20 relative z-20">
         <div className="container mx-auto px-4 md:px-6">
-          {/* Header */}
           <div className="max-w-4xl mx-auto text-center mb-16">
             <h1 className="text-5xl md:text-6xl pb-3 font-extrabold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/70">
               Blockchain Bay Store
@@ -253,7 +254,6 @@ export default function StoreClient({ products, categories, tags }: StoreClientP
               </div>
 
               <div className={cn("space-y-8", filtersOpen ? "block" : "hidden lg:block")}>
-                {/* Search */}
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
@@ -265,7 +265,6 @@ export default function StoreClient({ products, categories, tags }: StoreClientP
                   />
                 </div>
 
-                {/* Categories Filter */}
                 <div className="space-y-4 bg-gray-800/20 p-4 rounded-lg border border-gray-800/50">
                   <button
                     className="flex items-center justify-between w-full font-semibold text-lg"
@@ -296,7 +295,6 @@ export default function StoreClient({ products, categories, tags }: StoreClientP
                   )}
                 </div>
 
-                {/* Tags Filter */}
                 <div className="space-y-4 bg-gray-800/20 p-4 rounded-lg border border-gray-800/50">
                   <button
                     className="flex items-center justify-between w-full font-semibold text-lg"
@@ -327,7 +325,6 @@ export default function StoreClient({ products, categories, tags }: StoreClientP
                   )}
                 </div>
 
-                {/* Price Filter */}
                 <div className="space-y-4 bg-gray-800/20 p-4 rounded-lg border border-gray-800/50">
                   <button
                     className="flex items-center justify-between w-full font-semibold text-lg"
@@ -371,7 +368,6 @@ export default function StoreClient({ products, categories, tags }: StoreClientP
                   )}
                 </div>
 
-                {/* Availability Filter */}
                 <div className="space-y-4 bg-gray-800/20 p-4 rounded-lg border border-gray-800/50">
                   <button
                     className="flex items-center justify-between w-full font-semibold text-lg"
@@ -395,7 +391,6 @@ export default function StoreClient({ products, categories, tags }: StoreClientP
                   )}
                 </div>
 
-                {/* Reset Filters */}
                 <Button variant="outline" className="w-full bg-black" onClick={resetFilters}>
                   Reset Filters
                 </Button>
@@ -455,8 +450,7 @@ export default function StoreClient({ products, categories, tags }: StoreClientP
                   )}
                 >
                   {currentProducts.map((product) => {
-                    // Check if product and its attributes exist
-                    if (!product || !product.attributes || !product.attributes.mainImage?.data) {
+                    if (!product || !product.attributes) {
                       return null
                     }
 
@@ -474,24 +468,7 @@ export default function StoreClient({ products, categories, tags }: StoreClientP
                               viewMode === "list" ? "w-1/3 aspect-square" : "w-full aspect-square",
                             )}
                           >
-                            <Image
-                              src={
-                                getStrapiMediaUrl(product.attributes.mainImage.data.attributes.url) ||
-                                "/placeholder.svg" ||
-                                "/placeholder.svg"
-                              }
-                              alt={product.attributes.name || "Product image"}
-                              width={400}
-                              height={400}
-                              className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
-                              priority
-                              unoptimized={true}
-                              onError={(e) => {
-                                console.error("Image failed to load:", product.attributes.mainImage.data.attributes.url)
-                                // @ts-ignore - currentTarget.src exists but TypeScript doesn't know it
-                                e.currentTarget.src = "/placeholder.png"
-                              }}
-                            />
+                            <ProductImage product={product} />
 
                             {product.attributes.sale && (
                               <div className="absolute top-4 left-4">
@@ -577,8 +554,7 @@ export default function StoreClient({ products, categories, tags }: StoreClientP
                   </div>
                   <h3 className="text-xl font-medium mb-2">No products found</h3>
                   <p className="text-gray-400 max-w-md">
-                    We couldn't find any products matching your search criteria. Try adjusting your filters or search
-                    term.
+                    We couldn't find any products matching your search criteria. Try adjusting your filters or search term.
                   </p>
                 </div>
               )}
@@ -597,9 +573,7 @@ export default function StoreClient({ products, categories, tags }: StoreClientP
                       Previous
                     </Button>
 
-                    {/* Generate page buttons */}
                     {Array.from({ length: Math.min(totalPages, 5) }).map((_, idx) => {
-                      // Logic to show pages around current page
                       let pageNum
                       if (totalPages <= 5) {
                         pageNum = idx + 1
@@ -627,10 +601,8 @@ export default function StoreClient({ products, categories, tags }: StoreClientP
                       )
                     })}
 
-                    {/* Show ellipsis if there are more pages */}
                     {totalPages > 5 && currentPage < totalPages - 2 && <span className="text-gray-500">...</span>}
 
-                    {/* Show last page if not visible in the sequence */}
                     {totalPages > 5 && currentPage < totalPages - 2 && (
                       <Button
                         variant="outline"
@@ -665,4 +637,3 @@ export default function StoreClient({ products, categories, tags }: StoreClientP
     </div>
   )
 }
-
