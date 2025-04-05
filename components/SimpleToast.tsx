@@ -1,9 +1,10 @@
 // components/SimpleToast.tsx
 "use client"
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { getStrapiMediaUrl } from '../lib/storeapi' // Import this function
+import { useCart } from '../contexts/CartContext'
+import { useToast } from '@/components/ui/use-toast'
 
 type SimpleToastProps = {
   product: any
@@ -12,6 +13,10 @@ type SimpleToastProps = {
 }
 
 export default function SimpleToast({ product, quantity, onClose }: SimpleToastProps) {
+  const { getCheckoutUrl } = useCart()
+  const [isRedirecting, setIsRedirecting] = useState(false)
+  const { toast } = useToast()
+
   useEffect(() => {
     const timer = setTimeout(() => {
       onClose()
@@ -24,10 +29,43 @@ export default function SimpleToast({ product, quantity, onClose }: SimpleToastP
   const productName = product?.attributes?.name || 'Product'
   const productPrice = product?.attributes?.price || 0
   const totalPrice = (productPrice * quantity).toFixed(2)
-  
-  // Log for debugging
-  console.log("Product in toast:", product);
-  console.log("Image data:", product?.attributes?.mainImage?.data);
+
+  const handleCheckout = () => {
+    try {
+      // Get the checkout URL from CartContext
+      const checkoutUrl = getCheckoutUrl()
+
+      if (!checkoutUrl) {
+        toast({
+          title: "Error",
+          description: "Could not create checkout URL. Your cart may be empty.",
+          duration: 3000,
+        })
+        return
+      }
+
+      // Set redirecting state to show loading UI
+      setIsRedirecting(true)
+
+      // Log the URL we're redirecting to (for debugging)
+      console.log("Redirecting to:", checkoutUrl)
+
+      // Use a small timeout to allow the UI to update before redirecting
+      setTimeout(() => {
+        // Redirect to the HeliumDeploy checkout page
+        window.location.href = checkoutUrl
+      }, 300)
+    } catch (error) {
+      console.error("Error during checkout:", error)
+      setIsRedirecting(false)
+
+      toast({
+        title: "Checkout Error",
+        description: "There was a problem processing your checkout. Please try again.",
+        duration: 3000,
+      })
+    }
+  }
   
   return (
     <div className="fixed top-4 right-4 bg-[#0D0B26] border border-gray-700 rounded-lg shadow-xl p-4 max-w-xs w-full z-[9999] animate-in fade-in">
@@ -39,7 +77,6 @@ export default function SimpleToast({ product, quantity, onClose }: SimpleToastP
       </div>
       
       <div className="flex items-center gap-3 mb-3">
-        {/* Show product name and details without relying on image */}
         <div className="flex-1">
           <p className="text-white text-sm font-medium">
             {productName} {quantity > 1 ? `(x${quantity})` : ''}
@@ -60,11 +97,19 @@ export default function SimpleToast({ product, quantity, onClose }: SimpleToastP
           View Cart
         </Button>
         <Button
-          onClick={() => window.location.href = '/checkout'}
+          onClick={handleCheckout}
+          disabled={isRedirecting}
           size="sm"
           className="h-8 text-xs flex-1 bg-[#F7984A] hover:bg-[#F7984A]/90 text-white"
         >
-          Checkout
+          {isRedirecting ? (
+            <>
+              <div className="mr-2 h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+              Redirecting...
+            </>
+          ) : (
+            "Checkout"
+          )}
         </Button>
       </div>
     </div>
