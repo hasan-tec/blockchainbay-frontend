@@ -624,7 +624,7 @@ const getRelatedProjectLogo = (relatedProject: RelatedProject) => {
                 <TabsContent value="about" className="mt-8 pt-0">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     {/* Main Content Area with staggered animation */}
-                    <div className="md:col-span-2 space-y-10">
+                   <div className="md:col-span-2 space-y-10 overflow-visible relative z-10">
                       <div
                         className={`transition-all duration-700 ease-out delay-100 ${isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
                       >
@@ -868,6 +868,27 @@ const getRelatedProjectLogo = (relatedProject: RelatedProject) => {
     
     <div className="rounded-xl overflow-hidden border border-gray-800/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:border-gray-700/70">
       <YouTubeEmbed url={project.VideoURL} title={`${project.title} - Overview`} />
+    </div>
+  </div>
+)}
+
+
+{/* Regular content from detailed description */}
+{regularContent.length > 0 && (
+  <div
+    className={`space-y-6 transition-all duration-700 ease-out delay-250 ${isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
+  >
+    <div className="flex justify-between items-center">
+      <h3 className="text-xl font-bold flex items-center gap-2">
+        <span className="text-[#F7984A]">📄</span> Detailed Description
+      </h3>
+    </div>
+    <div className="space-y-4 overflow-visible">
+      {regularContent.map((paragraph, index) => (
+        <p key={index} className="text-gray-300 leading-relaxed font-normal">
+          {paragraph}
+        </p>
+      ))}
     </div>
   </div>
 )}
