@@ -264,7 +264,7 @@ export default function CryptoDirectoryPage() {
     const fetchProjects = async () => {
       try {
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:1337"
-        const response = await fetch(`${backendUrl}/api/crypto-projects?populate=Logo`)
+        const response = await fetch(`${backendUrl}/api/crypto-projects?populate=Logo&pagination[pageSize]=1000&pagination[page]=1`)
 
         if (!response.ok) {
           throw new Error("Failed to fetch projects")
