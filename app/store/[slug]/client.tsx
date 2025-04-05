@@ -183,89 +183,82 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
       .join(" ")
   }
 
-  // Helper function to render product description content
-  const renderDescription = (description: string | RichTextBlock[] | undefined) => {
-    if (!description) return null;
-    
-    if (typeof description === "string") {
-      // Handle string description format
-      return description
-        .split("\n")
-        .map((paragraph: string, index: number) => {
-          // Check if this is a section header (ends with :)
-          if (paragraph.trim().endsWith(":")) {
-            return (
-              <h4 key={index} className="font-bold text-lg mt-4 mb-2 text-white">
-                {paragraph.trim()}
-              </h4>
-            )
-          }
-          // Check if line contains a checkmark
-          else if (paragraph.includes("✅")) {
-            return (
-              <div key={index} className="flex items-start gap-2 ml-4 my-1">
-                <span className="text-green-500 flex-shrink-0">✅</span>
-                <span className="text-gray-300">{paragraph.replace("✅", "").trim()}</span>
-              </div>
-            )
-          }
-          // Regular paragraph
-          else if (paragraph.trim()) {
-            return (
-              <p key={index} className="text-gray-300 leading-relaxed mb-2">
-                {paragraph.trim()}
-              </p>
-            )
-          }
-          // Empty line - add some spacing
-          return <div key={index} className="h-2"></div>
-        });
-    }
-    
-    // Handle rich text blocks format
-    if (Array.isArray(description)) {
-      return description.map((block, blockIndex) => {
-        if (block.type === "paragraph") {
-          // Check if paragraph has checkmark emoji
-          const text = block.children?.map((child: RichTextChild) => child.text || "").join("") || ""
-          if (text.includes("✅")) {
-            return (
-              <div key={blockIndex} className="flex items-start gap-2 ml-4 my-1">
-                <span className="text-green-500 flex-shrink-0">✅</span>
-                <span className="text-gray-300">{text.replace("✅", "").trim()}</span>
-              </div>
-            )
-          }
+  // Helper function to render product description content with proper link support
+const renderDescription = (description: string | RichTextBlock[] | undefined) => {
+  if (!description) return null;
+  
+  if (typeof description === "string") {
+    // For string descriptions, we need to parse any HTML-like content
+    return (
+      <div 
+        className="text-gray-300 leading-relaxed" 
+        dangerouslySetInnerHTML={{ __html: description }}
+      />
+    );
+  }
+  
+  // Handle rich text blocks format
+  if (Array.isArray(description)) {
+    return description.map((block, blockIndex) => {
+      if (block.type === "paragraph") {
+        // Check if paragraph has checkmark emoji
+        const text = block.children?.map((child: RichTextChild) => child.text || "").join("") || ""
+        if (text.includes("✅")) {
           return (
-            <p key={blockIndex} className="text-gray-300 leading-relaxed mb-2">
-              {block.children?.map((child: RichTextChild, childIndex: number) => (
+            <div key={blockIndex} className="flex items-start gap-2 ml-4 my-1">
+              <span className="text-green-500 flex-shrink-0">✅</span>
+              <span className="text-gray-300">{text.replace("✅", "").trim()}</span>
+            </div>
+          )
+        }
+        return (
+          <p key={blockIndex} className="text-gray-300 leading-relaxed mb-2">
+            {block.children?.map((child: RichTextChild, childIndex: number) => {
+              // Handle link nodes in the rich text
+              if (child.type === 'link' && child.url) {
+                return (
+                  <a 
+                    key={childIndex}
+                    href={child.url} 
+                    className={`text-[#F7984A] hover:underline ${child.bold === true ? "font-bold" : ""}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {child.children?.map(c => c.text).join('') || child.text || ''}
+                  </a>
+                );
+              }
+              
+              // Normal text node
+              return (
                 <span key={childIndex} className={child.bold === true ? "font-bold" : ""}>
                   {child.text || ""}
                 </span>
-              ))}
-            </p>
-          )
-        } else if (block.type === "heading") {
-          return (
-            <h4 key={blockIndex} className="font-bold text-lg mt-4 mb-2 text-white">
-              {block.children?.map((child: RichTextChild) => child.text || "").join("")}
-            </h4>
-          )
-        } else if (block.type === "list") {
-          return (
-            <ul key={blockIndex} className="list-disc pl-5 mb-4 text-gray-300">
-              {block.children?.map((item: any, itemIndex: number) => (
-                <li key={itemIndex}>{item.children?.map((child: any) => child.text || "").join("")}</li>
-              ))}
-            </ul>
-          )
-        }
-        return null
-      });
-    }
-    
-    return null;
+              );
+            })}
+          </p>
+        )
+      } else if (block.type === "heading") {
+        return (
+          <h4 key={blockIndex} className="font-bold text-lg mt-4 mb-2 text-white">
+            {block.children?.map((child: RichTextChild) => child.text || "").join("")}
+          </h4>
+        )
+      } else if (block.type === "list") {
+        return (
+          <ul key={blockIndex} className="list-disc pl-5 mb-4 text-gray-300">
+            {block.children?.map((item: any, itemIndex: number) => (
+              <li key={itemIndex}>{item.children?.map((child: any) => child.text || "").join("")}</li>
+            ))}
+          </ul>
+        )
+      }
+      return null
+    });
   }
+  
+  return null;
+}
 
   // Helper function to determine if specifications is rich text format
   const isRichTextSpecifications = (specs: any): specs is RichTextBlock[] => {
@@ -344,7 +337,7 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                   unoptimized={true}
                   onError={(e) => {
                     // @ts-ignore - TypeScript doesn't recognize currentTarget.src
-                    e.currentTarget.src = "/placeholder.jpg"
+                    e.currentTarget.src = "/placeholder.svg"
                   }}
                 />
                 {productData.sale && (
@@ -379,7 +372,7 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                         unoptimized={true}
                         onError={(e) => {
                           // @ts-ignore
-                          e.currentTarget.src = "/placeholder.jpg"
+                          e.currentTarget.src = "/placeholder.svg"
                         }}
                       />
                     </button>
@@ -817,7 +810,7 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                           unoptimized={true}
                           onError={(e) => {
                             // @ts-ignore
-                            e.currentTarget.src = "/placeholder.jpg"
+                            e.currentTarget.src = "/placeholder.svg"
                           }}
                         />
                         {relatedProduct.attributes.sale && (

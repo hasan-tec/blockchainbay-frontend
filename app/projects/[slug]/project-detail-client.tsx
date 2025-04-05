@@ -1,6 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import React from 'react';
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -424,52 +425,198 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
   }
 
   const extractContent = (description: DetailedDescriptionBlock[] | undefined) => {
-    if (!description) return { faqs: [], regularContent: [] }
-
-    const faqs: { question: string; answer: string[] }[] = []
-    const regularContent: string[] = []
-
-    let currentQuestion: string | null = null
-    let currentAnswer: string[] = []
-
-    for (const block of description) {
-      // Check if it's a paragraph with bold text (potential question)
-      if (block.type === "paragraph" && block.children.some((child) => child.bold)) {
-        // If we have a previous QA pair, save it
-        if (currentQuestion && currentAnswer.length > 0) {
-          faqs.push({
-            question: currentQuestion,
-            answer: currentAnswer,
-          })
-          currentAnswer = []
+    if (!description) return { faqs: [], regularContent: [] };
+  
+    const faqs: { question: string; answer: string[] }[] = [];
+    const regularContent: string[] = [];
+    
+    let currentMainHeading: string | null = null;
+    let currentSubheading: string | null = null;
+    let currentContent: string[] = [];
+    
+    for (let i = 0; i < (description?.length || 0); i++) {
+      const block = description?.[i];
+      if (!block || !block.children || !Array.isArray(block.children)) continue;
+      
+      // Get text content from this block
+      const textContent = block.children.map(child => child.text).join("");
+      
+      // Skip empty blocks
+      if (!textContent.trim()) continue;
+      
+      // Check if this is a heading (has bold text at beginning)
+      const firstChild = block.children[0];
+      const isHeading = firstChild && firstChild.bold;
+      
+      // If it's a heading, check if it's a main heading or a numbered point
+      if (isHeading) {
+        const headingText = block.children
+          .filter(child => child.bold)
+          .map(child => child.text)
+          .join("")
+          .trim();
+        
+        // If it's a numbered point (starts with a number.)
+        if (/^\d+\./.test(headingText)) {
+          // If we have a previous subheading, save it
+          if (currentSubheading && currentContent.length > 0) {
+            faqs.push({
+              question: currentSubheading,
+              answer: [...currentContent]
+            });
+            currentContent = [];
+          }
+          
+          // Get the non-bold text as part of the answer
+          const contentText = block.children
+            .filter(child => !child.bold)
+            .map(child => child.text)
+            .join("")
+            .trim();
+          
+          currentSubheading = headingText;
+          if (contentText) {
+            currentContent.push(contentText);
+          }
+        } 
+        // If it's a main heading (like "Why DeEEP Network Stands Out:")
+        else {
+          // If we have a previous main heading, save all its content
+          if (currentMainHeading && currentContent.length > 0) {
+            faqs.push({
+              question: currentMainHeading,
+              answer: [...currentContent]
+            });
+          } else if (currentSubheading && currentContent.length > 0) {
+            faqs.push({
+              question: currentSubheading,
+              answer: [...currentContent]
+            });
+          }
+          
+          currentMainHeading = headingText;
+          currentSubheading = null;
+          currentContent = [];
+          
+          // Get the non-bold text as part of the answer
+          const contentText = block.children
+            .filter(child => !child.bold)
+            .map(child => child.text)
+            .join("")
+            .trim();
+          
+          if (contentText) {
+            currentContent.push(contentText);
+          }
         }
-
-        // New question
-        currentQuestion = block.children.map((child) => child.text).join("")
-      }
-      // Check if it's a regular paragraph in a FAQ
-      else if (currentQuestion && block.type === "paragraph") {
-        // Add to current answer
-        currentAnswer.push(block.children.map((child) => child.text).join(""))
-      }
-      // If it's a regular paragraph (not part of a FAQ)
-      else if (block.type === "paragraph") {
-        regularContent.push(block.children.map((child) => child.text).join(""))
+      } 
+      // If it's not a heading, it's content for the current heading or subheading
+      else {
+        // If we have neither a main heading nor a subheading, 
+        // it's regular content not belonging to any section
+        if (!currentMainHeading && !currentSubheading) {
+          regularContent.push(textContent);
+        } else {
+          currentContent.push(textContent);
+        }
       }
     }
-
-    // Add the last QA pair if exists
-    if (currentQuestion && currentAnswer.length > 0) {
+    
+    // Add the last heading if any
+    if (currentSubheading && currentContent.length > 0) {
       faqs.push({
-        question: currentQuestion,
-        answer: currentAnswer,
-      })
+        question: currentSubheading,
+        answer: [...currentContent]
+      });
+    } else if (currentMainHeading && currentContent.length > 0) {
+      faqs.push({
+        question: currentMainHeading,
+        answer: [...currentContent]
+      });
     }
+    
+  
+    
+    return { faqs, regularContent };
+  };
 
-    return { faqs, regularContent }
-  }
+
+  const renderDirectDescription = (description: DetailedDescriptionBlock[] | undefined) => {
+    if (!description || !Array.isArray(description) || description.length === 0) {
+      return null;
+    }
+  
+    // Process the description blocks
+    return description.map((block, blockIndex) => {
+      if (block.type !== "paragraph" || !block.children) {
+        return null;
+      }
+  
+      // Handle the title block (usually the first block)
+      if (blockIndex === 0 && block.children.length === 1 && block.children[0].bold) {
+        return (
+          <h2 key={`title-${blockIndex}`} className="text-2xl font-bold mb-4 text-white">
+            {block.children[0].text}
+          </h2>
+        );
+      }
+  
+      // Check if this is a paragraph that starts with a numbered point in bold
+      const startsWithNumberedPoint = 
+        block.children.length > 0 && 
+        block.children[0].bold && 
+        /^\d+\./.test(block.children[0].text.trim());
+  
+      // If it's a numbered point, format it as a subheading
+      if (startsWithNumberedPoint) {
+        return (
+          <div key={`point-${blockIndex}`} className="mt-6 mb-4">
+            <h3 className="text-lg font-bold text-white mb-2">
+              {block.children.filter(child => child.bold).map(child => child.text).join('')}
+            </h3>
+            <p className="text-gray-300 leading-relaxed">
+              {block.children.filter(child => !child.bold).map(child => 
+                child.text.split('\n').map((line, i, arr) => (
+                  <React.Fragment key={`line-${i}`}>
+                    {line}
+                    {i < arr.length - 1 && <br />}
+                  </React.Fragment>
+                ))
+              )}
+            </p>
+          </div>
+        );
+      }
+  
+      // Handle regular paragraphs
+      return (
+        <div key={`para-${blockIndex}`} className="mb-4">
+          <p className="text-gray-300 leading-relaxed">
+            {block.children.map((child, childIndex) => (
+              <span 
+                key={`child-${blockIndex}-${childIndex}`}
+                className={child.bold ? "font-bold text-white" : ""}
+              >
+                {child.text.split('\n').map((line, i, arr) => (
+                  <React.Fragment key={`line-${blockIndex}-${childIndex}-${i}`}>
+                    {line}
+                    {i < arr.length - 1 && <br />}
+                  </React.Fragment>
+                ))}
+              </span>
+            ))}
+          </p>
+        </div>
+      );
+    });
+  };
+  
+
+
+
 
   const { faqs: faqSections, regularContent } = extractContent(project?.DetailedDescription)
+
 
 // Updated function to get related project logo
 const getRelatedProjectLogo = (relatedProject: RelatedProject) => {
@@ -873,45 +1020,13 @@ const getRelatedProjectLogo = (relatedProject: RelatedProject) => {
 )}
 
 
-{/* Regular content from detailed description */}
-{regularContent.length > 0 && (
-  <div
-    className={`space-y-6 transition-all duration-700 ease-out delay-250 ${isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
-  >
-    <div className="flex justify-between items-center">
-      <h3 className="text-xl font-bold flex items-center gap-2">
-        <span className="text-[#F7984A]">📄</span> Detailed Description
-      </h3>
-    </div>
-    <div className="space-y-4 overflow-visible">
-      {regularContent.map((paragraph, index) => (
-        <p key={index} className="text-gray-300 leading-relaxed font-normal">
-          {paragraph}
-        </p>
-      ))}
-    </div>
-  </div>
-)}
 
-                      {/* FAQ Sections with staggered animation */}
-                      {faqSections.length > 0 && (
-                        <div className="space-y-10">
-                          {faqSections.map((faq, index) => (
-                            <div
-                              key={index}
-                              className={`transition-all duration-700 ease-out`}
-                              style={{ transitionDelay: `${300 + index * 100}ms` }}
-                            >
-                              <h3 className="text-2xl font-bold mb-4 text-white">{faq.question}</h3>
-                              {faq.answer.map((paragraph, pIndex) => (
-                                <p key={pIndex} className="text-gray-300 leading-relaxed font-normal">
-                                  {paragraph}
-                                </p>
-                              ))}
-                            </div>
-                          ))}
-                        </div>
-                      )}
+
+<div className={`mb-10 transition-all duration-700 ease-out delay-250 ${isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}>
+  <div className="overflow-visible">
+    {renderDirectDescription(project?.DetailedDescription)}
+  </div>
+</div>
                     </div>
                     {/* Sidebar with animation - Only show if Dune IDs exist */}
                     {(project.AnalyticsDuneQueryID || project.dunequeryid2) && (

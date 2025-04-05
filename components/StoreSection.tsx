@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { ShoppingCart } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useCart } from "@/contexts/CartContext"
 import { getStrapiMediaUrl, ProductType, RichTextBlock } from "@/lib/storeapi"
 
-// Fallback products using the correct ProductType from storeapi
+// Fallback featured products using the correct ProductType from storeapi
 const fallbackProducts: ProductType[] = [
   {
     id: "fallback-1",
@@ -158,22 +157,22 @@ const StoreSection = () => {
       console.log("Fetching featured products from:", apiUrl);
       
       try {
-        // Use a simpler query to avoid potential issues
-        const response = await fetch(`${apiUrl}/api/products?populate=*`);
+        // Specifically fetch only featured products with the correct filter parameter
+        const response = await fetch(`${apiUrl}/api/products?populate=*&filters[featured][$eq]=true`);
         
         if (!response.ok) {
           const errorText = await response.text();
           console.error(`API request failed with status: ${response.status}`, errorText);
-          throw new Error(`Failed to fetch products: ${response.status} - ${errorText}`);
+          throw new Error(`Failed to fetch featured products: ${response.status} - ${errorText}`);
         }
         
         const data = await response.json();
         
         if (data && data.data && Array.isArray(data.data)) {
-          console.log(`Successfully loaded ${data.data.length} products from API`);
+          console.log(`Successfully loaded ${data.data.length} featured products from API`);
           
           // Process each product in the data array
-          const processedProducts: ProductType[] = data.data.map((item: RawProductData) => {
+          let processedProducts: ProductType[] = data.data.map((item: RawProductData) => {
             const productId = String(item.id);
             
             // Check if the item is already in the expected format or needs transformation
@@ -181,10 +180,15 @@ const StoreSection = () => {
               // Already has attributes, but make sure it has all required fields
               const attributes = item.attributes;
               
+              // Make sure it's actually featured
+              if (attributes.featured !== true) {
+                console.warn(`Product ${attributes.name} is not marked as featured, but was returned in featured results`);
+                attributes.featured = true;
+              }
+              
               // Set any missing required attributes with default values
               if (!attributes.description) attributes.description = "";
               if (attributes.inStock === undefined) attributes.inStock = true;
-              if (attributes.featured === undefined) attributes.featured = false;
               if (attributes.new === undefined) attributes.new = false;
               if (attributes.sale === undefined) attributes.sale = false;
               if (attributes.rating === undefined) attributes.rating = 5;
@@ -234,7 +238,7 @@ const StoreSection = () => {
                 slug: productSlug,
                 description: "", // Required field
                 inStock: true,
-                featured: false,
+                featured: true, // Ensure it's marked as featured
                 new: false,
                 sale: false,
                 rating: 5,
@@ -260,17 +264,22 @@ const StoreSection = () => {
             } as ProductType;
           });
           
-          console.log("Processed products:", processedProducts.map((p) => p.attributes.name));
+          // Double-check we only have featured products and limit to 4 for aesthetics
+          processedProducts = processedProducts
+            .filter(product => product.attributes.featured === true)
+            .slice(0, 4);
+          
+          console.log("Processed featured products:", processedProducts.map((p) => p.attributes.name));
           setProducts(processedProducts);
         } else {
-          console.log("Invalid API response format, using fallback data");
-          setProducts(fallbackProducts);
+          console.log("Invalid API response format or no featured products, using fallback data");
+          setProducts(fallbackProducts.slice(0, 4));
         }
       } catch (error) {
-        console.error("Error processing products:", error);
+        console.error("Error processing featured products:", error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
         setError(errorMessage);
-        setProducts(fallbackProducts);
+        setProducts(fallbackProducts.slice(0, 4));
       } finally {
         setLoading(false);
       }
@@ -311,6 +320,12 @@ const StoreSection = () => {
     }
   };
 
+  // Determine how to display products based on count
+  const displayProducts = products.slice(0, 4); // Ensure max 4 products for aesthetic display
+  const gridCols = displayProducts.length === 3 
+    ? "grid-cols-1 sm:grid-cols-3" 
+    : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4";
+
   return (
     <section className="py-20 bg-gradient-to-b from-transparent to-gray-900/30">
       <div className="container mx-auto px-4 md:px-6">
@@ -342,11 +357,11 @@ const StoreSection = () => {
 
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 min-h-[300px] place-items-center">
-            <div className="col-span-full text-center text-gray-400">Loading products...</div>
+            <div className="col-span-full text-center text-gray-400">Loading featured products...</div>
           </div>
-        ) : products.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {products.map((product) => (
+        ) : displayProducts.length > 0 ? (
+          <div className={`grid ${gridCols} gap-6`}>
+            {displayProducts.map((product) => (
               <ProductCard 
                 key={product.id} 
                 product={product} 

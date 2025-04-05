@@ -227,7 +227,7 @@ export default function StoreClient({ products, categories, tags }: StoreClientP
         <div className="container mx-auto px-4 md:px-6">
           {/* Header */}
           <div className="max-w-4xl mx-auto text-center mb-16">
-            <h1 className="text-5xl md:text-6xl font-extrabold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/70">
+            <h1 className="text-5xl md:text-6xl pb-3 font-extrabold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/70">
               Blockchain Bay Store
             </h1>
             <p className="text-xl text-gray-300">

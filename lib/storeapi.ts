@@ -4,15 +4,27 @@ import axios from 'axios';
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:1337';
 const API_TOKEN = process.env.NEXT_PUBLIC_STRAPI_API_TOKEN;
 
-// Configure axios with headers
+// Configure axios with headers and disable default caching
 const apiClient = axios.create({
   baseURL: API_URL,
   headers: {
-    Authorization: API_TOKEN ? `Bearer ${API_TOKEN}` : '',
+    'Authorization': API_TOKEN ? `Bearer ${API_TOKEN}` : '',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache'
   }
 });
 
-// Add this type definition at the top of storeapi.ts
+// Add a timestamp to GET requests to prevent caching
+apiClient.interceptors.request.use(config => {
+  if (config.method?.toLowerCase() === 'get') {
+    config.params = {
+      ...config.params,
+      _t: Date.now() // Add timestamp to prevent caching
+    };
+  }
+  return config;
+});
+
 // Add this type definition at the top of storeapi.ts
 export type ReviewType = {
   id: number;
@@ -31,7 +43,8 @@ export type RichTextChild = {
   bold?: boolean;
   italic?: boolean;
   underline?: boolean;
-  children?: Array<any>;
+  url?: string; // Add this for link support
+  children?: Array<RichTextChild>; // Make this recursive
 };
 
 export type RichTextBlock = {
@@ -168,7 +181,30 @@ export type CategoryType = {
   }
 };
 
-export async function getProducts(filters = {}) {
+// Utility to implement retries for API requests
+const withRetry = async <T>(fn: () => Promise<T>, retries = 3, delay = 300): Promise<T> => {
+  let lastError;
+  
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      console.error(`API request failed (attempt ${attempt}/${retries}):`, error);
+      
+      if (attempt < retries) {
+        // Exponential backoff
+        const backoffDelay = delay * Math.pow(2, attempt - 1);
+        console.log(`Retrying in ${backoffDelay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, backoffDelay));
+      }
+    }
+  }
+  
+  throw lastError;
+};
+
+export async function getProducts(filters: any = {}) {
   try {
     console.log('Fetching products with params:', {
       populate: {
@@ -186,26 +222,34 @@ export async function getProducts(filters = {}) {
       ...filters
     });
     
-    const response = await apiClient.get('/api/products', {
-      params: {
-        populate: {
-          mainImage: {
-            populate: '*',
+    // Use retry mechanism for more reliable data fetching
+    const response = await withRetry(() => 
+      apiClient.get('/api/products', {
+        params: {
+          populate: {
+            mainImage: {
+              populate: '*',
+            },
+            category: {
+              populate: '*',
+            },
+            tags: {
+              populate: '*',
+            },
           },
-          category: {
-            populate: '*',
-          },
-          tags: {
-            populate: '*',
-          },
-        },
-        sort: ['featured:desc', 'createdAt:desc'],
-        ...filters
-      }
-    });
+          sort: ['featured:desc', 'createdAt:desc'],
+          ...filters
+        }
+      })
+    );
     
     console.log('Products API response status:', response.status);
     console.log('Products data length:', response.data.data?.length || 0);
+    
+    if (!response.data || !response.data.data || !Array.isArray(response.data.data)) {
+      console.error('Invalid response format from API:', response.data);
+      return [];
+    }
     
     return response.data.data;
   } catch (error) {
@@ -216,26 +260,29 @@ export async function getProducts(filters = {}) {
 
 export async function getFeaturedProducts() {
   try {
-    const response = await apiClient.get('/api/products', {
-      params: {
-        filters: {
-          featured: {
-            $eq: true,
+    const response = await withRetry(() => 
+      apiClient.get('/api/products', {
+        params: {
+          filters: {
+            featured: {
+              $eq: true,
+            },
           },
-        },
-        populate: {
-          mainImage: {
-            populate: '*',
+          populate: {
+            mainImage: {
+              populate: '*',
+            },
+            category: {
+              populate: '*',
+            },
+            tags: {
+              populate: '*',
+            },
           },
-          category: {
-            populate: '*',
-          },
-          tags: {
-            populate: '*',
-          },
-        },
-      }
-    });
+        }
+      })
+    );
+    
     return response.data.data;
   } catch (error) {
     console.error('Error fetching featured products:', error);
@@ -247,30 +294,58 @@ export async function getProductBySlug(slug: string) {
   try {
     console.log(`Fetching product with slug: ${slug}`);
     
-    const response = await apiClient.get('/api/products', {
+    // First attempt with proper filtering
+    const response = await withRetry(() => 
+      apiClient.get('/api/products', {
+        params: {
+          filters: {
+            slug: {
+              $eq: slug
+            }
+          },
+          populate: '*'
+        }
+      })
+    );
+    
+    if (response.data && response.data.data && response.data.data.length > 0) {
+      // The API is returning the product directly, not in attributes 
+      const product = response.data.data[0];
+      
+      // Log to debug
+      console.log(`Product found with ID: ${product.id}, name: ${product.attributes?.name || product.name}`);
+      console.log(`Specifications available: ${product.attributes?.specifications ? 'Yes' : 'No'}`);
+      
+      return product;
+    }
+    
+    // Second attempt: get all products and filter manually
+    console.log(`No product found with slug: ${slug}, trying alternative method`);
+    
+    const allProductsResponse = await apiClient.get('/api/products', {
       params: {
-        filters: {
-          slug: {
-            $eq: slug
-          }
-        },
         populate: '*'
       }
     });
     
-    if (!response.data || !response.data.data || response.data.data.length === 0) {
-      console.log(`No product found with slug: ${slug}`);
-      return null;
+    if (allProductsResponse.data && allProductsResponse.data.data) {
+      const allProducts = allProductsResponse.data.data;
+      
+      // Find product by slug in the complete data set
+      const product = allProducts.find((p: any) => 
+        (p.attributes && p.attributes.slug === slug) || 
+        (p.slug === slug)
+      );
+      
+      if (product) {
+        console.log(`Found product with slug: ${slug} in complete data set`);
+        return product;
+      }
     }
     
-    // The API is returning the product directly, not in attributes 
-    const product = response.data.data[0];
+    console.log(`No product found with slug: ${slug} after all attempts`);
+    return null;
     
-    // Log to debug
-    console.log(`Product found with ID: ${product.id}, name: ${product.attributes?.name || product.name}`);
-    console.log(`Specifications available: ${product.attributes?.specifications ? 'Yes' : 'No'}`);
-    
-    return product;
   } catch (error: any) {
     console.error(`Error fetching product with slug ${slug}:`, error);
     if (error.response) {
@@ -280,7 +355,6 @@ export async function getProductBySlug(slug: string) {
   }
 }
 
-
 /**
  * Fetches reviews for a specific product using Strapi v5 API syntax
  * @param productId The ID of the product to fetch reviews for
@@ -289,11 +363,13 @@ export async function getProductBySlug(slug: string) {
 export async function getProductReviews(productId: string) {
   try {
     // Simplify by fetching all products with full population
-    const response = await apiClient.get('/api/products', {
-      params: {
-        populate: '*'
-      }
-    });
+    const response = await withRetry(() =>
+      apiClient.get('/api/products', {
+        params: {
+          populate: '*'
+        }
+      })
+    );
     
     if (!response.data || !response.data.data || !Array.isArray(response.data.data)) {
       return [];
@@ -328,11 +404,13 @@ export async function getProductReviews(productId: string) {
 export async function getCategories() {
   try {
     console.log('Fetching categories');
-    const response = await apiClient.get('/api/categories', {
-      params: {
-        populate: '*'
-      }
-    });
+    const response = await withRetry(() =>
+      apiClient.get('/api/categories', {
+        params: {
+          populate: '*'
+        }
+      })
+    );
     console.log('Categories API response status:', response.status);
     console.log('Categories data length:', response.data.data?.length || 0);
     return response.data.data;
@@ -344,28 +422,30 @@ export async function getCategories() {
 
 export async function getProductsByCategory(categorySlug: string) {
   try {
-    const response = await apiClient.get('/api/products', {
-      params: {
-        filters: {
-          category: {
-            slug: {
-              $eq: categorySlug,
+    const response = await withRetry(() =>
+      apiClient.get('/api/products', {
+        params: {
+          filters: {
+            category: {
+              slug: {
+                $eq: categorySlug,
+              },
             },
           },
-        },
-        populate: {
-          mainImage: {
-            populate: '*',
+          populate: {
+            mainImage: {
+              populate: '*',
+            },
+            category: {
+              populate: '*',
+            },
+            tags: {
+              populate: '*',
+            },
           },
-          category: {
-            populate: '*',
-          },
-          tags: {
-            populate: '*',
-          },
-        },
-      }
-    });
+        }
+      })
+    );
     return response.data.data;
   } catch (error) {
     console.error(`Error fetching products by category ${categorySlug}:`, error);
@@ -376,11 +456,13 @@ export async function getProductsByCategory(categorySlug: string) {
 export async function getTags() {
   try {
     console.log('Fetching tags');
-    const response = await apiClient.get('/api/tags', {
-      params: {
-        populate: '*'
-      }
-    });
+    const response = await withRetry(() =>
+      apiClient.get('/api/tags', {
+        params: {
+          populate: '*'
+        }
+      })
+    );
     console.log('Tags API response status:', response.status);
     console.log('Tags data length:', response.data.data?.length || 0);
     return response.data.data;

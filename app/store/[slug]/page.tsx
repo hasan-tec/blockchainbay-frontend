@@ -2,213 +2,244 @@ import { Suspense } from 'react';
 import { getProductBySlug, getProducts, ProductType, RichTextBlock } from '../../../lib/storeapi';
 import ProductDetailClient from './client';
 import Navbar from '../../../components/Navbar';
-import { Footer } from '../../../components/NewsletterFooter';
 import Loading from './loading';
 import { notFound } from 'next/navigation';
 
-export const revalidate = 3600; // Revalidate the data at most once per hour
+// Disable caching for more reliable data loading
+export const revalidate = 0;
 
-// Interface for your raw product data coming from API
-interface RawProduct {
-  id: number | string;
-  name?: string;
-  slug?: string;
-  description?: string;
-  category?: any;
-  [key: string]: any;
-}
-
-// Define a proper type for image data
-type ImageData = {
-  attributes: {
+// Type definitions for raw data
+interface RawImage {
+  url?: string;
+  attributes?: {
     url: string;
-  }
-};
-
-// Generate static params for commonly visited products
-export async function generateStaticParams() {
-  try {
-    const products = await getProducts({ filters: { featured: { $eq: true } } });
-    
-    // Handle different data structures safely
-    return products.map((product: ProductType | RawProduct) => {
-      // If product has the expected Strapi structure
-      if ('attributes' in product && product.attributes?.slug) {
-        return { slug: product.attributes.slug };
-      }
-      
-      // If product has a flat structure
-      if ('slug' in product && typeof product.slug === 'string') {
-        return { slug: product.slug };
-      }
-      
-      // Fallback
-      return { slug: 'product' };
-    });
-  } catch (error) {
-    console.error('Error generating static params:', error);
-    return []; // Return empty array on error
-  }
+    [key: string]: any;
+  };
+  documentId?: string;
+  formats?: {
+    small?: { url: string };
+    [key: string]: any;
+  };
+  [key: string]: any;
 }
 
 // Function to ensure description formatting is preserved
 function formatDescription(description: string | object): string | RichTextBlock[] {
-  // If description is already an object (rich text blocks), return it as is
   if (typeof description !== 'string') {
     return description as RichTextBlock[];
   }
   
   if (!description) return '';
   
-  // Ensure consistent newlines (replace \r\n with \n)
+  // Ensure consistent newlines
   let formattedDesc = description.replace(/\r\n/g, '\n');
   
   // Make sure checkmarks are properly displayed
   formattedDesc = formattedDesc.replace(/- /g, '✅ ');
   
-  // Ensure section headers have proper spacing
-  const sections = ['What it does:', 'What\'s included & requirements:', 'Features:', 'Requirements:'];
-  sections.forEach(section => {
-    if (formattedDesc.includes(section)) {
-      // Add newlines before sections if they don't already have them
-      if (!formattedDesc.includes(`\n\n${section}`)) {
-        formattedDesc = formattedDesc.replace(section, `\n\n${section}`);
-      }
-    }
-  });
-  
   return formattedDesc;
 }
 
-// Function to transform raw product data to expected structure if needed
+// Transform product data with safer approach
 function transformProductIfNeeded(product: any): ProductType {
+  console.log('Transforming product data:', { id: product.id });
+
   // If the product already has the expected structure, return it
-  if (product && product.attributes) {
+  if (product && product.attributes && product.attributes.mainImage?.data?.attributes?.url) {
+    console.log('Product already has expected structure, returning as is');
     return product as ProductType;
   }
-  
+
   // Extract the correct image URL
   let mainImageUrl = '/placeholder.png';
   
-  if (product.mainImage) {
-    // Handle Strapi 5 different image formats
-    if (product.mainImage.data && product.mainImage.data.attributes) {
-      // Standard Strapi format
-      mainImageUrl = product.mainImage.data.attributes.url;
-    } else if (product.mainImage.url) {
-      // Direct URL from Strapi
-      mainImageUrl = product.mainImage.url;
-    } else if (product.mainImage.formats && product.mainImage.formats.small) {
-      // Formats object directly on mainImage
-      mainImageUrl = product.mainImage.formats.small.url;
-    } else if (product.mainImage.documentId) {
-      // Using documentId (your custom format)
-      mainImageUrl = `/uploads/${product.mainImage.documentId}.png`;
-    }
-  }
-  
-  // Additional images handling
-  const additionalImagesData: ImageData[] = [];
-  if (product.additionalImages && Array.isArray(product.additionalImages)) {
-    product.additionalImages.forEach((image: any) => {
-      let imageUrl = '/placeholder.png';
-      
-      if (image.url) {
-        imageUrl = image.url;
-      } else if (image.documentId) {
-        imageUrl = `/uploads/${image.documentId}.png`;
+  try {
+    if (product.mainImage) {
+      if (product.mainImage.data && product.mainImage.data.attributes) {
+        mainImageUrl = product.mainImage.data.attributes.url;
+      } else if (product.mainImage.url) {
+        mainImageUrl = product.mainImage.url;
+      } else if (product.mainImage.formats && product.mainImage.formats.small) {
+        mainImageUrl = product.mainImage.formats.small.url;
+      } else if (product.mainImage.documentId) {
+        mainImageUrl = `/uploads/${product.mainImage.documentId}.png`;
       }
-      
-      additionalImagesData.push({
-        attributes: {
-          url: imageUrl
-        }
-      });
-    });
+    }
+  } catch (error) {
+    console.error(`Error processing mainImage for product ${product.id}:`, error);
   }
   
-  console.log('Transforming product:', product.name);
-  console.log('Using main image URL:', mainImageUrl);
+  // Additional images handling with better error handling
+  const additionalImagesData = [];
+  try {
+    if (product.additionalImages) {
+      if (Array.isArray(product.additionalImages.data)) {
+        // Format 1: Nested data array
+        additionalImagesData.push(...product.additionalImages.data.map((img: RawImage) => ({
+          attributes: {
+            url: img.attributes?.url || '/placeholder.png'
+          }
+        })));
+      } else if (Array.isArray(product.additionalImages)) {
+        // Format 2: Direct array
+        product.additionalImages.forEach((image: RawImage) => {
+          let imageUrl = '/placeholder.png';
+          
+          if (image.url) {
+            imageUrl = image.url;
+          } else if (image.attributes?.url) {
+            imageUrl = image.attributes.url;
+          } else if (image.documentId) {
+            imageUrl = `/uploads/${image.documentId}.png`;
+          }
+          
+          additionalImagesData.push({
+            attributes: {
+              url: imageUrl
+            }
+          });
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error processing additionalImages:', error);
+  }
   
   // Process arrays with proper structure for the client component
-  // This ensures all items have both direct properties and nested attributes
-  const processFeatures = (features: any[] = []) => {
-    if (!Array.isArray(features)) return [];
-    return features.map(feature => ({
-      id: String(feature.id || '1'),
-      attributes: {
-        text: feature.text || (feature.attributes && feature.attributes.text) || '',
-        ...feature
-      }
-    }));
-  };
-  
-  const processSpecifications = (specs: any[] = []) => {
-    if (!Array.isArray(specs)) return [];
-    return specs.map(spec => ({
-      id: String(spec.id || '1'),
-      attributes: {
-        key: spec.key || (spec.attributes && spec.attributes.key) || '',
-        value: spec.value || (spec.attributes && spec.attributes.value) || '',
-        ...spec
-      }
-    }));
-  };
-  
-  const processNamedItems = (items: any[] = []) => {
-    if (!Array.isArray(items)) return [];
-    return items.map(item => ({
-      id: String(item.id || '1'),
-      attributes: {
-        name: item.name || (item.attributes && item.attributes.name) || '',
-        ...item
-      }
-    }));
-  };
-  
-  // Handle specifications in rich text format
-  let specificationsRichText = null;
-  if (product.specifications) {
-    if (typeof product.specifications === 'string') {
-      try {
-        specificationsRichText = JSON.parse(product.specifications);
-      } catch (e) {
-        // If it can't be parsed as JSON, create a simple rich text paragraph
-        specificationsRichText = [
-          {
-            type: "paragraph",
-            children: [{ type: "text", text: product.specifications }]
+  const processFeatures = (features: any) => {
+    if (!features) return [];
+    
+    try {
+      if (features.data && Array.isArray(features.data)) {
+        return features.data;
+      } else if (Array.isArray(features)) {
+        return features.map((feature) => ({
+          id: String(feature.id || Date.now()),
+          attributes: {
+            text: feature.text || (feature.attributes && feature.attributes.text) || '',
+            ...feature
           }
-        ];
+        }));
       }
-    } else if (Array.isArray(product.specifications)) {
-      specificationsRichText = product.specifications;
+    } catch (error) {
+      console.error('Error processing features:', error);
     }
+    
+    return [];
+  };
+  
+  const processNamedItems = (items: any) => {
+    if (!items) return [];
+    
+    try {
+      if (items.data && Array.isArray(items.data)) {
+        return items.data;
+      } else if (Array.isArray(items)) {
+        return items.map((item) => ({
+          id: String(item.id || Date.now()),
+          attributes: {
+            name: item.name || (item.attributes && item.attributes.name) || '',
+            ...item
+          }
+        }));
+      }
+    } catch (error) {
+      console.error('Error processing named items:', error);
+    }
+    
+    return [];
+  };
+  
+  // Extract specifications from various possible formats
+  let specifications = null;
+  try {
+    if (product.specifications) {
+      if (typeof product.specifications === 'string') {
+        try {
+          specifications = JSON.parse(product.specifications);
+        } catch (e) {
+          specifications = [
+            {
+              type: "paragraph",
+              children: [{ type: "text", text: product.specifications }]
+            }
+          ];
+        }
+      } else if (Array.isArray(product.specifications)) {
+        specifications = product.specifications;
+      } else if (product.specifications.data && Array.isArray(product.specifications.data)) {
+        specifications = { data: product.specifications.data };
+      }
+    }
+  } catch (error) {
+    console.error('Error processing specifications:', error);
   }
   
-  // Otherwise, transform flat structure to nested structure
+  // Extract category data safely
+  let categoryId = '1';
+  let categoryName = 'Uncategorized';
+  let categorySlug = 'uncategorized';
+  
+  try {
+    if (product.category) {
+      if (product.category.data && product.category.data.attributes) {
+        categoryId = String(product.category.data.id || '1');
+        categoryName = product.category.data.attributes.name || 'Uncategorized';
+        categorySlug = product.category.data.attributes.slug || 'uncategorized';
+      } else if (typeof product.category === 'object') {
+        categoryId = String(product.category.id || '1');
+        categoryName = product.category.name || 'Uncategorized';
+        categorySlug = product.category.slug || 'uncategorized';
+      }
+    }
+  } catch (error) {
+    console.error('Error processing category:', error);
+  }
+  
+  // Extract tags data safely
+  let tagsData = [];
+  
+  try {
+    if (product.tags) {
+      if (product.tags.data && Array.isArray(product.tags.data)) {
+        tagsData = product.tags.data;
+      } else if (Array.isArray(product.tags)) {
+        tagsData = product.tags.map((tag: any) => ({
+          id: String(tag.id || Date.now()),
+          attributes: {
+            name: tag.name || (tag.attributes && tag.attributes.name) || 'Tag',
+            slug: tag.slug || (tag.attributes && tag.attributes.slug) || 'tag'
+          }
+        }));
+      }
+    }
+  } catch (error) {
+    console.error('Error processing tags:', error);
+  }
+  
+  // Build the transformed product
   return {
     id: String(product.id),
     attributes: {
-      name: product.name || '',
-      slug: product.slug || 'product',
-      description: formatDescription(product.description || ''),
-      price: product.price || 0,
-      originalPrice: product.originalPrice,
-      inStock: Boolean(product.inStock),
-      featured: Boolean(product.featured),
-      new: Boolean(product.new),
-      sale: Boolean(product.sale),
-      rating: product.rating || 0,
-      reviewCount: product.reviewCount || 0,
-      heliumDeployVariantId: product.heliumDeployVariantId || '',
-      heliumDeployProductUrl: product.heliumDeployProductUrl || '',
-      dimensions: product.dimensions || '',
-      weight: product.weight || '',
-      materials: product.materials || '',
-      batteryLife: product.batteryLife || '',
-      warranty: product.warranty || '',
-      specifications: specificationsRichText,
+      name: product.name || (product.attributes && product.attributes.name) || 'Unnamed Product',
+      slug: product.slug || (product.attributes && product.attributes.slug) || `product-${product.id}`,
+      description: formatDescription(product.description || (product.attributes && product.attributes.description) || ''),
+      price: Number(product.price) || Number(product.attributes && product.attributes.price) || 0,
+      originalPrice: product.originalPrice || (product.attributes && product.attributes.originalPrice),
+      inStock: Boolean(product.inStock || (product.attributes && product.attributes.inStock)),
+      featured: Boolean(product.featured || (product.attributes && product.attributes.featured)),
+      new: Boolean(product.new || (product.attributes && product.attributes.new)),
+      sale: Boolean(product.sale || (product.attributes && product.attributes.sale)),
+      rating: Number(product.rating) || Number(product.attributes && product.attributes.rating) || 0,
+      reviewCount: Number(product.reviewCount) || Number(product.attributes && product.attributes.reviewCount) || 0,
+      heliumDeployVariantId: product.heliumDeployVariantId || (product.attributes && product.attributes.heliumDeployVariantId) || '',
+      heliumDeployProductUrl: product.heliumDeployProductUrl || (product.attributes && product.attributes.heliumDeployProductUrl),
+      dimensions: product.dimensions || (product.attributes && product.attributes.dimensions) || '',
+      weight: product.weight || (product.attributes && product.attributes.weight) || '',
+      materials: product.materials || (product.attributes && product.attributes.materials) || '',
+      batteryLife: product.batteryLife || (product.attributes && product.attributes.batteryLife) || '',
+      warranty: product.warranty || (product.attributes && product.attributes.warranty) || '',
+      specifications: specifications,
       mainImage: {
         data: {
           attributes: {
@@ -221,23 +252,15 @@ function transformProductIfNeeded(product: any): ProductType {
       },
       category: {
         data: {
-          id: String(product.category?.id || '1'),
+          id: categoryId,
           attributes: {
-            name: product.category?.name || 'Uncategorized',
-            slug: product.category?.slug || 'uncategorized'
+            name: categoryName,
+            slug: categorySlug
           }
         }
       },
       tags: {
-        data: Array.isArray(product.tags)
-          ? product.tags.map((tag: any) => ({
-              id: String(tag?.id || '1'),
-              attributes: {
-                name: tag?.name || 'Tag',
-                slug: tag?.slug || 'tag'
-              }
-            }))
-          : []
+        data: tagsData
       },
       features: { 
         data: processFeatures(product.features) 
@@ -256,37 +279,41 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
   try {
     // Use the slug from params
     const slug = params.slug;
-    console.log(`Processing slug: ${slug}`);
+    console.log(`Processing product detail page for slug: ${slug}`);
     
-    // Get the product
-    const rawProduct = await getProductBySlug(slug);
+    // Get the product with error handling
+    const rawProduct = await getProductBySlug(slug).catch(error => {
+      console.error(`Error fetching product with slug ${slug}:`, error);
+      return null;
+    });
     
     if (!rawProduct) {
       console.log(`No product found for slug: ${slug}`);
       return notFound();
     }
-      // Log more details to help troubleshoot
-      console.log(`Product found with ID: ${rawProduct.id}, name: ${rawProduct.attributes?.name || rawProduct.name}`);
-      console.log(`Specifications available: ${rawProduct.attributes?.specifications ? 'Yes' : 'No'}`);
-      console.log(`Reviews available: ${rawProduct.attributes?.Review ? 'Yes' : 'No'}`);
-      if (rawProduct.attributes?.Review) {
-        console.log(`Number of reviews: ${rawProduct.attributes.Review.length}`);
-      }
     
-    // Transform the product if needed
+    console.log(`Product found with ID: ${rawProduct.id}`);
+    
+    // Transform the product with better error handling
     const product = transformProductIfNeeded(rawProduct);
     
     // Get the category slug
     let categorySlug = 'category';
-    if (product.attributes.category?.data?.attributes?.slug) {
-      categorySlug = product.attributes.category.data.attributes.slug;
-    } else if (rawProduct.category?.slug) {
-      categorySlug = rawProduct.category.slug;
+    try {
+      if (product.attributes.category?.data?.attributes?.slug) {
+        categorySlug = product.attributes.category.data.attributes.slug;
+      } else if (rawProduct.category?.slug) {
+        categorySlug = rawProduct.category.slug;
+      }
+    } catch (error) {
+      console.error('Error extracting category slug:', error);
     }
     
-    // Get related products
+    // Get related products with better error handling
     let relatedProducts: ProductType[] = [];
     try {
+      console.log(`Fetching related products for category: ${categorySlug}`);
+      
       const relatedProductsRaw = await getProducts({
         filters: {
           category: {
@@ -301,12 +328,18 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
         pagination: {
           limit: 4,
         },
+      }).catch(error => {
+        console.error('Error fetching related products:', error);
+        return [];
       });
       
-      relatedProducts = relatedProductsRaw.map(transformProductIfNeeded);
+      console.log(`Found ${relatedProductsRaw.length} related products`);
+      relatedProducts = relatedProductsRaw.map((item: any) => transformProductIfNeeded(item));
     } catch (error) {
-      console.error('Error fetching related products:', error);
+      console.error('Error processing related products:', error);
     }
+    
+    console.log('Rendering product detail page');
     
     return (
       <>
@@ -317,7 +350,23 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
       </>
     );
   } catch (error) {
-    console.error('Error in product detail page:', error);
-    return notFound();
+    console.error('Critical error in product detail page:', error);
+    
+    // Return a basic error page instead of crashing
+    return (
+      <>
+        <Navbar />
+        <div className="flex flex-col items-center justify-center min-h-screen bg-[#07071C] text-white p-4">
+          <h1 className="text-3xl font-bold mb-4">Product Temporarily Unavailable</h1>
+          <p className="mb-8 text-gray-300">We're having trouble retrieving this product. Please try again soon.</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-[#F7984A] text-white rounded-md hover:bg-[#F7984A]/90"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </>
+    );
   }
 }
