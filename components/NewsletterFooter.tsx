@@ -38,7 +38,7 @@ export const Footer = ({ className }: { className?: string }) => {
     {
       title: "Projects",
       links: [
-        { name: "Browse Projects", href: "/projects" },
+        { name: "Browse Projects", href: "/directory" },
         { name: "Submit Project", href: "https://blockchainbay.canny.io/" },
         { name: "Categories", href: "/categories" },
       ],

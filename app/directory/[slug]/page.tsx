@@ -99,7 +99,7 @@ export default function ProjectDetailPage() {
           <h1 className="text-4xl font-bold mb-4">Project Not Found</h1>
           <p className="text-xl mb-8 text-gray-300 text-center max-w-xl">{error || "Could not find this project"}</p>
           <button 
-            onClick={() => router.push('/projects')}
+            onClick={() => router.push('/directory')}
             className="bg-[#F7984A] text-white px-8 py-3 rounded-full hover:bg-[#F7984A]/90 transition-all shadow-lg shadow-[#F7984A]/20 hover:shadow-[#F7984A]/30 hover:translate-y-[-2px]"
           >
             Back to Projects

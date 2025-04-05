@@ -503,16 +503,38 @@ const renderDescription = (description: string | RichTextBlock[] | undefined) =>
                     <p className="text-sm text-gray-400">All transactions are secure and encrypted</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <RefreshCw className="h-5 w-5 text-[#F7984A] mt-0.5" />
-                  <div>
-                    <h3 className="font-medium">Easy Returns</h3>
-                    <p className="text-sm text-gray-400">30-day money back guarantee</p>
-                  </div>
-                </div>
+                
               </div>
+          {/* Payment Methods */}
+<div className="pt-6 border-t border-gray-800/50 space-y-4">
+  <h3 className="font-medium text-xl">We Accept</h3>
+  <div className="space-y-4">
+    {/* Credit Cards - Top Row */}
+    <div>
+      <Image
+        src="/visa.avif" 
+        alt="We accept Visa, American Express, Discover, and Mastercard"
+        width={240}
+        height={40}
+        className="object-contain"
+      />
+    </div>
+    
+    {/* Cryptocurrencies - Bottom Row */}
+    <div>
+      <Image
+        src="/btc.avif" 
+        alt="We accept Bitcoin, Solana, Tether, and Ethereum"
+        width={200}
+        height={40}
+        className="object-contain"
+      />
+    </div>
+  </div>
+</div>
             </div>
           </div>
+
 
           {/* Product Tabs */}
           <div className="mb-16">

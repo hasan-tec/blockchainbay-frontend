@@ -170,7 +170,7 @@ export const Navbar = () => {
   }, [])
 
   const navItems = [
-    { name: "Crypto Directory", href: "/projects", icon: <BarChart3 className="h-4 w-4 mr-1" /> },
+    { name: "Crypto Directory", href: "/directory", icon: <BarChart3 className="h-4 w-4 mr-1" /> },
     { name: "News", href: "/news", icon: <Newspaper className="h-4 w-4 mr-1" /> },
     { name: "Podcast", href: "/podcasts", icon: <Headphones className="h-4 w-4 mr-1" /> },
     { name: "Halvings", href: "/halving", icon: <Clock className="h-4 w-4 mr-1" /> },

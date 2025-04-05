@@ -49,6 +49,9 @@ function ProductImage({ product }: { product: ProductType }) {
 export default function StoreClient({ products, categories, tags }: StoreClientProps) {
   const { addToCart } = useCart()
 
+  const [categoriesExpanded, setCategoriesExpanded] = useState<boolean>(false);
+  const INITIAL_VISIBLE_CATEGORIES = 6; // Adjust this number as needed
+
   // State for filters
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
@@ -94,27 +97,29 @@ export default function StoreClient({ products, categories, tags }: StoreClientP
     document.documentElement.classList.toggle("dark")
   }
 
-  // Process categories for display - with null checking
-  const categoryFilters = categories
-    .filter((category) => category && category.attributes)
-    .map((category) => ({
-      id: category.attributes.slug || "",
-      label: category.attributes.name || "",
-      count: products.filter(
-        (product) => product.attributes.category?.data?.attributes?.slug === category.attributes.slug,
-      ).length,
-    }))
 
-  // Process tags for display - with null checking
+  // Process categories for display - with null checking and alphabetical sorting
+  const categoryFilters = categories
+  .filter((category) => category && category.attributes)
+  .map((category) => ({
+    id: category.attributes.slug || "",
+    label: category.attributes.name || "",
+    count: products.filter(
+      (product) => product.attributes.category?.data?.attributes?.slug === category.attributes.slug,
+    ).length,
+  }))
+  .sort((a, b) => a.label.localeCompare(b.label)); // Add this line for sorting
+
   const tagFilters = tags
-    .filter((tag) => tag && tag.attributes)
-    .map((tag) => ({
-      id: tag.attributes.slug || "",
-      label: tag.attributes.name || "",
-      count: products.filter((product) =>
-        product.attributes.tags?.data?.some((t) => t?.attributes?.slug === tag.attributes.slug),
-      ).length,
-    }))
+  .filter((tag) => tag && tag.attributes)
+  .map((tag) => ({
+    id: tag.attributes.slug || "",
+    label: tag.attributes.name || "",
+    count: products.filter((product) =>
+      product.attributes.tags?.data?.some((t) => t?.attributes?.slug === tag.attributes.slug),
+    ).length,
+  }))
+  .sort((a, b) => a.label.localeCompare(b.label)); // Sort alphabetically
 
   // Define price ranges
   const priceRanges = [
@@ -266,64 +271,68 @@ export default function StoreClient({ products, categories, tags }: StoreClientP
                 </div>
 
                 <div className="space-y-4 bg-gray-800/20 p-4 rounded-lg border border-gray-800/50">
-                  <button
-                    className="flex items-center justify-between w-full font-semibold text-lg"
-                    onClick={() => setCategoryFilterOpen(!categoryFilterOpen)}
-                  >
-                    <span>Categories</span>
-                    <span className="text-gray-400">{categoryFilterOpen ? "−" : "+"}</span>
-                  </button>
-                  {categoryFilterOpen && (
-                    <div className="space-y-3 pt-2">
-                      {categoryFilters.map((category) => (
-                        <label key={category.id} className="flex items-center space-x-3 text-sm">
-                          <Checkbox
-                            checked={selectedCategories.includes(category.id)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedCategories([...selectedCategories, category.id])
-                              } else {
-                                setSelectedCategories(selectedCategories.filter((id) => id !== category.id))
-                              }
-                            }}
-                          />
-                          <span className="flex-1">{category.label}</span>
-                          <span className="text-gray-500">{category.count}</span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
+  <button
+    className="flex items-center justify-between w-full font-semibold text-lg"
+    onClick={() => setCategoryFilterOpen(!categoryFilterOpen)}
+  >
+    <span>Categories</span>
+    <span className="text-gray-400">{categoryFilterOpen ? "−" : "+"}</span>
+  </button>
+  {categoryFilterOpen && (
+    <div className="space-y-3 pt-2 max-h-60 overflow-y-auto pr-2">
+      {categoryFilters.map((category) => (
+        <label key={category.id} className="flex items-center space-x-3 text-sm">
+          <Checkbox
+            checked={selectedCategories.includes(category.id)}
+            onCheckedChange={(checked) => {
+              if (checked) {
+                setSelectedCategories([...selectedCategories, category.id]);
+              } else {
+                setSelectedCategories(selectedCategories.filter((id) => id !== category.id));
+              }
+            }}
+            className="border-white data-[state=checked]:bg-[#F7984A] data-[state=checked]:border-[#F7984A]"
+          />
+          <span className="flex-1">{category.label}</span>
+          <span className="text-gray-500">{category.count}</span>
+        </label>
+      ))}
+    </div>
+  )}
+</div>
 
-                <div className="space-y-4 bg-gray-800/20 p-4 rounded-lg border border-gray-800/50">
-                  <button
-                    className="flex items-center justify-between w-full font-semibold text-lg"
-                    onClick={() => setTagFilterOpen(!tagFilterOpen)}
-                  >
-                    <span>Tags</span>
-                    <span className="text-gray-400">{tagFilterOpen ? "−" : "+"}</span>
-                  </button>
-                  {tagFilterOpen && (
-                    <div className="space-y-3 pt-2">
-                      {tagFilters.map((tag) => (
-                        <label key={tag.id} className="flex items-center space-x-3 text-sm">
-                          <Checkbox
-                            checked={selectedTags.includes(tag.id)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedTags([...selectedTags, tag.id])
-                              } else {
-                                setSelectedTags(selectedTags.filter((id) => id !== tag.id))
-                              }
-                            }}
-                          />
-                          <span className="flex-1">{tag.label}</span>
-                          <span className="text-gray-500">{tag.count}</span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
+               
+
+<div className="space-y-4 bg-gray-800/20 p-4 rounded-lg border border-gray-800/50">
+  <button
+    className="flex items-center justify-between w-full font-semibold text-lg"
+    onClick={() => setTagFilterOpen(!tagFilterOpen)}
+  >
+    <span>Tags</span>
+    <span className="text-gray-400">{tagFilterOpen ? "−" : "+"}</span>
+  </button>
+  {tagFilterOpen && (
+    <div className="space-y-3 pt-2 max-h-60 overflow-y-auto pr-2">
+      {tagFilters.map((tag) => (
+        <label key={tag.id} className="flex items-center space-x-3 text-sm">
+          <Checkbox
+            checked={selectedTags.includes(tag.id)}
+            onCheckedChange={(checked) => {
+              if (checked) {
+                setSelectedTags([...selectedTags, tag.id])
+              } else {
+                setSelectedTags(selectedTags.filter((id) => id !== tag.id))
+              }
+            }}
+            className="border-white data-[state=checked]:bg-[#F7984A] data-[state=checked]:border-[#F7984A]"
+          />
+          <span className="flex-1">{tag.label}</span>
+          <span className="text-gray-500">{tag.count}</span>
+        </label>
+      ))}
+    </div>
+  )}
+</div>
 
                 <div className="space-y-4 bg-gray-800/20 p-4 rounded-lg border border-gray-800/50">
                   <button
@@ -505,25 +514,7 @@ export default function StoreClient({ products, categories, tags }: StoreClientP
                                   : getRichTextAsPlainText(product.attributes.description as RichTextBlock[])}
                               </p>
                             )}
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className="flex">
-                                {Array.from({ length: 5 }).map((_, i) => (
-                                  <svg
-                                    key={i}
-                                    className={`w-4 h-4 ${
-                                      i < Math.floor(product.attributes.rating || 5)
-                                        ? "text-yellow-400"
-                                        : "text-gray-600"
-                                    }`}
-                                    fill="currentColor"
-                                    viewBox="0 0 20 20"
-                                  >
-                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                  </svg>
-                                ))}
-                              </div>
-                              <span className="text-xs text-gray-400">({product.attributes.reviewCount || 5})</span>
-                            </div>
+                            
                             <div className="mt-auto flex items-center justify-between">
                               <div>
                                 {product.attributes.originalPrice ? (

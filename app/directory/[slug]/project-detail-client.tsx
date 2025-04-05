@@ -1298,7 +1298,7 @@ const getRelatedProjectLogo = (relatedProject: RelatedProject) => {
       <Button 
         variant="link" 
         className="text-[#F7984A] hover:text-[#F7984A]/80 p-0 group"
-        onClick={() => window.open('/projects', '_self')}
+        onClick={() => window.open('/directory', '_self')}
       >
         <span className="hidden md:inline">View all projects</span>
         <ArrowUpRight className="ml-1 h-4 w-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300" />
@@ -1314,7 +1314,7 @@ const getRelatedProjectLogo = (relatedProject: RelatedProject) => {
         {relatedProjects.map((relatedProject) => (
           <Link 
             key={relatedProject.id} 
-            href={`/projects/${relatedProject.Slug}`} 
+            href={`/directory/${relatedProject.Slug}`} 
             className="block"
           >
             <div className="flex gap-4 p-4 bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl hover:border-gray-700/70 hover:bg-[#0D0B26] transition-all duration-300 hover:shadow-lg group h-full">

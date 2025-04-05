@@ -206,39 +206,29 @@ const withRetry = async <T>(fn: () => Promise<T>, retries = 3, delay = 300): Pro
 
 export async function getProducts(filters: any = {}) {
   try {
-    console.log('Fetching products with params:', {
-      populate: {
-        mainImage: {
-          populate: '*',
-        },
-        category: {
-          populate: '*',
-        },
-        tags: {
-          populate: '*',
-        },
-      },
-      sort: ['featured:desc', 'createdAt:desc'],
-      ...filters
-    });
+    // Extract any pagination from filters to prevent overriding
+    const { pagination: filterPagination, ...otherFilters } = filters;
+    
+    // Set default pagination with a much higher limit
+    const pagination = filterPagination || {
+      pageSize: 1000, // Set much higher than your total products
+      page: 1
+    };
+    
+    console.log('Fetching products with pagination:', pagination);
     
     // Use retry mechanism for more reliable data fetching
     const response = await withRetry(() => 
       apiClient.get('/api/products', {
         params: {
           populate: {
-            mainImage: {
-              populate: '*',
-            },
-            category: {
-              populate: '*',
-            },
-            tags: {
-              populate: '*',
-            },
+            mainImage: { populate: '*' },
+            category: { populate: '*' },
+            tags: { populate: '*' },
           },
           sort: ['featured:desc', 'createdAt:desc'],
-          ...filters
+          pagination, // Use the pagination object directly
+          filters: otherFilters, // Pass other filters separately
         }
       })
     );

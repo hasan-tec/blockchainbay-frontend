@@ -60,7 +60,7 @@ interface ProjectCardProps {
 
 export const ProjectCard = ({ name, category, categories, description, image, slug, verified }: ProjectCardProps) => {
   return (
-    <Link href={`/projects/${slug}`}>
+    <Link href={`/directory/${slug}`}>
       <div className="bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl p-6 hover:border-gray-700/60 transition-all duration-300 h-full">
         <div className="flex items-center gap-3 mb-4">
           <div className="relative">
@@ -169,7 +169,7 @@ export const ProjectsSection = () => {
             <p className="text-gray-400 mt-2">Discover trusted projects and companies shaping the cryptocurrency landscape.</p>
           </div>
           <Link
-            href="/projects"
+            href="/directory"
             className="inline-flex items-center text-[#F7984A] hover:text-[#F7984A]/80 mt-4 md:mt-0 group"
           >
             <span>View more</span>

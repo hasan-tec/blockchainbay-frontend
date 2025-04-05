@@ -568,7 +568,7 @@ export default function CryptoDirectoryPage() {
               ) : filteredProjects.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {filteredProjects.map((project) => (
-                    <Link key={project.id} href={`/projects/${project.Slug}`}>
+                    <Link key={project.id} href={`/directory/${project.Slug}`}>
                       <Card className="bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl p-6 hover:border-gray-700/60 transition-all duration-300 h-full min-h-[180px] flex flex-col">
                         <div className="flex items-center gap-3 mb-4">
                           <div className="relative w-12 h-12">

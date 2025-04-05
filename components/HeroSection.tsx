@@ -60,7 +60,7 @@ const HeroSection = () => {
                 className="bg-[#F7984A] hover:bg-[#F7984A]/90 text-white px-5 sm:px-6 md:px-8 py-4 sm:py-5 md:py-6 text-base sm:text-lg rounded-md shadow-lg shadow-[#F7984A]/20 transition-all duration-300"
                 asChild
               >
-                <Link href="/projects">
+                <Link href="/directory">
                   <span className="z-10">Explore Directory</span>
                   <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
                 </Link>
