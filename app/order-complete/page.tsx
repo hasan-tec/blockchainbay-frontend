@@ -78,15 +78,7 @@ export default function OrderCompletePage() {
                 </Button>
               </Link>
 
-              <Link href="/account/orders">
-                <Button
-                  variant="outline"
-                  className="min-w-[200px] border-[#1E2140] hover:bg-[#1E2140]/50 transition-all duration-200"
-                >
-                  View My Orders
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
+             
             </div>
           </div>
         </div>
