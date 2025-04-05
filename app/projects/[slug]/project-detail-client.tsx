@@ -123,13 +123,25 @@ interface CryptoProject {
   Logo?: Logo
 }
 
+// Enhanced RichTextChild interface to support links
+interface RichTextChild {
+  type: string;
+  text?: string;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  url?: string; // For link nodes
+  children?: RichTextChild[]; // Recursive for nested content
+}
 interface DetailedDescriptionBlock {
-  type: string
+  type: string;
   children: {
-    type: string
-    text: string
-    bold?: boolean
-  }[]
+    type: string;
+    text?: string;
+    bold?: boolean;
+    url?: string; // Add support for links
+    children?: any[]; // For nested structure in links
+  }[];
 }
 
 // Define a type for related projects coming from Strapi API
@@ -438,8 +450,10 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
       const block = description?.[i];
       if (!block || !block.children || !Array.isArray(block.children)) continue;
       
-      // Get text content from this block
-      const textContent = block.children.map(child => child.text).join("");
+      // Get text content from this block - safely handle undefined text
+      const textContent = block.children
+        .map(child => child.text || "")
+        .join("");
       
       // Skip empty blocks
       if (!textContent.trim()) continue;
@@ -452,7 +466,7 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
       if (isHeading) {
         const headingText = block.children
           .filter(child => child.bold)
-          .map(child => child.text)
+          .map(child => child.text || "")
           .join("")
           .trim();
         
@@ -470,7 +484,7 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
           // Get the non-bold text as part of the answer
           const contentText = block.children
             .filter(child => !child.bold)
-            .map(child => child.text)
+            .map(child => child.text || "")
             .join("")
             .trim();
           
@@ -501,7 +515,7 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
           // Get the non-bold text as part of the answer
           const contentText = block.children
             .filter(child => !child.bold)
-            .map(child => child.text)
+            .map(child => child.text || "")
             .join("")
             .trim();
           
@@ -535,11 +549,8 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
       });
     }
     
-  
-    
     return { faqs, regularContent };
   };
-
 
   const renderDirectDescription = (description: DetailedDescriptionBlock[] | undefined) => {
     if (!description || !Array.isArray(description) || description.length === 0) {
@@ -565,6 +576,7 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
       const startsWithNumberedPoint = 
         block.children.length > 0 && 
         block.children[0].bold && 
+        block.children[0].text && 
         /^\d+\./.test(block.children[0].text.trim());
   
       // If it's a numbered point, format it as a subheading
@@ -572,17 +584,24 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
         return (
           <div key={`point-${blockIndex}`} className="mt-6 mb-4">
             <h3 className="text-lg font-bold text-white mb-2">
-              {block.children.filter(child => child.bold).map(child => child.text).join('')}
+              {block.children.filter(child => child.bold).map(child => child.text || '').join('')}
             </h3>
             <p className="text-gray-300 leading-relaxed">
-              {block.children.filter(child => !child.bold).map(child => 
-                child.text.split('\n').map((line, i, arr) => (
-                  <React.Fragment key={`line-${i}`}>
-                    {line}
-                    {i < arr.length - 1 && <br />}
+              {block.children.filter(child => !child.bold).map((child, idx) => {
+                // Handle null or undefined text
+                const text = child.text || '';
+                
+                return (
+                  <React.Fragment key={`non-bold-${blockIndex}-${idx}`}>
+                    {text.split('\n').map((line, i, arr) => (
+                      <React.Fragment key={`line-non-bold-${blockIndex}-${idx}-${i}`}>
+                        {line}
+                        {i < arr.length - 1 && <br />}
+                      </React.Fragment>
+                    ))}
                   </React.Fragment>
-                ))
-              )}
+                );
+              })}
             </p>
           </div>
         );
@@ -592,19 +611,42 @@ export default function ProjectDetailClient({ project }: { project: CryptoProjec
       return (
         <div key={`para-${blockIndex}`} className="mb-4">
           <p className="text-gray-300 leading-relaxed">
-            {block.children.map((child, childIndex) => (
-              <span 
-                key={`child-${blockIndex}-${childIndex}`}
-                className={child.bold ? "font-bold text-white" : ""}
-              >
-                {child.text.split('\n').map((line, i, arr) => (
-                  <React.Fragment key={`line-${blockIndex}-${childIndex}-${i}`}>
-                    {line}
-                    {i < arr.length - 1 && <br />}
-                  </React.Fragment>
-                ))}
-              </span>
-            ))}
+            {block.children.map((child, childIndex) => {
+              // Handle null or undefined text safely
+              if (!child) return null;
+              
+              // Check if this is a link type node
+              if (child.type === 'link' && child.url) {
+                return (
+                  <a 
+                    key={`link-${blockIndex}-${childIndex}`}
+                    href={child.url} 
+                    className={`text-[#F7984A] hover:underline ${child.bold ? "font-bold" : ""}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {child.children?.map(c => c.text || '').join('') || child.text || 'Link'}
+                  </a>
+                );
+              }
+              
+              // Regular text node - with safe handling for undefined text
+              const text = child.text || '';
+              
+              return (
+                <span 
+                  key={`child-${blockIndex}-${childIndex}`}
+                  className={child.bold ? "font-bold text-white" : ""}
+                >
+                  {text.split('\n').map((line, i, arr) => (
+                    <React.Fragment key={`line-${blockIndex}-${childIndex}-${i}`}>
+                      {line}
+                      {i < arr.length - 1 && <br />}
+                    </React.Fragment>
+                  ))}
+                </span>
+              );
+            })}
           </p>
         </div>
       );
