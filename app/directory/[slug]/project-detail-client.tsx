@@ -97,6 +97,7 @@ interface CryptoProject {
   Slug: string
   ShortDescription: string
   DetailedDescription: DetailedDescriptionBlock[]
+  descriptionbeforevideo: DetailedDescriptionBlock[] // Add this line
   CurrentStatus: string
   Category: string
   SubCategory: string | null
@@ -818,10 +819,7 @@ const getRelatedProjectLogo = (relatedProject: RelatedProject) => {
                         className={`transition-all duration-700 ease-out delay-100 ${isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
                       >
                         <div className="flex flex-wrap justify-between items-center mb-4">
-                          <h2 className="text-2xl font-bold relative inline-block">
-                            What is {project.title}?
-                            <span className="absolute -bottom-1 left-0 w-1/3 h-0.5 bg-[#F7984A]/70"></span>
-                          </h2>
+                          
 
                           {/* Social Links */}
 <div className="flex items-center gap-6 mt-2 md:mt-0">
@@ -939,8 +937,19 @@ const getRelatedProjectLogo = (relatedProject: RelatedProject) => {
                             />
                           </div>
                         </div>
-                        <p className="text-gray-300 leading-relaxed font-normal">{project.ShortDescription}</p>
+                       
                       </div>
+
+                      {/* Description Before Video */}
+{project.descriptionbeforevideo && project.descriptionbeforevideo.length > 0 && (
+  <div
+    className={`space-y-4 transition-all duration-700 ease-out delay-150 ${isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
+  >
+    <div className="overflow-visible">
+      {renderDirectDescription(project?.descriptionbeforevideo)}
+    </div>
+  </div>
+)}
                       {/* YouTube Embed if available */}
 {project.VideoURL && (
   <div

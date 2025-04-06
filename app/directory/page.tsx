@@ -57,6 +57,7 @@ interface CryptoProject {
   Slug: string
   ShortDescription: string
   DetailedDescription: any[]
+  descriptionbeforevideo: any[] // Add this line
   CurrentStatus: string
   Category: string
   SubCategory: string | null // This field is not being used correctly in the API
@@ -111,6 +112,7 @@ const categoryFilters: FilterItem[] = [
   { id: "Taxes", label: "Taxes" },
   { id: "Non-Custodial Swap", label: "Non-Custodial Swap" },
   { id: "Everyday Crypto Uses", label: "Everyday Crypto Uses" },
+  { id: "Hosting", label: "Hosting" }, // Add this line
 ]
 
 // Chain type filters
