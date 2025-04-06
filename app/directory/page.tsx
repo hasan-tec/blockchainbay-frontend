@@ -50,6 +50,7 @@ interface Logo {
   publishedAt: string
 }
 
+// Update the CryptoProject interface to include the properly typed TokenType
 interface CryptoProject {
   id: number
   documentId: string
@@ -57,13 +58,13 @@ interface CryptoProject {
   Slug: string
   ShortDescription: string
   DetailedDescription: any[]
-  descriptionbeforevideo: any[] // Add this line
+  descriptionbeforevideo: any[]
   CurrentStatus: string
   Category: string
-  SubCategory: string | null // This field is not being used correctly in the API
-  Subcategory: string | null // This is the field actually used in the API response
-  OtherSubCategory: string | null // Additional subcategory field in API
-  TokenType: string
+  SubCategory: string | null
+  Subcategory: string | null
+  OtherSubCategory: string | null
+  TokenType: "Has token" | "Launched" | "No token" | "Unreleased"  // Properly typed TokenType
   Website: string
   Symbol: string
   ChainType: string
@@ -157,10 +158,14 @@ const subCategoryFilters: FilterItem[] = [
 ]
 
 // Token filters
+// 1. Update the token filters definition to include all four options from Strapi
 const tokenFilters: FilterItem[] = [
   { id: "Has token", label: "Has token" },
+  { id: "Launched", label: "Launched" },
   { id: "No token", label: "No token" },
+  { id: "Unreleased", label: "Unreleased" },
 ]
+
 
 export default function CryptoDirectoryPage() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -169,9 +174,9 @@ export default function CryptoDirectoryPage() {
   const [selectedChainTypes, setSelectedChainTypes] = useState<string[]>([])
   const [selectedSubCategories, setSelectedSubCategories] = useState<string[]>([])
 
-  const [tokenFilterOpen, setTokenFilterOpen] = useState(true)
-  const [categoryFilterOpen, setCategoryFilterOpen] = useState(false)
-  const [chainTypeFilterOpen, setChainTypeFilterOpen] = useState(false)
+  const [tokenFilterOpen, setTokenFilterOpen] = useState(false)
+  const [categoryFilterOpen, setCategoryFilterOpen] = useState(true)
+  const [chainTypeFilterOpen, setChainTypeFilterOpen] = useState(true)
   const [subCategoryFilterOpen, setSubCategoryFilterOpen] = useState(false)
 
   const [projects, setProjects] = useState<CryptoProject[]>([])
@@ -202,153 +207,164 @@ export default function CryptoDirectoryPage() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  // Add a function to calculate counts for each filter
-  const calculateFilterCounts = (projects: CryptoProject[]) => {
-    const categoryCounts: Record<string, number> = {}
-    const chainTypeCounts: Record<string, number> = {}
-    const subCategoryCounts: Record<string, number> = {}
-    const tokenCounts = {
-      "Has token": 0,
-      "No token": 0,
-    }
+  // 1. First, let's create a type for valid token types to ensure type safety
+type TokenType = "Has token" | "Launched" | "No token" | "Unreleased";
 
-    projects.forEach((project) => {
-      // Count categories
-      if (project.Category) {
-        categoryCounts[project.Category] = (categoryCounts[project.Category] || 0) + 1
-      }
-
-      // Count chain types
-      if (project.ChainType) {
-        chainTypeCounts[project.ChainType] = (chainTypeCounts[project.ChainType] || 0) + 1
-      }
-
-      // Count subcategories - check both Subcategory and OtherSubCategory fields
-      if (project.Subcategory) {
-        subCategoryCounts[project.Subcategory] = (subCategoryCounts[project.Subcategory] || 0) + 1
-      }
-      if (project.OtherSubCategory) {
-        subCategoryCounts[project.OtherSubCategory] = (subCategoryCounts[project.OtherSubCategory] || 0) + 1
-      }
-
-      // Count token status
-      if (project.TokenType && project.TokenType !== "") {
-        tokenCounts["Has token"]++
-      } else {
-        tokenCounts["No token"]++
-      }
-    })
-
-    // Update the filter arrays with counts
-    const updatedCategoryFilters = categoryFilters.map((filter) => ({
-      ...filter,
-      count: categoryCounts[filter.id] || 0,
-    }))
-
-    const updatedChainTypeFilters = chainTypeFilters.map((filter) => ({
-      ...filter,
-      count: chainTypeCounts[filter.id] || 0,
-    }))
-
-    const updatedSubCategoryFilters = subCategoryFilters.map((filter) => ({
-      ...filter,
-      count: subCategoryCounts[filter.id] || 0,
-    }))
-
-    const updatedTokenFilters = [
-      { id: "Has token", label: "Has token", count: tokenCounts["Has token"] },
-      { id: "No token", label: "No token", count: tokenCounts["No token"] },
-    ]
-
-    return {
-      categoryFilters: updatedCategoryFilters,
-      chainTypeFilters: updatedChainTypeFilters,
-      subCategoryFilters: updatedSubCategoryFilters,
-      tokenFilters: updatedTokenFilters,
-    }
+// 2. Update the calculateFilterCounts function with proper TypeScript support
+const calculateFilterCounts = (projects: CryptoProject[]) => {
+  const categoryCounts: Record<string, number> = {}
+  const chainTypeCounts: Record<string, number> = {}
+  const subCategoryCounts: Record<string, number> = {}
+  
+  // Initialize count for each token type with type safety
+  const tokenCounts: Record<TokenType, number> = {
+    "Has token": 0,
+    "Launched": 0,
+    "No token": 0,
+    "Unreleased": 0
   }
+
+  projects.forEach((project) => {
+    // Count categories
+    if (project.Category) {
+      categoryCounts[project.Category] = (categoryCounts[project.Category] || 0) + 1
+    }
+
+    // Count chain types
+    if (project.ChainType) {
+      chainTypeCounts[project.ChainType] = (chainTypeCounts[project.ChainType] || 0) + 1
+    }
+
+    // Count subcategories - check both Subcategory and OtherSubCategory fields
+    if (project.Subcategory) {
+      subCategoryCounts[project.Subcategory] = (subCategoryCounts[project.Subcategory] || 0) + 1
+    }
+    if (project.OtherSubCategory) {
+      subCategoryCounts[project.OtherSubCategory] = (subCategoryCounts[project.OtherSubCategory] || 0) + 1
+    }
+
+    // Count token status - Each exact enum value with type safety
+    if (project.TokenType && (project.TokenType as TokenType) in tokenCounts) {
+      tokenCounts[project.TokenType as TokenType]++
+    }
+  })
+
+  // Update the filter arrays with counts
+  const updatedCategoryFilters = categoryFilters.map((filter) => ({
+    ...filter,
+    count: categoryCounts[filter.id] || 0,
+  }))
+
+  const updatedChainTypeFilters = chainTypeFilters.map((filter) => ({
+    ...filter,
+    count: chainTypeCounts[filter.id] || 0,
+  }))
+
+  const updatedSubCategoryFilters = subCategoryFilters.map((filter) => ({
+    ...filter,
+    count: subCategoryCounts[filter.id] || 0,
+  }))
+
+  const updatedTokenFilters = tokenFilters.map((filter) => ({
+    ...filter,
+    count: (filter.id as TokenType) in tokenCounts ? tokenCounts[filter.id as TokenType] : 0,
+  }))
+
+  return {
+    categoryFilters: updatedCategoryFilters,
+    chainTypeFilters: updatedChainTypeFilters,
+    subCategoryFilters: updatedSubCategoryFilters,
+    tokenFilters: updatedTokenFilters,
+  }
+}
 
   // Update the fetchProjects function in the useEffect to handle pagination
   // Replace the existing fetchProjects function with this one:
-  const fetchProjects = async () => {
-    try {
-      setLoading(true)
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:1337"
+  // Update the fetchProjects function to handle all token types
+const fetchProjects = async () => {
+  try {
+    setLoading(true)
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:1337"
 
-      // Build query parameters for filtering
-      let queryParams = `populate=Logo&pagination[pageSize]=${pageSize}&pagination[page]=${currentPage}`
+    // Build query parameters for filtering
+    let queryParams = `populate=Logo&pagination[pageSize]=${pageSize}&pagination[page]=${currentPage}`
 
-      // Add search query if present
-      if (searchQuery) {
-        queryParams += `&filters[$or][0][title][$containsi]=${encodeURIComponent(searchQuery)}`
-        queryParams += `&filters[$or][1][ShortDescription][$containsi]=${encodeURIComponent(searchQuery)}`
-        queryParams += `&filters[$or][2][Symbol][$containsi]=${encodeURIComponent(searchQuery)}`
-      }
-
-      // Add category filters if present
-      if (selectedCategories.length > 0) {
-        selectedCategories.forEach((category, index) => {
-          queryParams += `&filters[$or][${index}][Category]=${encodeURIComponent(category)}`
-        })
-      }
-
-      // Add chain type filters if present
-      if (selectedChainTypes.length > 0) {
-        selectedChainTypes.forEach((chainType, index) => {
-          queryParams += `&filters[$or][${index}][ChainType]=${encodeURIComponent(chainType)}`
-        })
-      }
-
-      // Add subcategory filters if present
-      if (selectedSubCategories.length > 0) {
-        selectedSubCategories.forEach((subCategory, index) => {
-          queryParams += `&filters[$or][${index}][Subcategory]=${encodeURIComponent(subCategory)}`
-          queryParams += `&filters[$or][${index + selectedSubCategories.length}][OtherSubCategory]=${encodeURIComponent(subCategory)}`
-        })
-      }
-
-      // Add token filters if present
-      if (selectedTokenFilters.includes("Has token")) {
-        queryParams += `&filters[TokenType][$notNull]=true`
-      } else if (selectedTokenFilters.includes("No token")) {
-        queryParams += `&filters[TokenType][$null]=true`
-      }
-
-      const response = await fetch(`${backendUrl}/api/crypto-projects?${queryParams}`)
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch projects")
-      }
-
-      const data: StrapiResponse = await response.json()
-      setProjects(data.data)
-      setTotalPages(data.meta.pagination.pageCount)
-      setTotalItems(data.meta.pagination.total)
-
-      // Fetch all projects for filter counts (without pagination)
-      const countResponse = await fetch(`${backendUrl}/api/crypto-projects?populate=Logo&pagination[pageSize]=1000`)
-      if (countResponse.ok) {
-        const countData: StrapiResponse = await countResponse.json()
-        const {
-          categoryFilters: updatedCategoryFilters,
-          chainTypeFilters: updatedChainTypeFilters,
-          subCategoryFilters: updatedSubCategoryFilters,
-          tokenFilters: updatedTokenFilters,
-        } = calculateFilterCounts(countData.data)
-
-        setCategoryFiltersWithCount(updatedCategoryFilters)
-        setChainTypeFiltersWithCount(updatedChainTypeFilters)
-        setSubCategoryFiltersWithCount(updatedSubCategoryFilters)
-        setTokenFiltersWithCount(updatedTokenFilters)
-      }
-
-      setLoading(false)
-    } catch (err) {
-      console.error("Error fetching projects:", err)
-      setError("Failed to load projects. Please try again later.")
-      setLoading(false)
+    // Add search query if present
+    if (searchQuery) {
+      queryParams += `&filters[$or][0][title][$containsi]=${encodeURIComponent(searchQuery)}`
+      queryParams += `&filters[$or][1][ShortDescription][$containsi]=${encodeURIComponent(searchQuery)}`
+      queryParams += `&filters[$or][2][Symbol][$containsi]=${encodeURIComponent(searchQuery)}`
     }
+
+    // Add category filters if present
+    if (selectedCategories.length > 0) {
+      queryParams += `&filters[$and][0][$or]`
+      selectedCategories.forEach((category, index) => {
+        queryParams += `[${index}][Category]=${encodeURIComponent(category)}`
+      })
+    }
+
+    // Add chain type filters if present
+    if (selectedChainTypes.length > 0) {
+      queryParams += `&filters[$and][1][$or]`
+      selectedChainTypes.forEach((chainType, index) => {
+        queryParams += `[${index}][ChainType]=${encodeURIComponent(chainType)}`
+      })
+    }
+
+    // Add subcategory filters if present
+    if (selectedSubCategories.length > 0) {
+      queryParams += `&filters[$and][2][$or]`
+      selectedSubCategories.forEach((subCategory, index) => {
+        queryParams += `[${index}][$or][0][Subcategory]=${encodeURIComponent(subCategory)}`
+        queryParams += `&filters[$and][2][$or][${index}][$or][1][OtherSubCategory]=${encodeURIComponent(subCategory)}`
+      })
+    }
+
+    // Add token filters if present - Exact match for each selected token type
+    if (selectedTokenFilters.length > 0) {
+      queryParams += `&filters[$and][3][$or]`
+      selectedTokenFilters.forEach((tokenType, index) => {
+        queryParams += `[${index}][TokenType]=${encodeURIComponent(tokenType)}`
+      })
+    }
+
+    console.log("API Query:", `${backendUrl}/api/crypto-projects?${queryParams}`)
+    const response = await fetch(`${backendUrl}/api/crypto-projects?${queryParams}`)
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch projects")
+    }
+
+    const data: StrapiResponse = await response.json()
+    setProjects(data.data)
+    setTotalPages(data.meta.pagination.pageCount)
+    setTotalItems(data.meta.pagination.total)
+
+    // Fetch all projects for filter counts (without pagination)
+    const countResponse = await fetch(`${backendUrl}/api/crypto-projects?populate=Logo&pagination[pageSize]=1000`)
+    if (countResponse.ok) {
+      const countData: StrapiResponse = await countResponse.json()
+      const {
+        categoryFilters: updatedCategoryFilters,
+        chainTypeFilters: updatedChainTypeFilters,
+        subCategoryFilters: updatedSubCategoryFilters,
+        tokenFilters: updatedTokenFilters,
+      } = calculateFilterCounts(countData.data)
+
+      setCategoryFiltersWithCount(updatedCategoryFilters)
+      setChainTypeFiltersWithCount(updatedChainTypeFilters)
+      setSubCategoryFiltersWithCount(updatedSubCategoryFilters)
+      setTokenFiltersWithCount(updatedTokenFilters)
+    }
+
+    setLoading(false)
+  } catch (err) {
+    console.error("Error fetching projects:", err)
+    setError("Failed to load projects. Please try again later.")
+    setLoading(false)
   }
+}
 
   // Update the useEffect dependency array to include currentPage and pageSize
   // Find the useEffect that calls fetchProjects and update its dependency array:
@@ -502,33 +518,7 @@ export default function CryptoDirectoryPage() {
                 </div>
               )}
 
-              {/* Token Status Filter */}
-              <div className="space-y-4 bg-gray-800/20 p-4 rounded-lg border border-gray-800/50">
-                <button
-                  className="flex items-center justify-between w-full font-semibold text-lg"
-                  onClick={() => setTokenFilterOpen(!tokenFilterOpen)}
-                >
-                  <span>Token</span>
-                  <span className="text-gray-400">{tokenFilterOpen ? "−" : "+"}</span>
-                </button>
-                {tokenFilterOpen && (
-                  <div className="space-y-3 pt-2">
-                    {tokenFiltersWithCount.map((filter) => (
-                      <label key={filter.id} className="flex items-center space-x-3 text-sm">
-                        <Checkbox
-                          checked={selectedTokenFilters.includes(filter.id)}
-                          onCheckedChange={(checked) => {
-                            handleFilterChange("token", filter.id)
-                          }}
-                          className="border-white data-[state=checked]:bg-[#F7984A] data-[state=checked]:border-[#F7984A]"
-                        />
-                        <span className="flex-1">{filter.label}</span>
-                        <span className="text-gray-500">{filter.count}</span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
+             
 
               {/* Categories Filter */}
               <div className="space-y-4 bg-gray-800/20 p-4 rounded-lg border border-gray-800/50">
@@ -580,6 +570,34 @@ export default function CryptoDirectoryPage() {
                         />
                         <span className="flex-1">{chainType.label}</span>
                         <span className="text-gray-500">{chainType.count}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+               {/* Token Status Filter */}
+               <div className="space-y-4 bg-gray-800/20 p-4 rounded-lg border border-gray-800/50">
+                <button
+                  className="flex items-center justify-between w-full font-semibold text-lg"
+                  onClick={() => setTokenFilterOpen(!tokenFilterOpen)}
+                >
+                  <span>Token</span>
+                  <span className="text-gray-400">{tokenFilterOpen ? "−" : "+"}</span>
+                </button>
+                {tokenFilterOpen && (
+                  <div className="space-y-3 pt-2">
+                    {tokenFiltersWithCount.map((filter) => (
+                      <label key={filter.id} className="flex items-center space-x-3 text-sm">
+                        <Checkbox
+                          checked={selectedTokenFilters.includes(filter.id)}
+                          onCheckedChange={(checked) => {
+                            handleFilterChange("token", filter.id)
+                          }}
+                          className="border-white data-[state=checked]:bg-[#F7984A] data-[state=checked]:border-[#F7984A]"
+                        />
+                        <span className="flex-1">{filter.label}</span>
+                        <span className="text-gray-500">{filter.count}</span>
                       </label>
                     ))}
                   </div>
@@ -780,13 +798,20 @@ export default function CryptoDirectoryPage() {
                       <div className="flex items-center px-1">
                         {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                           // Calculate which page numbers to show
-                          let pageToShow = currentPage
-                          if (currentPage < 3) {
-                            pageToShow = i + 1
+                         
+                          let pageToShow;
+                          if (totalPages <= 5) {
+                            // If we have 5 or fewer pages, always show all pages (1 to totalPages)
+                            pageToShow = i + 1;
+                          } else if (currentPage < 3) {
+                            // If we're near the start, show pages 1-5
+                            pageToShow = i + 1;
                           } else if (currentPage > totalPages - 2) {
-                            pageToShow = totalPages - 4 + i
+                            // If we're near the end, show the last 5 pages
+                            pageToShow = totalPages - Math.min(4, totalPages - 1) + i;
                           } else {
-                            pageToShow = currentPage - 2 + i
+                            // Otherwise, show current page and 2 pages on each side
+                            pageToShow = currentPage - 2 + i;
                           }
 
                           // Only show valid page numbers
