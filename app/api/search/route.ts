@@ -71,7 +71,7 @@ async function searchProjects(query: string) {
         id: project.id,
         title: attrs.title,
         description: attrs.ShortDescription || '',
-        url: `/projects/${attrs.Slug}`,
+        url: `/directory/${attrs.Slug}`,
         type: 'project',
         image: logoUrl,
         category: attrs.Category || 'Crypto',
