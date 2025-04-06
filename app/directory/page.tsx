@@ -274,9 +274,47 @@ export default function CryptoDirectoryPage() {
     try {
       setLoading(true)
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:1337"
-      const response = await fetch(
-        `${backendUrl}/api/crypto-projects?populate=Logo&pagination[pageSize]=${pageSize}&pagination[page]=${currentPage}`,
-      )
+
+      // Build query parameters for filtering
+      let queryParams = `populate=Logo&pagination[pageSize]=${pageSize}&pagination[page]=${currentPage}`
+
+      // Add search query if present
+      if (searchQuery) {
+        queryParams += `&filters[$or][0][title][$containsi]=${encodeURIComponent(searchQuery)}`
+        queryParams += `&filters[$or][1][ShortDescription][$containsi]=${encodeURIComponent(searchQuery)}`
+        queryParams += `&filters[$or][2][Symbol][$containsi]=${encodeURIComponent(searchQuery)}`
+      }
+
+      // Add category filters if present
+      if (selectedCategories.length > 0) {
+        selectedCategories.forEach((category, index) => {
+          queryParams += `&filters[$or][${index}][Category]=${encodeURIComponent(category)}`
+        })
+      }
+
+      // Add chain type filters if present
+      if (selectedChainTypes.length > 0) {
+        selectedChainTypes.forEach((chainType, index) => {
+          queryParams += `&filters[$or][${index}][ChainType]=${encodeURIComponent(chainType)}`
+        })
+      }
+
+      // Add subcategory filters if present
+      if (selectedSubCategories.length > 0) {
+        selectedSubCategories.forEach((subCategory, index) => {
+          queryParams += `&filters[$or][${index}][Subcategory]=${encodeURIComponent(subCategory)}`
+          queryParams += `&filters[$or][${index + selectedSubCategories.length}][OtherSubCategory]=${encodeURIComponent(subCategory)}`
+        })
+      }
+
+      // Add token filters if present
+      if (selectedTokenFilters.includes("Has token")) {
+        queryParams += `&filters[TokenType][$notNull]=true`
+      } else if (selectedTokenFilters.includes("No token")) {
+        queryParams += `&filters[TokenType][$null]=true`
+      }
+
+      const response = await fetch(`${backendUrl}/api/crypto-projects?${queryParams}`)
 
       if (!response.ok) {
         throw new Error("Failed to fetch projects")
@@ -287,18 +325,22 @@ export default function CryptoDirectoryPage() {
       setTotalPages(data.meta.pagination.pageCount)
       setTotalItems(data.meta.pagination.total)
 
-      // Calculate and update filter counts
-      const {
-        categoryFilters: updatedCategoryFilters,
-        chainTypeFilters: updatedChainTypeFilters,
-        subCategoryFilters: updatedSubCategoryFilters,
-        tokenFilters: updatedTokenFilters,
-      } = calculateFilterCounts(data.data)
+      // Fetch all projects for filter counts (without pagination)
+      const countResponse = await fetch(`${backendUrl}/api/crypto-projects?populate=Logo&pagination[pageSize]=1000`)
+      if (countResponse.ok) {
+        const countData: StrapiResponse = await countResponse.json()
+        const {
+          categoryFilters: updatedCategoryFilters,
+          chainTypeFilters: updatedChainTypeFilters,
+          subCategoryFilters: updatedSubCategoryFilters,
+          tokenFilters: updatedTokenFilters,
+        } = calculateFilterCounts(countData.data)
 
-      setCategoryFiltersWithCount(updatedCategoryFilters)
-      setChainTypeFiltersWithCount(updatedChainTypeFilters)
-      setSubCategoryFiltersWithCount(updatedSubCategoryFilters)
-      setTokenFiltersWithCount(updatedTokenFilters)
+        setCategoryFiltersWithCount(updatedCategoryFilters)
+        setChainTypeFiltersWithCount(updatedChainTypeFilters)
+        setSubCategoryFiltersWithCount(updatedSubCategoryFilters)
+        setTokenFiltersWithCount(updatedTokenFilters)
+      }
 
       setLoading(false)
     } catch (err) {
@@ -312,7 +354,15 @@ export default function CryptoDirectoryPage() {
   // Find the useEffect that calls fetchProjects and update its dependency array:
   useEffect(() => {
     fetchProjects()
-  }, [currentPage, pageSize])
+  }, [
+    currentPage,
+    pageSize,
+    searchQuery,
+    selectedCategories,
+    selectedChainTypes,
+    selectedSubCategories,
+    selectedTokenFilters,
+  ])
 
   // Add a function to handle page changes
   const handlePageChange = (page: number) => {
@@ -344,35 +394,39 @@ export default function CryptoDirectoryPage() {
   }
 
   // Updated filteredProjects function
-  const filteredProjects = projects.filter((project) => {
-    const matchesSearch =
-      searchQuery === "" ||
-      project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.ShortDescription.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (project.Symbol && project.Symbol.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredProjects = projects
 
-    const matchesToken =
-      selectedTokenFilters.length === 0 ||
-      (selectedTokenFilters.includes("Has token") &&
-        project.TokenType &&
-        project.TokenType.toLowerCase().includes("has token")) ||
-      (selectedTokenFilters.includes("No token") &&
-        (!project.TokenType || !project.TokenType.toLowerCase().includes("has token")))
+  // Add this function to handle filter changes
+  const handleFilterChange = (type: string, value: string) => {
+    // Reset to page 1 whenever filters change
+    setCurrentPage(1)
 
-    const matchesCategory =
-      selectedCategories.length === 0 || (project.Category && selectedCategories.includes(project.Category))
-
-    const matchesChainType =
-      selectedChainTypes.length === 0 || (project.ChainType && selectedChainTypes.includes(project.ChainType))
-
-    // Update subcategory matching to check both Subcategory and OtherSubCategory fields
-    const matchesSubCategory =
-      selectedSubCategories.length === 0 ||
-      (project.Subcategory && selectedSubCategories.includes(project.Subcategory)) ||
-      (project.OtherSubCategory && selectedSubCategories.includes(project.OtherSubCategory))
-
-    return matchesSearch && matchesToken && matchesCategory && matchesChainType && matchesSubCategory
-  })
+    if (type === "category") {
+      setSelectedCategories(
+        selectedCategories.includes(value)
+          ? selectedCategories.filter((item) => item !== value)
+          : [...selectedCategories, value],
+      )
+    } else if (type === "chainType") {
+      setSelectedChainTypes(
+        selectedChainTypes.includes(value)
+          ? selectedChainTypes.filter((item) => item !== value)
+          : [...selectedChainTypes, value],
+      )
+    } else if (type === "subCategory") {
+      setSelectedSubCategories(
+        selectedSubCategories.includes(value)
+          ? selectedSubCategories.filter((item) => item !== value)
+          : [...selectedSubCategories, value],
+      )
+    } else if (type === "token") {
+      setSelectedTokenFilters(
+        selectedTokenFilters.includes(value)
+          ? selectedTokenFilters.filter((item) => item !== value)
+          : [...selectedTokenFilters, value],
+      )
+    }
+  }
 
   // Updated function to get the project logo URL
   const getProjectLogo = (project: CryptoProject) => {
@@ -424,7 +478,10 @@ export default function CryptoDirectoryPage() {
                   type="text"
                   placeholder="Search Directory..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setCurrentPage(1)
+                    setSearchQuery(e.target.value)
+                  }}
                   className="w-full pl-10 pr-4 py-3 bg-gray-800/70 border border-gray-700/50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#F7984A]/50 focus:border-[#F7984A]/50 transition-all"
                 />
               </div>
@@ -461,11 +518,7 @@ export default function CryptoDirectoryPage() {
                         <Checkbox
                           checked={selectedTokenFilters.includes(filter.id)}
                           onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedTokenFilters([...selectedTokenFilters, filter.id])
-                            } else {
-                              setSelectedTokenFilters(selectedTokenFilters.filter((id) => id !== filter.id))
-                            }
+                            handleFilterChange("token", filter.id)
                           }}
                           className="border-white data-[state=checked]:bg-[#F7984A] data-[state=checked]:border-[#F7984A]"
                         />
@@ -493,11 +546,7 @@ export default function CryptoDirectoryPage() {
                         <Checkbox
                           checked={selectedCategories.includes(category.id)}
                           onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedCategories([...selectedCategories, category.id])
-                            } else {
-                              setSelectedCategories(selectedCategories.filter((id) => id !== category.id))
-                            }
+                            handleFilterChange("category", category.id)
                           }}
                           className="border-white data-[state=checked]:bg-[#F7984A] data-[state=checked]:border-[#F7984A]"
                         />
@@ -525,11 +574,7 @@ export default function CryptoDirectoryPage() {
                         <Checkbox
                           checked={selectedChainTypes.includes(chainType.id)}
                           onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedChainTypes([...selectedChainTypes, chainType.id])
-                            } else {
-                              setSelectedChainTypes(selectedChainTypes.filter((id) => id !== chainType.id))
-                            }
+                            handleFilterChange("chainType", chainType.id)
                           }}
                           className="border-white data-[state=checked]:bg-[#F7984A] data-[state=checked]:border-[#F7984A]"
                         />
@@ -557,11 +602,7 @@ export default function CryptoDirectoryPage() {
                         <Checkbox
                           checked={selectedSubCategories.includes(subCategory.id)}
                           onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedSubCategories([...selectedSubCategories, subCategory.id])
-                            } else {
-                              setSelectedSubCategories(selectedSubCategories.filter((id) => id !== subCategory.id))
-                            }
+                            handleFilterChange("subCategory", subCategory.id)
                           }}
                           className="border-white data-[state=checked]:bg-[#F7984A] data-[state=checked]:border-[#F7984A]"
                         />
