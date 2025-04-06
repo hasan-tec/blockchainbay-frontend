@@ -206,31 +206,33 @@ const withRetry = async <T>(fn: () => Promise<T>, retries = 3, delay = 300): Pro
 
 export async function getProducts(filters: any = {}) {
   try {
-    // Extract any pagination from filters to prevent overriding
-    const { pagination: filterPagination, ...otherFilters } = filters;
-    
-    // Set default pagination with a much higher limit
-    const pagination = filterPagination || {
-      pageSize: 1000, // Set much higher than your total products
-      page: 1
+    // Simplify the params structure to avoid nested objects that might cause issues
+    const params: any = {
+      populate: {
+        mainImage: { populate: '*' },
+        category: { populate: '*' },
+        tags: { populate: '*' },
+      },
+      sort: ['featured:desc', 'createdAt:desc'],
     };
     
-    console.log('Fetching products with pagination:', pagination);
+    // Add pagination if provided, otherwise use defaults
+    if (filters.pagination) {
+      params.pagination = filters.pagination;
+    } else {
+      params.pagination = { page: 1, pageSize: 100 };
+    }
+    
+    // Handle filters carefully to avoid deep nesting
+    if (filters.filters) {
+      params.filters = filters.filters;
+    }
+    
+    console.log('Fetching products with params:', params);
     
     // Use retry mechanism for more reliable data fetching
     const response = await withRetry(() => 
-      apiClient.get('/api/products', {
-        params: {
-          populate: {
-            mainImage: { populate: '*' },
-            category: { populate: '*' },
-            tags: { populate: '*' },
-          },
-          sort: ['featured:desc', 'createdAt:desc'],
-          pagination, // Use the pagination object directly
-          filters: otherFilters, // Pass other filters separately
-        }
-      })
+      apiClient.get('/api/products', { params })
     );
     
     console.log('Products API response status:', response.status);

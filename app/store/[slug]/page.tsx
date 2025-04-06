@@ -310,34 +310,38 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
     }
     
     // Get related products with better error handling
-    let relatedProducts: ProductType[] = [];
-    try {
-      console.log(`Fetching related products for category: ${categorySlug}`);
-      
-      const relatedProductsRaw = await getProducts({
-        filters: {
-          category: {
-            slug: {
-              $eq: categorySlug,
-            },
-          },
-          id: {
-            $ne: product.id,
-          },
-        },
-        pagination: {
-          limit: 4,
-        },
-      }).catch(error => {
-        console.error('Error fetching related products:', error);
-        return [];
-      });
-      
-      console.log(`Found ${relatedProductsRaw.length} related products`);
-      relatedProducts = relatedProductsRaw.map((item: any) => transformProductIfNeeded(item));
-    } catch (error) {
-      console.error('Error processing related products:', error);
-    }
+    // Get related products with better error handling
+let relatedProducts: ProductType[] = [];
+try {
+  console.log(`Fetching related products for category: ${categorySlug}`);
+  
+  // First attempt - try a simple query without complex filters
+  const allCategoryProducts = await getProducts().catch(error => {
+    console.error('Error fetching all products:', error);
+    return [];
+  });
+  
+  // Then manually filter client-side to get related products in the same category
+  relatedProducts = allCategoryProducts
+    .filter((p: any) => {
+      try {
+        const pCategorySlug = p.attributes?.category?.data?.attributes?.slug || 
+                             (p.category?.data?.attributes?.slug) ||
+                             (p.category?.slug);
+        
+        return pCategorySlug === categorySlug && String(p.id) !== String(product.id);
+      } catch (err) {
+        console.error('Error filtering product:', err);
+        return false;
+      }
+    })
+    .slice(0, 4) // Limit to 4 related products
+    .map((item: any) => transformProductIfNeeded(item));
+  
+  console.log(`Found ${relatedProducts.length} related products`);
+} catch (error) {
+  console.error('Error processing related products:', error);
+}
     
     console.log('Rendering product detail page');
     
