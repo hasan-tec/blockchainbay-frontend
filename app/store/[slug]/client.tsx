@@ -512,7 +512,7 @@ const renderDescription = (description: string | RichTextBlock[] | undefined) =>
     {/* Credit Cards - Top Row */}
     <div>
       <Image
-        src="/visa.avif" 
+        src="/Visa.avif" 
         alt="We accept Visa, American Express, Discover, and Mastercard"
         width={240}
         height={40}
