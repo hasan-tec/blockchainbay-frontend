@@ -59,8 +59,8 @@ interface CryptoProject {
   DetailedDescription: any[]
   CurrentStatus: string
   Category: string
-  SubCategory: string | null  // This field is not being used correctly in the API
-  Subcategory: string | null  // This is the field actually used in the API response
+  SubCategory: string | null // This field is not being used correctly in the API
+  Subcategory: string | null // This is the field actually used in the API response
   OtherSubCategory: string | null // Additional subcategory field in API
   TokenType: string
   Website: string
@@ -110,8 +110,8 @@ const categoryFilters: FilterItem[] = [
   { id: "Seed Phrase Storage", label: "Seed Phrase Storage" },
   { id: "Taxes", label: "Taxes" },
   { id: "Non-Custodial Swap", label: "Non-Custodial Swap" },
-  { id: "Everyday Crypto Uses", label: "Everyday Crypto Uses" }
-];
+  { id: "Everyday Crypto Uses", label: "Everyday Crypto Uses" },
+]
 
 // Chain type filters
 const chainTypeFilters: FilterItem[] = [
@@ -137,8 +137,8 @@ const chainTypeFilters: FilterItem[] = [
   { id: "Polygon", label: "Polygon" },
   { id: "Sentinel", label: "Sentinel" },
   { id: "Solana", label: "Solana" },
-  { id: "Sui", label: "Sui" }
-];
+  { id: "Sui", label: "Sui" },
+]
 
 // Subcategory filters
 const subCategoryFilters: FilterItem[] = [
@@ -151,14 +151,14 @@ const subCategoryFilters: FilterItem[] = [
   { id: "Privacy", label: "Privacy" },
   { id: "Energy", label: "Energy" },
   { id: "Mobility", label: "Mobility" },
-  { id: "Database", label: "Database" }
-];
+  { id: "Database", label: "Database" },
+]
 
 // Token filters
 const tokenFilters: FilterItem[] = [
   { id: "Has token", label: "Has token" },
-  { id: "No token", label: "No token" }
-];
+  { id: "No token", label: "No token" },
+]
 
 export default function CryptoDirectoryPage() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -166,19 +166,25 @@ export default function CryptoDirectoryPage() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [selectedChainTypes, setSelectedChainTypes] = useState<string[]>([])
   const [selectedSubCategories, setSelectedSubCategories] = useState<string[]>([])
-  
+
   const [tokenFilterOpen, setTokenFilterOpen] = useState(true)
-  const [categoryFilterOpen, setCategoryFilterOpen] = useState(true)
-  const [chainTypeFilterOpen, setChainTypeFilterOpen] = useState(true)
-  const [subCategoryFilterOpen, setSubCategoryFilterOpen] = useState(true)
-  
+  const [categoryFilterOpen, setCategoryFilterOpen] = useState(false)
+  const [chainTypeFilterOpen, setChainTypeFilterOpen] = useState(false)
+  const [subCategoryFilterOpen, setSubCategoryFilterOpen] = useState(false)
+
   const [projects, setProjects] = useState<CryptoProject[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [scrolled, setScrolled] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  
+
+  // Add pagination state variables after the other state declarations (around line 150)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [pageSize, setPageSize] = useState(12)
+  const [totalItems, setTotalItems] = useState(0)
+
   // Add state for the filters with counts
   const [categoryFiltersWithCount, setCategoryFiltersWithCount] = useState<FilterItem[]>(categoryFilters)
   const [chainTypeFiltersWithCount, setChainTypeFiltersWithCount] = useState<FilterItem[]>(chainTypeFilters)
@@ -196,118 +202,144 @@ export default function CryptoDirectoryPage() {
 
   // Add a function to calculate counts for each filter
   const calculateFilterCounts = (projects: CryptoProject[]) => {
-    const categoryCounts: Record<string, number> = {};
-    const chainTypeCounts: Record<string, number> = {};
-    const subCategoryCounts: Record<string, number> = {};
+    const categoryCounts: Record<string, number> = {}
+    const chainTypeCounts: Record<string, number> = {}
+    const subCategoryCounts: Record<string, number> = {}
     const tokenCounts = {
       "Has token": 0,
-      "No token": 0
-    };
+      "No token": 0,
+    }
 
-    projects.forEach(project => {
+    projects.forEach((project) => {
       // Count categories
       if (project.Category) {
-        categoryCounts[project.Category] = (categoryCounts[project.Category] || 0) + 1;
+        categoryCounts[project.Category] = (categoryCounts[project.Category] || 0) + 1
       }
-      
+
       // Count chain types
       if (project.ChainType) {
-        chainTypeCounts[project.ChainType] = (chainTypeCounts[project.ChainType] || 0) + 1;
+        chainTypeCounts[project.ChainType] = (chainTypeCounts[project.ChainType] || 0) + 1
       }
-      
+
       // Count subcategories - check both Subcategory and OtherSubCategory fields
       if (project.Subcategory) {
-        subCategoryCounts[project.Subcategory] = (subCategoryCounts[project.Subcategory] || 0) + 1;
+        subCategoryCounts[project.Subcategory] = (subCategoryCounts[project.Subcategory] || 0) + 1
       }
       if (project.OtherSubCategory) {
-        subCategoryCounts[project.OtherSubCategory] = (subCategoryCounts[project.OtherSubCategory] || 0) + 1;
+        subCategoryCounts[project.OtherSubCategory] = (subCategoryCounts[project.OtherSubCategory] || 0) + 1
       }
 
       // Count token status
       if (project.TokenType && project.TokenType !== "") {
-        tokenCounts["Has token"]++;
+        tokenCounts["Has token"]++
       } else {
-        tokenCounts["No token"]++;
+        tokenCounts["No token"]++
       }
-    });
+    })
 
     // Update the filter arrays with counts
-    const updatedCategoryFilters = categoryFilters.map(filter => ({
+    const updatedCategoryFilters = categoryFilters.map((filter) => ({
       ...filter,
-      count: categoryCounts[filter.id] || 0
-    }));
+      count: categoryCounts[filter.id] || 0,
+    }))
 
-    const updatedChainTypeFilters = chainTypeFilters.map(filter => ({
+    const updatedChainTypeFilters = chainTypeFilters.map((filter) => ({
       ...filter,
-      count: chainTypeCounts[filter.id] || 0
-    }));
+      count: chainTypeCounts[filter.id] || 0,
+    }))
 
-    const updatedSubCategoryFilters = subCategoryFilters.map(filter => ({
+    const updatedSubCategoryFilters = subCategoryFilters.map((filter) => ({
       ...filter,
-      count: subCategoryCounts[filter.id] || 0
-    }));
+      count: subCategoryCounts[filter.id] || 0,
+    }))
 
     const updatedTokenFilters = [
       { id: "Has token", label: "Has token", count: tokenCounts["Has token"] },
-      { id: "No token", label: "No token", count: tokenCounts["No token"] }
-    ];
+      { id: "No token", label: "No token", count: tokenCounts["No token"] },
+    ]
 
     return {
       categoryFilters: updatedCategoryFilters,
       chainTypeFilters: updatedChainTypeFilters,
       subCategoryFilters: updatedSubCategoryFilters,
-      tokenFilters: updatedTokenFilters
-    };
-  };
-
-  useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:1337"
-        const response = await fetch(`${backendUrl}/api/crypto-projects?populate=Logo&pagination[pageSize]=1000&pagination[page]=1`)
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch projects")
-        }
-
-        const data: StrapiResponse = await response.json()
-        setProjects(data.data)
-        
-        // Calculate and update filter counts
-        const { categoryFilters: updatedCategoryFilters, 
-                chainTypeFilters: updatedChainTypeFilters, 
-                subCategoryFilters: updatedSubCategoryFilters,
-                tokenFilters: updatedTokenFilters } = calculateFilterCounts(data.data);
-        
-        setCategoryFiltersWithCount(updatedCategoryFilters);
-        setChainTypeFiltersWithCount(updatedChainTypeFilters);
-        setSubCategoryFiltersWithCount(updatedSubCategoryFilters);
-        setTokenFiltersWithCount(updatedTokenFilters);
-        
-        setLoading(false)
-      } catch (err) {
-        console.error("Error fetching projects:", err)
-        setError("Failed to load projects. Please try again later.")
-        setLoading(false)
-      }
+      tokenFilters: updatedTokenFilters,
     }
+  }
 
+  // Update the fetchProjects function in the useEffect to handle pagination
+  // Replace the existing fetchProjects function with this one:
+  const fetchProjects = async () => {
+    try {
+      setLoading(true)
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:1337"
+      const response = await fetch(
+        `${backendUrl}/api/crypto-projects?populate=Logo&pagination[pageSize]=${pageSize}&pagination[page]=${currentPage}`,
+      )
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch projects")
+      }
+
+      const data: StrapiResponse = await response.json()
+      setProjects(data.data)
+      setTotalPages(data.meta.pagination.pageCount)
+      setTotalItems(data.meta.pagination.total)
+
+      // Calculate and update filter counts
+      const {
+        categoryFilters: updatedCategoryFilters,
+        chainTypeFilters: updatedChainTypeFilters,
+        subCategoryFilters: updatedSubCategoryFilters,
+        tokenFilters: updatedTokenFilters,
+      } = calculateFilterCounts(data.data)
+
+      setCategoryFiltersWithCount(updatedCategoryFilters)
+      setChainTypeFiltersWithCount(updatedChainTypeFilters)
+      setSubCategoryFiltersWithCount(updatedSubCategoryFilters)
+      setTokenFiltersWithCount(updatedTokenFilters)
+
+      setLoading(false)
+    } catch (err) {
+      console.error("Error fetching projects:", err)
+      setError("Failed to load projects. Please try again later.")
+      setLoading(false)
+    }
+  }
+
+  // Update the useEffect dependency array to include currentPage and pageSize
+  // Find the useEffect that calls fetchProjects and update its dependency array:
+  useEffect(() => {
     fetchProjects()
-  }, [])
+  }, [currentPage, pageSize])
+
+  // Add a function to handle page changes
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+    // Scroll to top when changing pages
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  // Add a function to handle page size changes
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size)
+    setCurrentPage(1) // Reset to first page when changing page size
+  }
+
+  // Add a reset function that also resets pagination
+  // Update the resetFilters function:
+  const resetFilters = () => {
+    setSearchQuery("")
+    setSelectedTokenFilters([])
+    setSelectedCategories([])
+    setSelectedChainTypes([])
+    setSelectedSubCategories([])
+    setCurrentPage(1) // Reset to first page when filters are reset
+  }
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode)
     document.documentElement.classList.toggle("dark")
   }
-
-  // Reset filters function
-  const resetFilters = () => {
-    setSearchQuery("");
-    setSelectedTokenFilters([]);
-    setSelectedCategories([]);
-    setSelectedChainTypes([]);
-    setSelectedSubCategories([]);
-  };
 
   // Updated filteredProjects function
   const filteredProjects = projects.filter((project) => {
@@ -315,29 +347,30 @@ export default function CryptoDirectoryPage() {
       searchQuery === "" ||
       project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       project.ShortDescription.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (project.Symbol && project.Symbol.toLowerCase().includes(searchQuery.toLowerCase()));
-  
-    const matchesToken = 
-      selectedTokenFilters.length === 0 || 
-      (selectedTokenFilters.includes("Has token") && project.TokenType && project.TokenType.toLowerCase().includes("has token")) ||
-      (selectedTokenFilters.includes("No token") && (!project.TokenType || !project.TokenType.toLowerCase().includes("has token")));
-  
-    const matchesCategory = 
-      selectedCategories.length === 0 || 
-      (project.Category && selectedCategories.includes(project.Category));
-  
-    const matchesChainType = 
-      selectedChainTypes.length === 0 || 
-      (project.ChainType && selectedChainTypes.includes(project.ChainType));
-  
+      (project.Symbol && project.Symbol.toLowerCase().includes(searchQuery.toLowerCase()))
+
+    const matchesToken =
+      selectedTokenFilters.length === 0 ||
+      (selectedTokenFilters.includes("Has token") &&
+        project.TokenType &&
+        project.TokenType.toLowerCase().includes("has token")) ||
+      (selectedTokenFilters.includes("No token") &&
+        (!project.TokenType || !project.TokenType.toLowerCase().includes("has token")))
+
+    const matchesCategory =
+      selectedCategories.length === 0 || (project.Category && selectedCategories.includes(project.Category))
+
+    const matchesChainType =
+      selectedChainTypes.length === 0 || (project.ChainType && selectedChainTypes.includes(project.ChainType))
+
     // Update subcategory matching to check both Subcategory and OtherSubCategory fields
-    const matchesSubCategory = 
-      selectedSubCategories.length === 0 || 
+    const matchesSubCategory =
+      selectedSubCategories.length === 0 ||
       (project.Subcategory && selectedSubCategories.includes(project.Subcategory)) ||
-      (project.OtherSubCategory && selectedSubCategories.includes(project.OtherSubCategory));
-  
-    return matchesSearch && matchesToken && matchesCategory && matchesChainType && matchesSubCategory;
-  });
+      (project.OtherSubCategory && selectedSubCategories.includes(project.OtherSubCategory))
+
+    return matchesSearch && matchesToken && matchesCategory && matchesChainType && matchesSubCategory
+  })
 
   // Updated function to get the project logo URL
   const getProjectLogo = (project: CryptoProject) => {
@@ -372,12 +405,12 @@ export default function CryptoDirectoryPage() {
       <main className="pt-32 pb-20 relative z-10">
         <div className="container mx-auto px-4 md:px-6">
           {/* Header */}
-<div className="max-w-4xl mx-auto text-center mb-16 px-4 md:px-6">
-  <h1 className="text-5xl md:text-6xl font-extrabold mb-6 text-white pb-3">
-    Crypto Directory
-  </h1>
-  <p className="text-xl text-gray-300">Discover and explore trusted crypto projects and companies in one comprehensive directory.</p>
-</div>
+          <div className="max-w-4xl mx-auto text-center mb-16 px-4 md:px-6">
+            <h1 className="text-5xl md:text-6xl font-extrabold mb-6 text-white pb-3">Crypto Directory</h1>
+            <p className="text-xl text-gray-300">
+              Discover and explore trusted crypto projects and companies in one comprehensive directory.
+            </p>
+          </div>
 
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Filters Sidebar */}
@@ -393,9 +426,13 @@ export default function CryptoDirectoryPage() {
                   className="w-full pl-10 pr-4 py-3 bg-gray-800/70 border border-gray-700/50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#F7984A]/50 focus:border-[#F7984A]/50 transition-all"
                 />
               </div>
-              
+
               {/* Reset Filters */}
-              {(selectedTokenFilters.length > 0 || selectedCategories.length > 0 || selectedChainTypes.length > 0 || selectedSubCategories.length > 0 || searchQuery) && (
+              {(selectedTokenFilters.length > 0 ||
+                selectedCategories.length > 0 ||
+                selectedChainTypes.length > 0 ||
+                selectedSubCategories.length > 0 ||
+                searchQuery) && (
                 <div className="flex justify-end">
                   <button
                     onClick={resetFilters}
@@ -423,9 +460,9 @@ export default function CryptoDirectoryPage() {
                           checked={selectedTokenFilters.includes(filter.id)}
                           onCheckedChange={(checked) => {
                             if (checked) {
-                              setSelectedTokenFilters([...selectedTokenFilters, filter.id]);
+                              setSelectedTokenFilters([...selectedTokenFilters, filter.id])
                             } else {
-                              setSelectedTokenFilters(selectedTokenFilters.filter((id) => id !== filter.id));
+                              setSelectedTokenFilters(selectedTokenFilters.filter((id) => id !== filter.id))
                             }
                           }}
                           className="border-white data-[state=checked]:bg-[#F7984A] data-[state=checked]:border-[#F7984A]"
@@ -455,9 +492,9 @@ export default function CryptoDirectoryPage() {
                           checked={selectedCategories.includes(category.id)}
                           onCheckedChange={(checked) => {
                             if (checked) {
-                              setSelectedCategories([...selectedCategories, category.id]);
+                              setSelectedCategories([...selectedCategories, category.id])
                             } else {
-                              setSelectedCategories(selectedCategories.filter((id) => id !== category.id));
+                              setSelectedCategories(selectedCategories.filter((id) => id !== category.id))
                             }
                           }}
                           className="border-white data-[state=checked]:bg-[#F7984A] data-[state=checked]:border-[#F7984A]"
@@ -487,9 +524,9 @@ export default function CryptoDirectoryPage() {
                           checked={selectedChainTypes.includes(chainType.id)}
                           onCheckedChange={(checked) => {
                             if (checked) {
-                              setSelectedChainTypes([...selectedChainTypes, chainType.id]);
+                              setSelectedChainTypes([...selectedChainTypes, chainType.id])
                             } else {
-                              setSelectedChainTypes(selectedChainTypes.filter((id) => id !== chainType.id));
+                              setSelectedChainTypes(selectedChainTypes.filter((id) => id !== chainType.id))
                             }
                           }}
                           className="border-white data-[state=checked]:bg-[#F7984A] data-[state=checked]:border-[#F7984A]"
@@ -519,9 +556,9 @@ export default function CryptoDirectoryPage() {
                           checked={selectedSubCategories.includes(subCategory.id)}
                           onCheckedChange={(checked) => {
                             if (checked) {
-                              setSelectedSubCategories([...selectedSubCategories, subCategory.id]);
+                              setSelectedSubCategories([...selectedSubCategories, subCategory.id])
                             } else {
-                              setSelectedSubCategories(selectedSubCategories.filter((id) => id !== subCategory.id));
+                              setSelectedSubCategories(selectedSubCategories.filter((id) => id !== subCategory.id))
                             }
                           }}
                           className="border-white data-[state=checked]:bg-[#F7984A] data-[state=checked]:border-[#F7984A]"
@@ -538,7 +575,7 @@ export default function CryptoDirectoryPage() {
               <div className="bg-gray-800/20 p-4 rounded-lg border border-gray-800/50 text-center">
                 <p className="text-gray-300">
                   Showing <span className="font-bold text-white">{filteredProjects.length}</span> of{" "}
-                  <span className="font-bold text-white">{projects.length}</span> projects
+                  <span className="font-bold text-white">{totalItems}</span> projects
                 </p>
               </div>
             </div>
@@ -547,7 +584,6 @@ export default function CryptoDirectoryPage() {
             <div className="flex-1">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold">Directory</h2>
-                
               </div>
 
               {loading ? (
@@ -633,6 +669,145 @@ export default function CryptoDirectoryPage() {
                   </p>
                 </div>
               )}
+
+              {!loading && !error && filteredProjects.length > 0 && (
+                <div className="mt-12 space-y-6">
+                  {/* Divider */}
+                  <div className="h-px bg-gradient-to-r from-transparent via-gray-700/50 to-transparent"></div>
+
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+                    {/* Page size selector with styled dropdown */}
+                    <div className="flex items-center gap-3 order-2 sm:order-1">
+                      <span className="text-sm text-gray-400">Show:</span>
+                      <select
+                        value={pageSize}
+                        onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                        className="bg-[#0D0B26] border border-gray-800 rounded-lg text-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#F7984A]/50 focus:border-[#F7984A]/50 transition-all appearance-none cursor-pointer"
+                        style={{
+                          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23F7984A' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
+                          backgroundRepeat: "no-repeat",
+                          backgroundPosition: "right 0.5rem center",
+                          paddingRight: "2.5rem",
+                        }}
+                      >
+                        <option value={12}>12 per page</option>
+                        <option value={24}>24 per page</option>
+                        <option value={48}>48 per page</option>
+                      </select>
+                    </div>
+
+                    {/* Results counter */}
+                    <div className="text-sm text-gray-400 order-1 sm:order-2">
+                      Showing <span className="font-medium text-white">{(currentPage - 1) * pageSize + 1}</span> to{" "}
+                      <span className="font-medium text-white">{Math.min(currentPage * pageSize, totalItems)}</span> of{" "}
+                      <span className="font-medium text-white">{totalItems}</span> projects
+                    </div>
+                  </div>
+
+                  {/* Pagination controls */}
+                  <div className="flex justify-center mt-6">
+                    <div className="inline-flex items-center rounded-lg overflow-hidden bg-[#0D0B26] border border-gray-800 p-1">
+                      {/* Previous page button */}
+                      <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className={`flex items-center justify-center h-9 w-9 rounded-md transition-all ${
+                          currentPage === 1
+                            ? "opacity-50 cursor-not-allowed text-gray-500"
+                            : "hover:bg-gray-800/80 text-gray-300 hover:text-white"
+                        }`}
+                        aria-label="Previous page"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="m15 18-6-6 6-6" />
+                        </svg>
+                      </button>
+
+                      {/* Page numbers */}
+                      <div className="flex items-center px-1">
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                          // Calculate which page numbers to show
+                          let pageToShow = currentPage
+                          if (currentPage < 3) {
+                            pageToShow = i + 1
+                          } else if (currentPage > totalPages - 2) {
+                            pageToShow = totalPages - 4 + i
+                          } else {
+                            pageToShow = currentPage - 2 + i
+                          }
+
+                          // Only show valid page numbers
+                          if (pageToShow > 0 && pageToShow <= totalPages) {
+                            return (
+                              <button
+                                key={pageToShow}
+                                onClick={() => handlePageChange(pageToShow)}
+                                className={`flex items-center justify-center h-9 w-9 rounded-md mx-0.5 text-sm font-medium transition-all ${
+                                  currentPage === pageToShow
+                                    ? "bg-[#F7984A] text-white shadow-lg shadow-[#F7984A]/20"
+                                    : "hover:bg-gray-800/80 text-gray-300 hover:text-white"
+                                }`}
+                              >
+                                {pageToShow}
+                              </button>
+                            )
+                          }
+                          return null
+                        })}
+
+                        {/* Show ellipsis and last page if there are many pages */}
+                        {totalPages > 5 && currentPage < totalPages - 2 && (
+                          <>
+                            <span className="mx-1 text-gray-500">...</span>
+                            <button
+                              onClick={() => handlePageChange(totalPages)}
+                              className="flex items-center justify-center h-9 w-9 rounded-md mx-0.5 text-sm font-medium hover:bg-gray-800/80 text-gray-300 hover:text-white transition-all"
+                            >
+                              {totalPages}
+                            </button>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Next page button */}
+                      <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className={`flex items-center justify-center h-9 w-9 rounded-md transition-all ${
+                          currentPage === totalPages
+                            ? "opacity-50 cursor-not-allowed text-gray-500"
+                            : "hover:bg-gray-800/80 text-gray-300 hover:text-white"
+                        }`}
+                        aria-label="Next page"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="m9 18 6-6-6-6" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -643,3 +818,4 @@ export default function CryptoDirectoryPage() {
     </div>
   )
 }
+
