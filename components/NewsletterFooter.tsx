@@ -58,6 +58,7 @@ export const Footer = ({ className }: { className?: string }) => {
         { name: "About", href: "/about" },
         { name: "Contact", href: "/contact" },
         { name: "Privacy Policy", href: "/privacy-policy" },
+        { name: "Terms of Service", href: "/terms" },
       ],
     },
   ]
@@ -148,7 +149,7 @@ export const Footer = ({ className }: { className?: string }) => {
         <div className="border-t border-gray-800/50 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-gray-500 text-sm">© 2025 BlockchainBay. All rights reserved.</p>
           <div className="flex gap-6 mt-4 md:mt-0">
-            <Link href="/privacy-policy" className="text-gray-500 hover:text-white text-sm transition-colors">
+            <Link href="/terms" className="text-gray-500 hover:text-white text-sm transition-colors">
               Terms
             </Link>
             <Link href="/privacy-policy" className="text-gray-500 hover:text-white text-sm transition-colors">
@@ -161,4 +162,3 @@ export const Footer = ({ className }: { className?: string }) => {
     </footer>
   )
 }
-

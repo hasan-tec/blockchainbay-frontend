@@ -3,15 +3,19 @@
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { CookiePolicyModal } from "./cookie-policy-modal"
+import cookieConsentManager, { CookiePreferences } from "@/services/cookieConsentManager"
 
 export function CookieBanner() {
   const [showBanner, setShowBanner] = useState(false)
   const [showModal, setShowModal] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    // Set mounted state to indicate client-side rendering
+    setMounted(true)
+    
     // Check if user has already set cookie preferences
-    const preferences = localStorage.getItem("cookiePreferences")
-    if (!preferences) {
+    if (!cookieConsentManager.hasSetPreferences()) {
       // If no preferences are set, show the banner after a short delay
       const timer = setTimeout(() => {
         setShowBanner(true)
@@ -22,21 +26,25 @@ export function CookieBanner() {
 
   const handleAcceptAll = () => {
     // Save preferences with all cookies accepted
-    localStorage.setItem(
-      "cookiePreferences",
-      JSON.stringify({
-        necessary: true,
-        functional: true,
-        analytics: true,
-        marketing: true,
-      }),
-    )
+    const allAccepted: CookiePreferences = {
+      necessary: true,
+      functional: true,
+      analytics: true,
+      marketing: true,
+    }
+    
+    cookieConsentManager.savePreferences(allAccepted)
     setShowBanner(false)
   }
 
   const handleCustomize = () => {
     setShowModal(true)
     setShowBanner(false)
+  }
+
+  // Avoid hydration mismatch by not rendering until client-side
+  if (!mounted) {
+    return null
   }
 
   if (!showBanner) {
@@ -72,4 +80,3 @@ export function CookieBanner() {
     </>
   )
 }
-

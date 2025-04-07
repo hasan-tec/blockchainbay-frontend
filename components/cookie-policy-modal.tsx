@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -13,6 +13,7 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
+import cookieConsentManager, { CookiePreferences } from "@/services/cookieConsentManager"
 
 export function CookiePolicyModal({
   open,
@@ -21,40 +22,48 @@ export function CookiePolicyModal({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
-  const [preferences, setPreferences] = useState({
+  const [preferences, setPreferences] = useState<CookiePreferences>({
     necessary: true, // Always enabled
-    functional: true,
-    analytics: true,
+    functional: false,
+    analytics: false,
     marketing: false,
   })
+  const [mounted, setMounted] = useState(false)
+
+  // Handle client-side rendering
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Load preferences when modal opens
+  useEffect(() => {
+    if (mounted && open) {
+      const currentPrefs = cookieConsentManager.getPreferences();
+      setPreferences(currentPrefs);
+    }
+  }, [open, mounted]);
 
   const handleAcceptAll = () => {
-    setPreferences({
+    const allAccepted: CookiePreferences = {
       necessary: true,
       functional: true,
       analytics: true,
       marketing: true,
-    })
-    // Here you would save the preferences to cookies/localStorage
-    savePreferences({
-      necessary: true,
-      functional: true,
-      analytics: true,
-      marketing: true,
-    })
+    }
+    
+    setPreferences(allAccepted)
+    cookieConsentManager.savePreferences(allAccepted)
     onOpenChange(false)
   }
 
   const handleSavePreferences = () => {
-    // Here you would save the preferences to cookies/localStorage
-    savePreferences(preferences)
+    cookieConsentManager.savePreferences(preferences)
     onOpenChange(false)
   }
 
-  const savePreferences = (prefs: typeof preferences) => {
-    // In a real implementation, you would save these to cookies or localStorage
-    localStorage.setItem("cookiePreferences", JSON.stringify(prefs))
-    console.log("Cookie preferences saved:", prefs)
+  // Avoid rendering on server
+  if (!mounted) {
+    return null
   }
 
   return (
@@ -244,4 +253,3 @@ export function CookiePolicyModal({
     </Dialog>
   )
 }
-
