@@ -22,3 +22,4 @@ export function CookieLink() {
   )
 }
 
+// This component is used to display a link to the cookie policy modal.
