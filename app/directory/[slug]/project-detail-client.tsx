@@ -1297,81 +1297,82 @@ const getRelatedProjectLogo = (relatedProject: RelatedProject) => {
     </div>
   </div>
 
-  {/* Related Projects */}
-  <div className="space-y-6 mt-16">
-    <div className="flex items-center justify-between">
-      <h3 className="text-xl font-bold flex items-center gap-2 relative">
-        <span className="text-yellow-400">☀️</span> Related projects
-        <span className="absolute -bottom-1 left-0 w-1/3 h-0.5 bg-yellow-400/50"></span>
-      </h3>
-      <Button 
-        variant="link" 
-        className="text-[#F7984A] hover:text-[#F7984A]/80 p-0 group"
-        onClick={() => window.open('/directory', '_self')}
-      >
-        <span className="hidden md:inline">View all projects</span>
-        <ArrowUpRight className="ml-1 h-4 w-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300" />
-      </Button>
+  {/* Related Projects with Square Logos */}
+<div className="space-y-6 mt-16">
+  <div className="flex items-center justify-between">
+    <h3 className="text-xl font-bold flex items-center gap-2 relative">
+      <span className="text-yellow-400">☀️</span> Related projects
+      <span className="absolute -bottom-1 left-0 w-1/3 h-0.5 bg-yellow-400/50"></span>
+    </h3>
+    <Button 
+      variant="link" 
+      className="text-[#F7984A] hover:text-[#F7984A]/80 p-0 group"
+      onClick={() => window.open('/directory', '_self')}
+    >
+      <span className="hidden md:inline">View all projects</span>
+      <ArrowUpRight className="ml-1 h-4 w-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300" />
+    </Button>
+  </div>
+  
+  {isLoadingRelated ? (
+    <div className="flex items-center justify-center py-8">
+      <div className="w-8 h-8 border-4 border-t-[#F7984A] border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
     </div>
-    
-    {isLoadingRelated ? (
-      <div className="flex items-center justify-center py-8">
-        <div className="w-8 h-8 border-4 border-t-[#F7984A] border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
-      </div>
-    ) : relatedProjects.length > 0 ? (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {relatedProjects.map((relatedProject) => (
-          <Link 
-            key={relatedProject.id} 
-            href={`/directory/${relatedProject.Slug}`} 
-            className="block"
-          >
-            <div className="flex gap-4 p-4 bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl hover:border-gray-700/70 hover:bg-[#0D0B26] transition-all duration-300 hover:shadow-lg group h-full">
-              <div className="w-12 h-12 shrink-0 rounded-full overflow-hidden bg-gradient-to-br from-green-400/20 to-blue-500/20 group-hover:from-green-400/30 group-hover:to-blue-500/30 transition-all duration-300 flex items-center justify-center">
-                {relatedProject.Logo ? (
-                  <Image
-                    src={getRelatedProjectLogo(relatedProject)}
-                    alt={relatedProject.title}
-                    width={48}
-                    height={48}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-tr from-[#F7984A]/30 to-[#F7984A]/10 flex items-center justify-center text-[#F7984A] font-bold text-xl">
-                    {relatedProject.title.substring(0, 2)}
-                  </div>
+  ) : relatedProjects.length > 0 ? (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {relatedProjects.map((relatedProject) => (
+        <Link 
+          key={relatedProject.id} 
+          href={`/directory/${relatedProject.Slug}`} 
+          className="block"
+        >
+          <div className="flex gap-4 p-4 bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl hover:border-gray-700/70 hover:bg-[#0D0B26] transition-all duration-300 hover:shadow-lg group h-full">
+            {/* Changed from rounded-full to rounded-md for square logos */}
+            <div className="w-12 h-12 shrink-0 rounded-md overflow-hidden bg-gradient-to-br from-green-400/20 to-blue-500/20 group-hover:from-green-400/30 group-hover:to-blue-500/30 transition-all duration-300 flex items-center justify-center">
+              {relatedProject.Logo ? (
+                <Image
+                  src={getRelatedProjectLogo(relatedProject)}
+                  alt={relatedProject.title}
+                  width={48}
+                  height={48}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-tr from-[#F7984A]/30 to-[#F7984A]/10 flex items-center justify-center text-[#F7984A] font-bold text-xl">
+                  {relatedProject.title.substring(0, 2)}
+                </div>
+              )}
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <h4 className="font-medium group-hover:text-[#F7984A]/90 transition-colors duration-300 line-clamp-1">
+                  {relatedProject.title}
+                </h4>
+                {relatedProject.Symbol && (
+                  <span className="text-sm text-[#F7984A]">{relatedProject.Symbol}</span>
                 )}
               </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <h4 className="font-medium group-hover:text-[#F7984A]/90 transition-colors duration-300 line-clamp-1">
-                    {relatedProject.title}
-                  </h4>
-                  {relatedProject.Symbol && (
-                    <span className="text-sm text-[#F7984A]">{relatedProject.Symbol}</span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge className="text-xs bg-[#0D0B26] text-blue-400 border border-blue-500/20 px-1.5 py-0">
-                    {relatedProject.Category}
+              <div className="flex items-center gap-2 mt-1">
+                <Badge className="text-xs bg-[#0D0B26] text-blue-400 border border-blue-500/20 px-1.5 py-0">
+                  {relatedProject.Category}
+                </Badge>
+                {relatedProject.SubCategory && (
+                  <Badge className="text-xs bg-[#0D0B26] text-purple-400 border border-purple-500/20 px-1.5 py-0">
+                    {relatedProject.SubCategory}
                   </Badge>
-                  {relatedProject.SubCategory && (
-                    <Badge className="text-xs bg-[#0D0B26] text-purple-400 border border-purple-500/20 px-1.5 py-0">
-                      {relatedProject.SubCategory}
-                    </Badge>
-                  )}
-                </div>
+                )}
               </div>
             </div>
-          </Link>
-        ))}
-      </div>
-    ) : (
-      <div className="p-6 bg-[#0D0B26]/40 border border-gray-800/50 rounded-xl text-center">
-        <p className="text-gray-400">No related projects found.</p>
-      </div>
-    )}
-  </div>
+          </div>
+        </Link>
+      ))}
+    </div>
+  ) : (
+    <div className="p-6 bg-[#0D0B26]/40 border border-gray-800/50 rounded-xl text-center">
+      <p className="text-gray-400">No related projects found.</p>
+    </div>
+  )}
+</div>
 </div>
         </div>
       </main>

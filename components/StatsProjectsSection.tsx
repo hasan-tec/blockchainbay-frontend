@@ -31,6 +31,9 @@ interface CryptoProject {
   Category: string
   SubCategory: string | null
   CurrentStatus: string
+  // Add the featured property from the updated schema
+  featured?: boolean
+  ChainType?: string
   Logo?: Logo
   // Other properties omitted for brevity
 }
@@ -56,15 +59,28 @@ interface ProjectCardProps {
   image: string;
   slug: string;
   verified: boolean;
+  featured?: boolean; // Add featured prop
+  chainType?: string; // Optional chain type
 }
 
-export const ProjectCard = ({ name, category, categories, description, image, slug, verified }: ProjectCardProps) => {
+export const ProjectCard = ({ 
+  name, 
+  category, 
+  categories, 
+  description, 
+  image, 
+  slug, 
+  verified, 
+  featured = false,
+  chainType
+}: ProjectCardProps) => {
   return (
     <Link href={`/directory/${slug}`}>
       <div className="bg-[#0D0B26]/80 border border-gray-800/50 rounded-xl p-6 hover:border-gray-700/60 transition-all duration-300 h-full">
         <div className="flex items-center gap-3 mb-4">
           <div className="relative">
-            <div className="w-12 h-12 rounded-full overflow-hidden bg-[#0D0B26] border border-purple-500/20">
+            {/* Square logo with slightly rounded corners */}
+            <div className="w-12 h-12 rounded-md overflow-hidden bg-[#0D0B26] border border-purple-500/20">
               <div className="w-full h-full">
                 {image ? (
                   <Image
@@ -94,6 +110,22 @@ export const ProjectCard = ({ name, category, categories, description, image, sl
                 </svg>
               </div>
             )}
+            
+            {/* Add featured indicator */}
+            {featured && (
+              <div className="absolute -top-1 -right-1 bg-yellow-500 rounded-full p-0.5">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z"
+                    stroke="white"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    fill="white"
+                  />
+                </svg>
+              </div>
+            )}
           </div>
           <div>
             <h3 className="font-bold text-lg">{name}</h3>
@@ -105,6 +137,11 @@ export const ProjectCard = ({ name, category, categories, description, image, sl
               ) : category ? (
                 <Badge className="bg-gray-800/70 text-gray-300 border-none text-xs">{category}</Badge>
               ) : null}
+              
+              {/* Display chain type if available */}
+              {chainType && (
+                <Badge className="bg-gray-800/70 text-blue-300 border-none text-xs">{chainType}</Badge>
+              )}
             </div>
           </div>
         </div>
@@ -125,18 +162,54 @@ export const ProjectsSection = () => {
         setIsLoading(true);
         // Replace with your actual API endpoint
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:1337";
-        const response = await fetch(`${backendUrl}/api/crypto-projects?populate=Logo`);
         
-        if (!response.ok) {
-          throw new Error("Failed to fetch projects");
+        // First try to fetch featured projects
+        const featuredResponse = await fetch(`${backendUrl}/api/crypto-projects?filters[featured][$eq]=true&populate=Logo`);
+        
+        if (!featuredResponse.ok) {
+          throw new Error("Failed to fetch featured projects");
         }
         
-        const data: ApiResponse = await response.json();
-        setProjects(data.data);
+        const featuredData: ApiResponse = await featuredResponse.json();
+        
+        // If we have enough featured projects, use only those
+        if (featuredData.data.length >= 3) {
+          setProjects(featuredData.data);
+          setIsLoading(false);
+          return;
+        }
+        
+        // Otherwise, fetch additional projects to fill the 3 slots
+        const remainingCount = 3 - featuredData.data.length;
+        const regularResponse = await fetch(`${backendUrl}/api/crypto-projects?filters[featured][$ne]=true&populate=Logo&pagination[limit]=${remainingCount}`);
+        
+        if (!regularResponse.ok) {
+          throw new Error("Failed to fetch regular projects");
+        }
+        
+        const regularData: ApiResponse = await regularResponse.json();
+        
+        // Combine featured and regular projects
+        setProjects([...featuredData.data, ...regularData.data]);
         setIsLoading(false);
       } catch (err) {
         console.error("Error fetching projects:", err);
-        setError("Failed to load projects. Please try again later.");
+        
+        // Fallback to fetching all projects if the featured filtering fails
+        try {
+          const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:1337";
+          const response = await fetch(`${backendUrl}/api/crypto-projects?populate=Logo`);
+          
+          if (!response.ok) {
+            throw new Error("Failed to fetch projects");
+          }
+          
+          const data: ApiResponse = await response.json();
+          setProjects(data.data);
+        } catch (fallbackErr) {
+          setError("Failed to load projects. Please try again later.");
+        }
+        
         setIsLoading(false);
       }
     };
@@ -160,10 +233,10 @@ export const ProjectsSection = () => {
         <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-8">
           
           <div>
-          
             <div className="inline-flex items-center px-3 py-1 rounded-full bg-gray-800/70 text-gray-300 text-sm font-medium mb-4">
               <span className="w-2 h-2 rounded-full bg-[#F7984A] mr-2"></span>
-              Trusted Projects & Companies
+              {/* Update the label if we have featured projects */}
+              {projects.some(p => p.featured) ? "Featured Projects" : "Trusted Projects & Companies"}
             </div>
             <h2 className="text-4xl font-bold tracking-tight">Crypto Directory</h2>
             <p className="text-gray-400 mt-2">Discover trusted projects and companies shaping the cryptocurrency landscape.</p>
@@ -197,6 +270,8 @@ export const ProjectsSection = () => {
                 image={getProjectLogo(project)}
                 slug={project.Slug}
                 verified={project.CurrentStatus === "Verified"}
+                featured={project.featured}
+                chainType={project.ChainType}
               />
             ))}
           </div>
