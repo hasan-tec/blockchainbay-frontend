@@ -126,7 +126,6 @@ const chainTypeFilters: FilterItem[] = [
   { id: "Bitcoin", label: "Bitcoin" },
   { id: "BSC", label: "BSC" },
   { id: "Cardano", label: "Cardano" },
-  { id: "Chain Types", label: "Chain Types" },
   { id: "Constellation", label: "Constellation" },
   { id: "Cosmos", label: "Cosmos" },
   { id: "Ethereum", label: "Ethereum" },
@@ -141,6 +140,8 @@ const chainTypeFilters: FilterItem[] = [
   { id: "Sentinel", label: "Sentinel" },
   { id: "Solana", label: "Solana" },
   { id: "Sui", label: "Sui" },
+  { id: "Moonriver", label: "Moonriver" },
+  { id: "Dynex", label: "Dynex" },
 ]
 
 // Subcategory filters
