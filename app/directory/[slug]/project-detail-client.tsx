@@ -15,6 +15,7 @@ import { ArrowUpRight, Globe, Mail, BarChart3, X } from "lucide-react"
 import { CheckCircle, MessageCircle } from "lucide-react"
 import YouTubeEmbed from "@/components/YouTubeEmbed"
 import DuneData from "@/components/DuneData"
+import DexScreenerCard from "@/components/DexScreenerCard" // Add this import
 import { ChevronDown } from "lucide-react"
 import MoreLinksModal from "@/components/MoreLinksModal" // Path to the new component
 import ProjectFeedSection from "@/components/ProjectFeedSection";
@@ -122,6 +123,7 @@ interface CryptoProject {
   // For backward compatibility
   AdditionalLinks?: LinkItem[]
   Logo?: Logo
+  tokenAddress?: string // Add tokenAddress field
 }
 
 // Enhanced RichTextChild interface to support links
@@ -1004,7 +1006,7 @@ const getRelatedProjectLogo = (relatedProject: RelatedProject) => {
               className="h-5 w-5"
               fill="currentColor"
             >
-              <path d="M7.12 0c-3.937-0.011-7.131 3.183-7.12 7.12v17.76c-0.011 3.937 3.183 7.131 7.12 7.12h17.76c3.937 0.011 7.131-3.183 7.12-7.12v-17.76c0.011-3.937-3.183-7.131-7.12-7.12zM15.817 3.421c3.115 0 5.932 1.204 8.079 3.453 1.631 1.693 2.547 3.489 3.016 5.855 0.161 0.787 0.161 2.932 0.009 3.817-0.5 2.817-2.041 5.339-4.317 7.063-0.812 0.615-2.797 1.683-3.115 1.683-0.12 0-0.129-0.12-0.077-0.615 0.099-0.792 0.192-0.953 0.64-1.141 0.713-0.296 1.932-1.167 2.677-1.911 1.301-1.303 2.229-2.932 2.677-4.719 0.281-1.1 0.244-3.543-0.063-4.672-0.969-3.595-3.907-6.385-7.5-7.136-1.041-0.213-2.943-0.213-4 0-3.636 0.751-6.647 3.683-7.563 7.371-0.245 1.004-0.245 3.448 0 4.448 0.609 2.443 2.188 4.681 4.255 6.015 0.407 0.271 0.896 0.547 1.1 0.631 0.447 0.192 0.547 0.355 0.629 1.14 0.052 0.485 0.041 0.62-0.072 0.62-0.073 0-0.62-0.235-1.199-0.511l-0.052-0.041c-3.297-1.62-5.407-4.364-6.177-8.016-0.187-0.943-0.224-3.187-0.036-4.052 0.479-2.323 1.396-4.135 2.921-5.739 2.199-2.319 5.027-3.543 8.172-3.543zM16 7.172c0.541 0.005 1.068 0.052 1.473 0.14 3.715 0.828 6.344 4.543 5.833 8.229-0.203 1.489-0.713 2.709-1.619 3.844-0.448 0.573-1.537 1.532-1.729 1.532-0.032 0-0.063-0.365-0.063-0.803v-0.808l0.552-0.661c2.093-2.505 1.943-6.005-0.339-8.296-0.885-0.896-1.912-1.423-3.235-1.661-0.853-0.161-1.031-0.161-1.927-0.011-1.364 0.219-2.417 0.744-3.355 1.672-2.291 2.271-2.443 5.791-0.348 8.296l0.552 0.661v0.813c0 0.448-0.037 0.807-0.084 0.807-0.036 0-0.349-0.213-0.683-0.479l-0.047-0.016c-1.109-0.885-2.088-2.453-2.495-3.995-0.244-0.932-0.244-2.697 0.011-3.625 0.672-2.505 2.521-4.448 5.079-5.359 0.547-0.193 1.509-0.297 2.416-0.281zM15.823 11.156c0.417 0 0.828 0.084 1.131 0.24 0.645 0.339 1.183 0.989 1.385 1.677 0.62 2.104-1.609 3.948-3.631 3.005h-0.015c-0.953-0.443-1.464-1.276-1.475-2.36 0-0.979 0.541-1.828 1.484-2.328 0.297-0.156 0.709-0.235 1.125-0.235zM15.812 17.464c1.319-0.005 2.271 0.463 2.625 1.291 0.265 0.62 0.167 2.573-0.292 5.735-0.307 2.208-0.479 2.765-0.905 3.141-0.589 0.52-1.417 0.667-2.209 0.385h-0.004c-0.953-0.344-1.157-0.808-1.553-3.527-0.452-3.161-0.552-5.115-0.285-5.735 0.348-0.823 1.296-1.285 2.624-1.291z"/>
+              <path d="M7.12 0c-3.937-0.011-7.131 3.183-7.12 7.12v17.76c-0.011 3.937 3.183 7.131 7.12 7.12h17.76c3.937 0.011 7.131-3.183 7.12-7.12v-17.76c0.011-3.937-3.183-7.131-7.12-7.12zM15.817 3.421c3.115 0 5.932 1.204 8.079 3.453 1.631 1.693 2.547 3.489 3.016 5.855 0.161 0.787 0.161 2.932 0.009 3.817-0.5 2.817-2.041 5.339-4.317 7.063-0.812 0.615-2.797 1.683-3.115 1.683-0.12 0-0.129-0.12-0.077-0.615 0.099-0.792 0.192-0.953 0.64-1.141 0.713-0.296 1.932-1.167 2.677-1.911 1.301-1.303 2.229-2.932 2.677-4.719 0.281-1.1 0.244-3.543-0.063-4.672-0.969-3.595-3.907-6.385-7.5-7.136-1.041-0.213-2.943-0.213-4 0-3.636 0.751-6.647 3.683-7.563 7.371-0.245 1.004-0.245 3.448 0 4.448 0.609 2.443 2.188 4.681 4.255 6.015 0.407 0.271 0.896 0.547 1.1 0.631 0.447 0.192 0.547 0.355 0.629 1.14 0.052 0.485 0.041 0.62-0.072 0.62-0.073 0-0.62-0.235-1.199-0.511l-0.052-0.041c-3.297-1.62-5.407-4.364-6.177-8.016-0.187-0.943-0.224-3.187-0.036-4.052 0.479-2.323 1.396-4.135 2.921-5.739 2.199-2.319 5.027-3.543 8.172-3.543zM16 7.172c0.541 0.005 1.068 0.052 1.473 0.14 3.715 0.828 6.344 4.543 5.833 8.229-0.203 1.489-0.713 2.709-1.619 3.844-0.448 0.573-1.537 1.532-1.729 1.532-0.032 0-0.063-0.365-0.063-0.803v-0.808l0.552-0.661c2.093-2.505 1.943-6.005-0.339-8.296-0.885-0.896-1.912-1.423-3.235-1.661-0.853-0.161-1.031-0.161-1.927-0.011-1.364 0.219-2.417 0.744-3.355 1.672-2.291 2.271-2.443 5.791-0.348 8.296l0.552 0.661v0.813c0 0.448-0.037 0.807-0.084 0.807-0.036 0-0.349-0.213-0.683-0.479l-0.047-0.016c-1.109-0.885-2.088-2.453-2.495-3.995-0.244-0.932-0.244-2.697 0.011-3.625 0.672-2.505 2.521-4.448 5.079-5.359 0.547-0.193 1.509-0.297 2.416-0.281zM15.812 17.464c1.319-0.005 2.271 0.463 2.625 1.291 0.265 0.62 0.167 2.573-0.292 5.735-0.307 2.208-0.479 2.765-0.905 3.141-0.589 0.52-1.417 0.667-2.209 0.385h-0.004c-0.953-0.344-1.157-0.808-1.553-3.527-0.452-3.161-0.552-5.115-0.285-5.735 0.348-0.823 1.296-1.285 2.624-1.291z"/>
             </svg>
           </Link>
           {hoverSocial === "apple" && (
@@ -1028,7 +1030,7 @@ const getRelatedProjectLogo = (relatedProject: RelatedProject) => {
               className="h-5 w-5"
               fill="currentColor"
             >
-              <path d="M36,5H14c-4.971,0-9,4.029-9,9v22c0,4.971,4.029,9,9,9h22c4.971,0,9-4.029,9-9V14C45,9.029,40.971,5,36,5z M38.768,33.932c-2.214,1.57-4.688,2.605-7.285,3.277c-2.595,0.663-5.297,0.914-7.986,0.729c-2.688-0.18-5.313-0.836-7.787-1.794	c-2.466-0.99-4.797-2.263-6.857-3.931c-0.107-0.087-0.124-0.245-0.037-0.352c0.077-0.095,0.209-0.119,0.313-0.063l0.014,0.008	c2.249,1.217,4.653,2.149,7.067,2.889c2.433,0.692,4.909,1.187,7.4,1.288c2.485,0.087,4.997-0.107,7.449-0.617	c2.442-0.504,4.905-1.236,7.17-2.279l0.039-0.018c0.251-0.115,0.547-0.006,0.663,0.245C39.035,33.537,38.961,33.796,38.768,33.932z M39.882,36.892c-0.278,0.21-0.556,0.14-0.417-0.21c0.417-1.12,1.32-3.501,0.903-4.061c-0.486-0.63-2.987-0.28-4.098-0.14	c-0.347,0-0.347-0.28-0.069-0.49c0.972-0.7,2.292-0.98,3.404-0.98c1.111,0,2.084,0.21,2.292,0.56	C42.243,31.99,41.757,35.281,39.882,36.892z" />
+              <path d="M36,5H14c-4.971,0-9,4.029-9,9v22c-0.011 3.937 3.183 7.131 7.12 7.12h17.76c3.937 0.011 7.131-3.183 7.12-7.12v-17.76c0.011-3.937-3.183-7.131-7.12-7.12zM38.768,33.932c-2.214,1.57-4.688,2.605-7.285,3.277c-2.595,0.663-5.297,0.914-7.986,0.729c-2.688-0.18-5.313-0.836-7.787-1.794c-2.466-0.99-4.797-2.263-6.857-3.931c-0.107-0.087-0.124-0.245-0.037-0.352c0.077-0.095,0.209-0.119,0.313-0.063l0.014,0.008c2.249,1.217,4.653,2.149,7.067,2.889c2.433,0.692,4.909,1.187,7.4,1.288c2.485,0.087,4.997-0.107,7.449-0.617c2.442-0.504,4.905-1.236,7.17-2.279l0.039-0.018c0.251-0.115,0.547-0.006,0.663,0.245C39.035,33.537,38.961,33.796,38.768,33.932zM39.882,36.892c-0.278,0.21-0.556,0.14-0.417-0.21c0.417-1.12,1.32-3.501,0.903-4.061c-0.486-0.63-2.987-0.28-4.098-0.14c-0.347,0-0.347-0.28-0.069-0.49c0.972-0.7,2.292-0.98,3.404-0.98c1.111,0,2.084,0.21,2.292,0.56C42.243,31.99,41.757,35.281,39.882,36.892z" />
             </svg>
           </Link>
           {hoverSocial === "amazon" && (
@@ -1080,47 +1082,58 @@ const getRelatedProjectLogo = (relatedProject: RelatedProject) => {
 </div>
                     </div>
                     {/* Sidebar with animation - Only show if Dune IDs exist */}
-                    {(project.AnalyticsDuneQueryID || project.dunequeryid2) && (
-                      <div
-                        className={`space-y-8 transition-all duration-700 ease-out delay-300 ${isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
-                      >
-                        {/* Unified Analytics Card */}
-                        <Card className="bg-[#0A0918] border border-gray-800/50 rounded-xl overflow-hidden shadow-lg">
-                          <div className="p-5 border-b border-gray-800/50">
-                            <h3 className="font-bold text-xl text-white flex items-center">
-                              <BarChart3 className="mr-2 h-5 w-5 text-[#F7984A]" />
-                              {project.title} Analytics
-                            </h3>
-                          </div>
+<div
+  className={`space-y-8 transition-all duration-700 ease-out delay-300 ${isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
+>
+  {/* DexScreener Card - Show for tokens */}
+  {project.TokenType && (project.TokenType === "Has token" || project.TokenType === "Launched") && (
+    <DexScreenerCard 
+      tokenSymbol={project.Symbol} 
+      chainType={project.ChainType}
+      // The tokenAddress would ideally come from your CMS/backend
+      // This is a placeholder - you'll need to update your CMS to store token addresses
+      tokenAddress={project.tokenAddress}
+    />
+  )}
 
-                          <div className="p-5 space-y-8">
-                            {/* First Analytics Chart */}
-                            {project.AnalyticsDuneQueryID && (
-                              <div>
-                                {project.AnalyticsOneHeader && (
-                                  <h4 className="text-base font-bold text-white mb-3">{project.AnalyticsOneHeader}</h4>
-                                )}
-                                <div className="bg-[#0D0B26]/70 rounded-lg overflow-hidden">
-                                  <DuneData queryId={project.AnalyticsDuneQueryID} title="" />
-                                </div>
-                              </div>
-                            )}
+  {/* Unified Analytics Card */}
+  {(project.AnalyticsDuneQueryID || project.dunequeryid2) && (
+    <Card className="bg-[#0A0918] border border-gray-800/50 rounded-xl overflow-hidden shadow-lg">
+      <div className="p-5 border-b border-gray-800/50">
+        <h3 className="font-bold text-xl text-white flex items-center">
+          <BarChart3 className="mr-2 h-5 w-5 text-[#F7984A]" />
+          {project.title} Analytics
+        </h3>
+      </div>
 
-                            {/* Second Analytics Chart */}
-                            {project.dunequeryid2 && (
-                              <div>
-                                {project.AnalyticsTwoHeader && (
-                                  <h4 className="text-base font-bold text-white mb-3">{project.AnalyticsTwoHeader}</h4>
-                                )}
-                                <div className="bg-[#0D0B26]/70 rounded-lg overflow-hidden">
-                                  <DuneData queryId={project.dunequeryid2} title="" />
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </Card>
-                      </div>
-                    )}
+      <div className="p-5 space-y-8">
+        {/* First Analytics Chart */}
+        {project.AnalyticsDuneQueryID && (
+          <div>
+            {project.AnalyticsOneHeader && (
+              <h4 className="text-base font-bold text-white mb-3">{project.AnalyticsOneHeader}</h4>
+            )}
+            <div className="bg-[#0D0B26]/70 rounded-lg overflow-hidden">
+              <DuneData queryId={project.AnalyticsDuneQueryID} title="" />
+            </div>
+          </div>
+        )}
+
+        {/* Second Analytics Chart */}
+        {project.dunequeryid2 && (
+          <div>
+            {project.AnalyticsTwoHeader && (
+              <h4 className="text-base font-bold text-white mb-3">{project.AnalyticsTwoHeader}</h4>
+            )}
+            <div className="bg-[#0D0B26]/70 rounded-lg overflow-hidden">
+              <DuneData queryId={project.dunequeryid2} title="" />
+            </div>
+          </div>
+        )}
+      </div>
+    </Card>
+  )}
+</div>
                   </div>
                 </TabsContent>
               </Tabs>

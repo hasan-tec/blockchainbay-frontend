@@ -95,7 +95,7 @@ const ProductCard = ({ product, onAddToCart }: ProductCardProps) => {
                 alt={productName}
                 className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
                 onError={(e) => {
-                  console.error(`Image error for product ${productName}: using fallback image`);
+                
                   // Use type assertion to handle the TypeScript error
                   const imgElement = e.target as HTMLImageElement;
                   imgElement.onerror = null; // Prevent infinite loop
@@ -276,7 +276,7 @@ const StoreSection = () => {
           setProducts(fallbackProducts.slice(0, 4));
         }
       } catch (error) {
-        console.error("Error processing featured products:", error);
+   
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
         setError(errorMessage);
         setProducts(fallbackProducts.slice(0, 4));
